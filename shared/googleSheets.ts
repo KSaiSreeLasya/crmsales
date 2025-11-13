@@ -201,14 +201,54 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
   const lines = csv.trim().split("\n");
   if (lines.length === 0) return [];
 
-  // Parse header
-  const headers = parseCSVLine(lines[0]);
+  // Parse first line as potential header
+  let headers = parseCSVLine(lines[0]);
+  let startIndex = 1;
+
+  console.log("Raw CSV first 3 lines:");
+  for (let i = 0; i < Math.min(3, lines.length); i++) {
+    console.log(`  Line ${i}: ${lines[i].substring(0, 100)}`);
+  }
+  console.log("Initial headers:", headers);
+
+  // If headers look like data (contain underscores or short values), look for real headers
+  const headerLooksLikeData = headers.some((h) =>
+    String(h)
+      .toLowerCase()
+      .match(/^(_|what_|to_|solar|electricity|bill)/),
+  );
+
+  if (headerLooksLikeData) {
+    console.log("First row appears to be data, searching for header row...");
+
+    // Find a row that looks like headers (contains common column names)
+    for (let i = 0; i < Math.min(10, lines.length); i++) {
+      const possibleHeaders = parseCSVLine(lines[i]);
+      const headerCandidate = possibleHeaders.some(
+        (h) =>
+          String(h)
+            .toLowerCase()
+            .match(
+              /(name|email|phone|address|status|note|column|header|field)/,
+            ) || possibleHeaders.length >= 7,
+      );
+
+      if (headerCandidate) {
+        console.log(`Found likely header row at line ${i}:`, possibleHeaders);
+        headers = possibleHeaders;
+        startIndex = i + 1;
+        break;
+      }
+    }
+  }
+
   console.log("CSV Headers count:", headers.length);
   console.log("CSV Headers:", headers);
+  console.log("Starting to parse data from line:", startIndex);
 
-  // Parse data rows, skip empty rows and invalid header-like rows
+  // Parse data rows
   const rows: GoogleSheetRow[] = [];
-  for (let i = 1; i < lines.length; i++) {
+  for (let i = startIndex; i < lines.length; i++) {
     if (lines[i].trim() === "") continue;
 
     const values = parseCSVLine(lines[i]);
@@ -220,18 +260,6 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
       }
     });
 
-    // Skip rows that appear to be header rows or metadata
-    const firstValue = Object.values(row)[0];
-    if (
-      firstValue &&
-      String(firstValue)
-        .toLowerCase()
-        .match(/^(_|what|property|question|answer)/)
-    ) {
-      console.log("Skipping header-like row:", row);
-      continue;
-    }
-
     // Only add row if it has at least one non-empty cell
     if (Object.values(row).some((val) => val && String(val).trim())) {
       rows.push(row);
@@ -240,27 +268,8 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
 
   console.log("Total parsed data rows:", rows.length);
   if (rows.length > 0) {
-    console.log("First data row keys:", Object.keys(rows[0]));
     console.log("First data row:", rows[0]);
-
-    // Show which columns we can find
-    const sampleRow = rows[0];
-    console.log("Sample column values:");
-    console.log(
-      "  Full Name:",
-      sampleRow["full name"] ||
-        sampleRow["full_name"] ||
-        sampleRow["Full Name"] ||
-        "NOT FOUND",
-    );
-    console.log(
-      "  Email:",
-      sampleRow["email"] || sampleRow["Email"] || "NOT FOUND",
-    );
-    console.log(
-      "  Phone:",
-      sampleRow["phone"] || sampleRow["Phone"] || "NOT FOUND",
-    );
+    console.log("First data row keys:", Object.keys(rows[0]));
   }
 
   return rows;
