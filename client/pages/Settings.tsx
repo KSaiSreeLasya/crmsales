@@ -30,13 +30,24 @@ export default function Settings() {
 
     setIsSyncingLeads(true);
     try {
-      const result = await syncLeadsFromGoogleSheet(spreadsheetId, "0");
-      if (result.success) {
+      const response = await fetch("/api/sync-google-sheet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          spreadsheetId,
+          sheetId: "0",
+          type: "leads",
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
         toast.success(
           `Successfully synced ${result.synced} leads from Google Sheet`,
         );
       } else {
-        toast.error("Failed to sync leads");
+        toast.error(result.error || "Failed to sync leads");
       }
     } catch (error) {
       console.error("Error syncing leads:", error);
@@ -60,13 +71,24 @@ export default function Settings() {
 
     setIsSyncingSalespersons(true);
     try {
-      const result = await syncSalespersonsFromGoogleSheet(spreadsheetId, "0");
-      if (result.success) {
+      const response = await fetch("/api/sync-google-sheet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          spreadsheetId,
+          sheetId: "0",
+          type: "salespersons",
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
         toast.success(
           `Successfully synced ${result.synced} salespersons from Google Sheet`,
         );
       } else {
-        toast.error("Failed to sync salespersons");
+        toast.error(result.error || "Failed to sync salespersons");
       }
     } catch (error) {
       console.error("Error syncing salespersons:", error);
