@@ -92,14 +92,13 @@ export const handleSyncLeads: RequestHandler = async (req, res) => {
       source: source || "api",
     }));
 
-    console.log("Attempting to upsert leads to Supabase...");
-    console.log("Sample lead to insert:", leadsToSync[0]);
+    console.log("Attempting to insert leads to Supabase...");
+    console.log("Total leads to sync:", leadsToSync.length);
+    console.log("Sample lead:", leadsToSync[0]);
 
     const { data, error } = await supabase
       .from("leads")
-      .upsert(leadsToSync, {
-        onConflict: "email",
-      })
+      .insert(leadsToSync)
       .select();
 
     if (error) {
@@ -110,6 +109,34 @@ export const handleSyncLeads: RequestHandler = async (req, res) => {
         details: (error as any).details,
         hint: (error as any).hint,
       });
+
+      // If duplicate key error, try updating instead
+      if (error.message.includes("duplicate") || error.code === "23505") {
+        console.log("Duplicate detected, attempting update instead...");
+        try {
+          const updateResults = await Promise.all(
+            leadsToSync.map((lead) =>
+              supabase
+                .from("leads")
+                .update(lead)
+                .eq("email", lead.email)
+                .select()
+            )
+          );
+
+          const updatedCount = updateResults.filter((r) => !r.error).length;
+          res.json({
+            success: true,
+            message: `${updatedCount} leads updated and ${leadsToSync.length - updatedCount} new leads added`,
+            synced: leadsToSync.length,
+            source: source,
+          });
+          return;
+        } catch (updateError) {
+          console.error("Update failed:", updateError);
+        }
+      }
+
       res.status(500).json({
         error: "Failed to sync leads to database",
         message: error.message,
