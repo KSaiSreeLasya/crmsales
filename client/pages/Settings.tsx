@@ -161,7 +161,7 @@ export default function Settings() {
                         className="mt-2"
                       />
                       <p className="mt-2 text-xs text-muted-foreground">
-                        Required columns: Name, Email, Phone, Department, Region
+                        Required columns: Name, Email, Phone
                       </p>
                     </div>
                     <Button
