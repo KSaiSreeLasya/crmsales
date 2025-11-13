@@ -110,6 +110,7 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
 
   // Parse header
   const headers = parseCSVLine(lines[0]);
+  console.log("CSV Headers:", headers);
 
   // Parse data rows, skip empty rows
   const rows: GoogleSheetRow[] = [];
@@ -127,6 +128,12 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
     if (Object.values(row).some((val) => val && String(val).trim())) {
       rows.push(row);
     }
+  }
+
+  console.log("Total parsed data rows:", rows.length);
+  if (rows.length > 0) {
+    console.log("First data row keys:", Object.keys(rows[0]));
+    console.log("First data row sample:", rows[0]);
   }
 
   return rows;
