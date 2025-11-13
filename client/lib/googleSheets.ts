@@ -223,12 +223,13 @@ function parseCSVLine(line: string): string[] {
         // End of quoted field
         inQuotes = false;
       } else {
-        // Quote in unquoted field
-        current += char;
+        // Quote in unquoted field - just skip it
+        continue;
       }
     } else if (char === "," && !inQuotes) {
       // Field separator (only when not in quotes)
-      result.push(current.trim());
+      const trimmed = current.trim().replace(/^"|"$/g, "");
+      result.push(trimmed);
       current = "";
     } else {
       current += char;
@@ -236,7 +237,8 @@ function parseCSVLine(line: string): string[] {
   }
 
   // Add the last field
-  result.push(current.trim());
+  const trimmed = current.trim().replace(/^"|"$/g, "");
+  result.push(trimmed);
 
   return result;
 }
