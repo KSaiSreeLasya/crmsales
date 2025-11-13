@@ -45,67 +45,66 @@ function getColumnValue(
 
 /**
  * Parse Google Sheet lead row into Lead format
- * Expected columns: full name, email, phone, street address, post_code, lead_status,
- * what_type_of_property_do_you_want_to_install_solar_on?, what_is_your_average_monthly_electricity_bill?
+ * Expected column order (based on user's sheet):
+ * 0: what_type_of_property_do_you_want_to_install_solar_on?
+ * 1: what_is_your_average_monthly_electricity_bill?
+ * 2: full name
+ * 3: phone
+ * 4: email
+ * 5: street address
+ * 6: post_code
+ * 7: lead_status (and feedback columns)
  */
 export function parseLeadRow(row: GoogleSheetRow) {
+  // Get all values as an array in order
+  const values = Object.values(row).filter((v) => v !== undefined);
+
   const parsed = {
-    name: getColumnValue(
-      row,
-      "full name",
-      "Full Name",
-      "name",
-      "Name",
-    ),
-    email: getColumnValue(
-      row,
-      "email",
-      "Email",
-      "EMAIL",
-    ),
-    phone: getColumnValue(
-      row,
-      "phone",
-      "Phone",
-      "PHONE",
-    ),
-    company: getColumnValue(
-      row,
-      "what_type_of_property_do_you_want_to_install_solar_on?",
-      "what is your property type?",
-      "Property Type",
-    ) || "N/A",
-    street_address: getColumnValue(
-      row,
-      "street address",
-      "Street Address",
-      "street_address",
-    ),
-    post_code: getColumnValue(
-      row,
-      "post_code",
-      "Post Code",
-      "postcode",
-    ),
-    lead_status: getColumnValue(
-      row,
-      "lead_status",
-      "Lead Status",
-    ),
-    electricity_bill: getColumnValue(
-      row,
-      "what_is_your_average_monthly_electricity_bill?",
-      "what is your average monthly electricity bill?",
-      "monthly electricity bill",
-      "electricity_bill",
-    ),
+    // Try position-based first, then fallback to name-based
+    company:
+      values[0] || // Position 0: property type
+      getColumnValue(row, "what_type_of_property", "property") ||
+      "N/A",
+    electricity_bill:
+      values[1] || // Position 1: electricity bill
+      getColumnValue(row, "electricity", "bill") ||
+      "",
+    name:
+      values[2] || // Position 2: full name
+      getColumnValue(row, "full name", "name") ||
+      "",
+    phone:
+      values[3] || // Position 3: phone
+      getColumnValue(row, "phone") ||
+      "",
+    email:
+      values[4] || // Position 4: email
+      getColumnValue(row, "email") ||
+      "",
+    street_address:
+      values[5] || // Position 5: street address
+      getColumnValue(row, "street address", "address") ||
+      "",
+    post_code:
+      values[6] || // Position 6: post code
+      getColumnValue(row, "post code", "postcode") ||
+      "",
+    lead_status:
+      values[7] || // Position 7+: lead status and feedback
+      getColumnValue(row, "lead status", "feedback") ||
+      "",
     status: "Not lifted" as LeadStatus,
     assignedTo: "Unassigned",
     note1: "",
     note2: "",
   };
 
-  console.log("Parsed lead:", parsed);
+  console.log("Parsed lead from values:", {
+    company: parsed.company,
+    name: parsed.name,
+    email: parsed.email,
+    phone: parsed.phone,
+  });
   return parsed;
 }
 
