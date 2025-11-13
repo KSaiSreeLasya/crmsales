@@ -225,14 +225,6 @@ export default function Settings() {
                     <option>PST</option>
                   </select>
                 </div>
-                <Button onClick={handleSaveSettings}>Save Settings</Button>
-                {savedSettings && (
-                  <div className="rounded-lg bg-success/10 p-4">
-                    <p className="text-sm font-medium text-success">
-                      ✓ Settings saved successfully
-                    </p>
-                  </div>
-                )}
               </div>
             </Card>
           </TabsContent>
