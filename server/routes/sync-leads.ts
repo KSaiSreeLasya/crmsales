@@ -15,6 +15,10 @@ interface SyncLeadRequest {
     email: string;
     phone: string;
     company: string;
+    street_address?: string;
+    post_code?: string;
+    lead_status?: string;
+    electricity_bill?: string;
     status?: string;
     assignedTo?: string;
     note1?: string;
