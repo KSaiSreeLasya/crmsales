@@ -13,10 +13,14 @@ export interface GoogleSheetRow {
 }
 
 /**
- * Normalize column names (case-insensitive, trim whitespace)
+ * Normalize column names (case-insensitive, trim whitespace, remove quotes)
  */
 function normalizeKey(key: string): string {
-  return key.trim().toLowerCase().replace(/\s+/g, "_");
+  return key
+    .trim()
+    .toLowerCase()
+    .replace(/^["']|["']$/g, "") // Remove leading/trailing quotes
+    .replace(/\s+/g, "_");
 }
 
 /**
