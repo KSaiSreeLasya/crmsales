@@ -361,6 +361,7 @@ export default function Leads() {
         street_address: lead.street_address || "",
         post_code: lead.post_code || "",
         lead_status: lead.lead_status || "",
+        electricity_bill: (lead as any).electricity_bill || "",
         note1: lead.note1,
         note2: lead.note2,
         status: lead.status,
