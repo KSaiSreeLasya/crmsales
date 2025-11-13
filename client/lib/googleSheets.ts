@@ -35,7 +35,9 @@ function getColumnValue(
     for (const [key, value] of Object.entries(row)) {
       const normalizedKey = normalizeKey(key);
       if (normalizedKey === normalizedName && value) {
-        const result = String(value).trim().replace(/^["']|["']$/g, "");
+        const result = String(value)
+          .trim()
+          .replace(/^["']|["']$/g, "");
         if (result) return result;
       }
     }
@@ -76,32 +78,52 @@ export function parseLeadRow(row: GoogleSheetRow) {
     }
 
     // Match phone
-    if (!phone && (keyLower.includes("phone") || keyLower.includes("telephone"))) {
+    if (
+      !phone &&
+      (keyLower.includes("phone") || keyLower.includes("telephone"))
+    ) {
       phone = valueTrimmed;
     }
 
     // Match property type
-    if (company === "N/A" && (keyLower.includes("property") || keyLower.includes("install"))) {
+    if (
+      company === "N/A" &&
+      (keyLower.includes("property") || keyLower.includes("install"))
+    ) {
       company = valueTrimmed || "N/A";
     }
 
     // Match street address
-    if (!street_address && (keyLower.includes("street") || keyLower.includes("address"))) {
+    if (
+      !street_address &&
+      (keyLower.includes("street") || keyLower.includes("address"))
+    ) {
       street_address = valueTrimmed;
     }
 
     // Match post code
-    if (!post_code && (keyLower.includes("post") || keyLower.includes("zip") || keyLower.includes("postal"))) {
+    if (
+      !post_code &&
+      (keyLower.includes("post") ||
+        keyLower.includes("zip") ||
+        keyLower.includes("postal"))
+    ) {
       post_code = valueTrimmed;
     }
 
     // Match lead status
-    if (!lead_status && (keyLower.includes("lead") || keyLower.includes("status"))) {
+    if (
+      !lead_status &&
+      (keyLower.includes("lead") || keyLower.includes("status"))
+    ) {
       lead_status = valueTrimmed;
     }
 
     // Match electricity bill
-    if (!electricity_bill && (keyLower.includes("electricity") || keyLower.includes("bill"))) {
+    if (
+      !electricity_bill &&
+      (keyLower.includes("electricity") || keyLower.includes("bill"))
+    ) {
       electricity_bill = valueTrimmed;
     }
   }
@@ -341,7 +363,9 @@ export async function syncLeadsFromGoogleSheet(
     if (!response.ok) {
       console.error("Server error response:", responseData);
       throw new Error(
-        responseData.message || responseData.error || "Failed to sync leads to database"
+        responseData.message ||
+          responseData.error ||
+          "Failed to sync leads to database",
       );
     }
 

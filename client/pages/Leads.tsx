@@ -565,7 +565,9 @@ export default function Leads() {
                   </div>
 
                   <div>
-                    <Label htmlFor="electricityBill">Monthly Electricity Bill</Label>
+                    <Label htmlFor="electricityBill">
+                      Monthly Electricity Bill
+                    </Label>
                     <Input
                       id="electricityBill"
                       placeholder="Average Monthly Electricity Bill"

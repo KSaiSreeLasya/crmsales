@@ -7,7 +7,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertCircle, CheckCircle, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { syncLeadsFromGoogleSheet, syncSalespersonsFromGoogleSheet, extractSpreadsheetId } from "@/lib/googleSheets";
+import {
+  syncLeadsFromGoogleSheet,
+  syncSalespersonsFromGoogleSheet,
+  extractSpreadsheetId,
+} from "@/lib/googleSheets";
 
 export default function Settings() {
   const [leadsSheetUrl, setLeadsSheetUrl] = useState("");
@@ -32,7 +36,9 @@ export default function Settings() {
     try {
       const result = await syncLeadsFromGoogleSheet(spreadsheetId, "0");
       if (result.success) {
-        toast.success(`Successfully synced ${result.synced} leads from Google Sheet`);
+        toast.success(
+          `Successfully synced ${result.synced} leads from Google Sheet`,
+        );
       } else {
         toast.error("Failed to sync leads");
       }
@@ -60,7 +66,9 @@ export default function Settings() {
     try {
       const result = await syncSalespersonsFromGoogleSheet(spreadsheetId, "0");
       if (result.success) {
-        toast.success(`Successfully synced ${result.synced} salespersons from Google Sheet`);
+        toast.success(
+          `Successfully synced ${result.synced} salespersons from Google Sheet`,
+        );
       } else {
         toast.error("Failed to sync salespersons");
       }
@@ -103,7 +111,8 @@ export default function Settings() {
                         Google Sheets - Leads
                       </h3>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        Sync leads from your Google Sheet. Sheet must be publicly shared.
+                        Sync leads from your Google Sheet. Sheet must be
+                        publicly shared.
                       </p>
                     </div>
                     <div className="text-blue-600">
@@ -121,7 +130,8 @@ export default function Settings() {
                         className="mt-2"
                       />
                       <p className="mt-2 text-xs text-muted-foreground">
-                        Required columns: Name, Email, Phone, Company, Assigned to, Status, Note1, Note2
+                        Required columns: Name, Email, Phone, Company, Assigned
+                        to, Status, Note1, Note2
                       </p>
                     </div>
                     <Button
@@ -129,7 +139,9 @@ export default function Settings() {
                       disabled={isSyncingLeads}
                       className="gap-2"
                     >
-                      <RefreshCw className={`h-4 w-4 ${isSyncingLeads ? "animate-spin" : ""}`} />
+                      <RefreshCw
+                        className={`h-4 w-4 ${isSyncingLeads ? "animate-spin" : ""}`}
+                      />
                       {isSyncingLeads ? "Syncing Leads..." : "Sync Leads"}
                     </Button>
                   </div>
@@ -143,7 +155,8 @@ export default function Settings() {
                         Google Sheets - Salespersons
                       </h3>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        Sync your sales team from Google Sheet. Sheet must be publicly shared.
+                        Sync your sales team from Google Sheet. Sheet must be
+                        publicly shared.
                       </p>
                     </div>
                     <div className="text-blue-600">
@@ -152,12 +165,16 @@ export default function Settings() {
                   </div>
                   <div className="mt-4 space-y-4">
                     <div>
-                      <Label htmlFor="salespersons-sheet-url">Google Sheet URL</Label>
+                      <Label htmlFor="salespersons-sheet-url">
+                        Google Sheet URL
+                      </Label>
                       <Input
                         id="salespersons-sheet-url"
                         placeholder="https://docs.google.com/spreadsheets/d/..."
                         value={salespersonsSheetUrl}
-                        onChange={(e) => setSalespersonsSheetUrl(e.target.value)}
+                        onChange={(e) =>
+                          setSalespersonsSheetUrl(e.target.value)
+                        }
                         className="mt-2"
                       />
                       <p className="mt-2 text-xs text-muted-foreground">
@@ -169,8 +186,12 @@ export default function Settings() {
                       disabled={isSyncingSalespersons}
                       className="gap-2"
                     >
-                      <RefreshCw className={`h-4 w-4 ${isSyncingSalespersons ? "animate-spin" : ""}`} />
-                      {isSyncingSalespersons ? "Syncing Salespersons..." : "Sync Salespersons"}
+                      <RefreshCw
+                        className={`h-4 w-4 ${isSyncingSalespersons ? "animate-spin" : ""}`}
+                      />
+                      {isSyncingSalespersons
+                        ? "Syncing Salespersons..."
+                        : "Sync Salespersons"}
                     </Button>
                   </div>
                 </div>

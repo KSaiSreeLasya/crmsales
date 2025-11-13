@@ -94,7 +94,8 @@ export const handleSyncLeads: RequestHandler = async (req, res) => {
       if (lead.street_address) syncData.street_address = lead.street_address;
       if (lead.post_code) syncData.post_code = lead.post_code;
       if (lead.lead_status) syncData.lead_status = lead.lead_status;
-      if (lead.electricity_bill) syncData.electricity_bill = lead.electricity_bill;
+      if (lead.electricity_bill)
+        syncData.electricity_bill = lead.electricity_bill;
       if (lead.note1) syncData.note1 = lead.note1;
       if (lead.note2) syncData.note2 = lead.note2;
 
@@ -115,17 +116,22 @@ export const handleSyncLeads: RequestHandler = async (req, res) => {
       if (error) {
         console.error("Supabase insert error:", error);
         console.error("Full error object:", JSON.stringify(error, null, 2));
-        console.error("Attempting to sync leads:", JSON.stringify(leadsToSync[0]));
+        console.error(
+          "Attempting to sync leads:",
+          JSON.stringify(leadsToSync[0]),
+        );
 
         // If duplicate key error, try update
-        if (error.message?.includes("duplicate") || (error as any).code === "23505") {
-          console.log("Duplicate key detected, attempting to update existing records...");
+        if (
+          error.message?.includes("duplicate") ||
+          (error as any).code === "23505"
+        ) {
+          console.log(
+            "Duplicate key detected, attempting to update existing records...",
+          );
 
           for (const lead of leadsToSync) {
-            await supabase
-              .from("leads")
-              .update(lead)
-              .eq("email", lead.email);
+            await supabase.from("leads").update(lead).eq("email", lead.email);
           }
 
           res.json({

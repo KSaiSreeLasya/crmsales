@@ -160,12 +160,19 @@ export default function Salespersons() {
         toast.error(
           "Database not set up. Please create salespersons table in Supabase",
         );
-      } else if (errorMsg.includes("duplicate") || errorMsg.includes("unique")) {
+      } else if (
+        errorMsg.includes("duplicate") ||
+        errorMsg.includes("unique")
+      ) {
         toast.error("A salesperson with this email or name already exists");
       } else if (errorMsg.includes("Row Level Security")) {
-        toast.error("RLS enabled. Run: ALTER TABLE salespersons DISABLE ROW LEVEL SECURITY;");
+        toast.error(
+          "RLS enabled. Run: ALTER TABLE salespersons DISABLE ROW LEVEL SECURITY;",
+        );
       } else {
-        toast.error(`Failed to save salesperson: ${errorMsg || "Unknown error"}`);
+        toast.error(
+          `Failed to save salesperson: ${errorMsg || "Unknown error"}`,
+        );
       }
     }
   };
