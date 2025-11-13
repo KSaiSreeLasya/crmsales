@@ -92,6 +92,9 @@ export const handleSyncLeads: RequestHandler = async (req, res) => {
       source: source || "api",
     }));
 
+    console.log("Attempting to upsert leads to Supabase...");
+    console.log("Sample lead to insert:", leadsToSync[0]);
+
     const { data, error } = await supabase
       .from("leads")
       .upsert(leadsToSync, {
@@ -101,12 +104,22 @@ export const handleSyncLeads: RequestHandler = async (req, res) => {
 
     if (error) {
       console.error("Supabase error:", error);
+      console.error("Error details:", {
+        message: error.message,
+        code: (error as any).code,
+        details: (error as any).details,
+        hint: (error as any).hint,
+      });
       res.status(500).json({
         error: "Failed to sync leads to database",
         message: error.message,
+        details: (error as any).details,
+        code: (error as any).code,
       });
       return;
     }
+
+    console.log("Successfully synced", data?.length, "leads");
 
     res.json({
       success: true,
