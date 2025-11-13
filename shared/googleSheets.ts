@@ -225,27 +225,24 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
   if (headerLooksLikeData) {
     console.log("First row appears to be data, searching for header row...");
 
-    // Find a row that contains "full name" or other key headers
-    for (let i = 0; i < Math.min(20, lines.length); i++) {
+    // Find a row that contains email, phone, AND name - these must all be present
+    for (let i = 0; i < Math.min(50, lines.length); i++) {
       const possibleHeaders = parseCSVLine(lines[i]);
-      const headerText = possibleHeaders.map((h) => h.toLowerCase()).join("|");
+      const headerTextLower = possibleHeaders
+        .map((h) => h.toLowerCase())
+        .join("|");
 
-      // Look for specific key columns that should exist
-      const hasKeyColumns =
-        headerText.includes("full") ||
-        (headerText.includes("name") && headerText.includes("phone"));
+      // Check for the essential columns together
+      const hasEmailColumn = headerTextLower.includes("email");
+      const hasPhoneColumn = headerTextLower.includes("phone");
+      const hasNameColumn =
+        headerTextLower.includes("name") || headerTextLower.includes("full");
 
-      // Also accept rows with reasonable number of columns and proper headers
-      const hasReasonableHeaders =
-        possibleHeaders.length >= 7 &&
-        possibleHeaders.some((h) =>
-          String(h)
-            .toLowerCase()
-            .match(/(name|email|phone|address|status)/),
+      if (hasEmailColumn && hasPhoneColumn && hasNameColumn) {
+        console.log(
+          `✓ Found valid header row at line ${i}:`,
+          possibleHeaders,
         );
-
-      if (hasKeyColumns || hasReasonableHeaders) {
-        console.log(`Found likely header row at line ${i}:`, possibleHeaders);
         headers = possibleHeaders;
         startIndex = i + 1;
         break;
