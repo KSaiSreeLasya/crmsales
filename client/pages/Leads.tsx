@@ -118,6 +118,8 @@ export default function Leads() {
   useEffect(() => {
     loadLeads();
     loadSalespersons();
+    // Auto-sync from Google Sheets on page load
+    syncFromGoogleSheet();
   }, []);
 
   const loadLeads = async () => {
@@ -130,14 +132,15 @@ export default function Leads() {
 
       if (error) {
         console.error("Error loading leads:", error);
-        toast.error("Failed to load leads");
+        if (!error.message.includes("relation")) {
+          toast.error("Failed to load leads");
+        }
         setLeads([]);
       } else {
         setLeads(data || []);
       }
     } catch (error) {
       console.error("Error:", error);
-      toast.error("Failed to load leads");
       setLeads([]);
     } finally {
       setIsLoading(false);
@@ -159,13 +162,15 @@ export default function Leads() {
     }
   };
 
-  const syncFromGoogleSheet = async () => {
+  const syncFromGoogleSheet = async (showNotification = false) => {
     setIsSyncing(true);
     try {
       const rows = await fetchGoogleSheet(SPREADSHEET_ID);
 
       if (rows.length === 0) {
-        toast.error("Google Sheet is empty");
+        if (showNotification) {
+          toast.error("Google Sheet is empty");
+        }
         setIsSyncing(false);
         return;
       }
@@ -187,7 +192,9 @@ export default function Leads() {
         .filter((lead) => lead.name && lead.email && lead.phone);
 
       if (leadsToSync.length === 0) {
-        toast.error("No valid leads found in Google Sheet");
+        if (showNotification) {
+          toast.error("No valid leads found in Google Sheet");
+        }
         setIsSyncing(false);
         return;
       }
@@ -208,10 +215,14 @@ export default function Leads() {
 
       // Reload leads from Supabase
       await loadLeads();
-      toast.success(`Synced ${leadsToSync.length} leads from Google Sheet`);
+      if (showNotification) {
+        toast.success(`Synced ${leadsToSync.length} leads from Google Sheet`);
+      }
     } catch (error) {
       console.error("Error syncing from Google Sheet:", error);
-      toast.error("Failed to sync from Google Sheet");
+      if (showNotification) {
+        toast.error("Failed to sync from Google Sheet");
+      }
     } finally {
       setIsSyncing(false);
     }
@@ -415,7 +426,7 @@ export default function Leads() {
             <Button
               variant="outline"
               className="gap-2"
-              onClick={syncFromGoogleSheet}
+              onClick={() => syncFromGoogleSheet(true)}
               disabled={isSyncing}
             >
               <RefreshCw
