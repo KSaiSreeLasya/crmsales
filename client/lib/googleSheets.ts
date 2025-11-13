@@ -93,15 +93,13 @@ export function parseLeadRow(row: GoogleSheetRow) {
 
 /**
  * Parse Google Sheet salesperson row into Salesperson format
- * Expected columns: Name, Email, Phone, Department, Region
+ * Expected columns: Name, Email, Phone
  */
 export function parseSalespersonRow(row: GoogleSheetRow) {
   return {
     name: getColumnValue(row, "Name"),
     email: getColumnValue(row, "Email"),
     phone: getColumnValue(row, "Phone"),
-    department: getColumnValue(row, "Department"),
-    region: getColumnValue(row, "Region"),
   };
 }
 
