@@ -31,18 +31,32 @@ export const handleSyncLeads: RequestHandler = async (req, res) => {
   try {
     const { leads, source } = req.body as SyncLeadRequest;
 
+    console.log("Sync request received with leads:", leads.length);
+    if (leads.length > 0) {
+      console.log("First lead sample:", leads[0]);
+    }
+
     if (!Array.isArray(leads) || leads.length === 0) {
       res.status(400).json({ error: "No leads provided" });
       return;
     }
 
-    // Validate leads - only require name, email, phone, company
-    const validLeads = leads.filter(
-      (lead) => lead.name && lead.email && lead.phone && lead.company,
-    );
+    // Validate leads - only require name, email, phone (company is optional)
+    const validLeads = leads.filter((lead) => {
+      const isValid = lead.name && lead.email && lead.phone;
+      if (!isValid) {
+        console.log("Invalid lead filtered out:", lead);
+      }
+      return isValid;
+    });
+
+    console.log("Valid leads after filtering:", validLeads.length);
 
     if (validLeads.length === 0) {
-      res.status(400).json({ error: "No valid leads found" });
+      res.status(400).json({
+        error: "No valid leads found - requires: name, email, phone",
+        sample: leads[0],
+      });
       return;
     }
 
