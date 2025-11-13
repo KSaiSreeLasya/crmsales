@@ -342,9 +342,10 @@ export default function Leads() {
       street_address: "",
       post_code: "",
       lead_status: "",
+      electricity_bill: "",
       note1: "",
       note2: "",
-      status: "New",
+      status: "Not lifted",
       assigned_to: "",
     });
     setEditingId(null);
