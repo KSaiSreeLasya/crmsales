@@ -106,9 +106,10 @@ export default function Leads() {
     street_address: "",
     post_code: "",
     lead_status: "",
+    electricity_bill: "",
     note1: "",
     note2: "",
-    status: "New" as LeadStatus,
+    status: "Not lifted" as LeadStatus,
     assigned_to: "",
   });
 
