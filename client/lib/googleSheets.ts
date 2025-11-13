@@ -39,53 +39,55 @@ function getColumnValue(
 
 /**
  * Parse Google Sheet lead row into Lead format
- * Expected columns: Name/Full Name, Email, Company, Phone, Assigned to/Owner, Status, Note1/Note 1, Note2/Note 2
+ * Expected columns: full name, email, phone, street address, post_code, lead_status,
+ * what_type_of_property_do_you_want_to_install_solar_on?, what_is_your_average_monthly_electricity_bill?
  */
 export function parseLeadRow(row: GoogleSheetRow) {
   const parsed = {
     name: getColumnValue(
       row,
-      "Full Name",
       "full name",
-      "Name",
+      "Full Name",
       "name",
-      "FULL_NAME",
-      "full_name",
+      "Name",
     ),
-    email: getColumnValue(row, "Email", "email", "EMAIL"),
-    phone: getColumnValue(row, "Phone", "phone", "PHONE"),
-    company: getColumnValue(row, "Company", "company", "COMPANY") || "N/A",
-    status: (getColumnValue(row, "Status", "status", "STATUS") ||
-      "Not lifted") as LeadStatus,
-    assignedTo:
-      getColumnValue(
-        row,
-        "Assigned to",
-        "Assigned To",
-        "assigned_to",
-        "assigned to",
-        "Owner",
-        "owner",
-        "OWNER",
-      ) || "Unassigned",
-    note1: getColumnValue(
+    email: getColumnValue(row, "email", "Email", "EMAIL"),
+    phone: getColumnValue(row, "phone", "Phone", "PHONE"),
+    company: getColumnValue(
       row,
-      "Note 1",
-      "Note1",
-      "note_1",
-      "note 1",
-      "note1",
-      "NOTE_1",
-    ),
-    note2: getColumnValue(
+      "what_type_of_property_do_you_want_to_install_solar_on?",
+      "Property Type",
+      "property_type",
+    ) || "N/A",
+    street_address: getColumnValue(
       row,
-      "Note 2",
-      "Note2",
-      "note_2",
-      "note 2",
-      "note2",
-      "NOTE_2",
+      "street address",
+      "Street Address",
+      "street_address",
     ),
+    post_code: getColumnValue(
+      row,
+      "post_code",
+      "Post Code",
+      "postcode",
+      "postal_code",
+    ),
+    lead_status: getColumnValue(
+      row,
+      "lead_status",
+      "Lead Status",
+      "leadstatus",
+    ),
+    electricity_bill: getColumnValue(
+      row,
+      "what_is_your_average_monthly_electricity_bill?",
+      "Monthly Electricity Bill",
+      "electricity_bill",
+    ),
+    status: "Not lifted" as LeadStatus,
+    assignedTo: "Unassigned",
+    note1: "",
+    note2: "",
   };
 
   return parsed;
