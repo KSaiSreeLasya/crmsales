@@ -206,7 +206,7 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
   console.log("CSV Headers count:", headers.length);
   console.log("CSV Headers:", headers);
 
-  // Parse data rows, skip empty rows
+  // Parse data rows, skip empty rows and invalid header-like rows
   const rows: GoogleSheetRow[] = [];
   for (let i = 1; i < lines.length; i++) {
     if (lines[i].trim() === "") continue;
@@ -215,10 +215,22 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
     const row: GoogleSheetRow = {};
 
     headers.forEach((header, index) => {
-      if (header) {
+      if (header && header.trim()) {
         row[header] = values[index] || "";
       }
     });
+
+    // Skip rows that appear to be header rows or metadata
+    const firstValue = Object.values(row)[0];
+    if (
+      firstValue &&
+      String(firstValue)
+        .toLowerCase()
+        .match(/^(_|what|property|question|answer)/)
+    ) {
+      console.log("Skipping header-like row:", row);
+      continue;
+    }
 
     // Only add row if it has at least one non-empty cell
     if (Object.values(row).some((val) => val && String(val).trim())) {
@@ -235,8 +247,11 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
     const sampleRow = rows[0];
     console.log("Sample column values:");
     console.log(
-      "  Full Name / full name:",
-      sampleRow["full name"] || sampleRow["Full Name"] || "NOT FOUND",
+      "  Full Name:",
+      sampleRow["full name"] ||
+        sampleRow["full_name"] ||
+        sampleRow["Full Name"] ||
+        "NOT FOUND",
     );
     console.log(
       "  Email:",
