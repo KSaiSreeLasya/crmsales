@@ -2,14 +2,14 @@
 
 ## Overview
 
-SalesHub is a modern CRM application designed for sales teams to manage leads, assign them to salespersons, and track conversions. The app integrates with Google Sheets for automatic lead syncing and Supabase for data storage.
+SalesHub is a modern CRM application designed for sales teams to manage leads, assign them to salespersons, and track conversions. The app integrates with Google Sheets for automatic lead and salesperson syncing, and Supabase for data storage.
 
 ## Features
 
 - ✅ Dashboard with key metrics and insights
-- ✅ Leads management with filtering and search
-- ✅ Team member management with performance tracking
-- ✅ Google Sheets integration for automatic lead import
+- ✅ Leads management with filtering, search, and CRUD operations
+- ✅ Salespersons management with full CRUD operations
+- ✅ Google Sheets integration for automatic lead and salesperson import
 - ✅ Real-time data updates via Supabase
 - ✅ Modern, responsive UI with Tailwind CSS
 
@@ -17,7 +17,7 @@ SalesHub is a modern CRM application designed for sales teams to manage leads, a
 
 Before you start, you need:
 1. A Supabase project
-2. A Google Sheet with your leads data
+2. Google Sheets with your leads and salespersons data
 3. Environment variables configured
 
 ## Step 1: Set Up Supabase
@@ -40,10 +40,11 @@ CREATE TABLE leads (
   email TEXT UNIQUE NOT NULL,
   phone TEXT NOT NULL,
   company TEXT NOT NULL,
-  status TEXT CHECK (status IN ('new', 'contacted', 'qualified', 'converted', 'lost')),
-  assigned_to TEXT,
+  status TEXT CHECK (status IN ('Not lifted', 'Not connected', 'Voice Message', 'Quotation sent', 'Site visit', 'Advance payment', 'Lead finished', 'Contacted')) DEFAULT 'Not lifted',
+  assigned_to TEXT NOT NULL,
+  note1 TEXT,
+  note2 TEXT,
   source TEXT,
-  notes TEXT,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );
@@ -56,20 +57,8 @@ CREATE TABLE salespersons (
   name TEXT NOT NULL,
   email TEXT UNIQUE NOT NULL,
   phone TEXT NOT NULL,
-  department TEXT,
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW()
-);
-```
-
-#### Table: `lead_assignments`
-```sql
-CREATE TABLE lead_assignments (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  lead_id UUID REFERENCES leads(id) ON DELETE CASCADE,
-  salesperson_id UUID REFERENCES salespersons(id) ON DELETE CASCADE,
-  assigned_at TIMESTAMP DEFAULT NOW(),
-  status TEXT CHECK (status IN ('active', 'completed', 'transferred')),
+  department TEXT NOT NULL,
+  region TEXT NOT NULL,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );
@@ -89,107 +78,177 @@ You can find these values in your Supabase project settings:
 2. Navigate to Settings > API
 3. Copy the Project URL and anon/public key
 
-## Step 2: Set Up Google Sheets Integration
+## Step 2: Prepare Google Sheets
 
-### Prepare Your Google Sheet
+### Leads Sheet
 
-Create a Google Sheet with the following columns (in the first row):
-- `Name` - Lead's full name
-- `Email` - Lead's email address
-- `Phone` - Lead's phone number
-- `Company` - Company name
-- `Status` - (Optional) One of: new, contacted, qualified, converted, lost
+Create a Google Sheet named "Leads" with these columns (in order):
+- **Name** - Lead's full name
+- **Email** - Lead's email address
+- **Company** - Company name
+- **Phone** - Lead's phone number
+- **Assigned to** - Salesperson assigned to this lead
+- **Status** - One of: Not lifted, Not connected, Voice Message, Quotation sent, Site visit, Advance payment, Lead finished, Contacted
+- **Note1** - First note/comment
+- **Note2** - Second note/comment
 
 Example:
 ```
-Name          | Email              | Phone         | Company        | Status
-John Smith    | john@example.com   | +1-234-567890 | Tech Corp      | new
-Jane Doe      | jane@example.com   | +1-234-567891 | Business Inc   | contacted
+Name       | Email              | Company      | Phone         | Assigned to    | Status           | Note1          | Note2
+John Smith | john@example.com   | Tech Corp    | +1-234-567890 | Sarah Johnson  | Contacted        | Interested     | Follow up
+Jane Doe   | jane@example.com   | Business Inc | +1-234-567891 | Mike Chen      | Quotation sent   | High interest  | Waiting
 ```
 
-### Share the Sheet
+**Important:** Only rows with values in the Name field will be imported. Empty rows are automatically skipped.
 
-Make sure the sheet is publicly accessible:
+### Salespersons Sheet
+
+Create a Google Sheet named "Salespersons" with these columns (in order):
+- **Name** - Salesperson's full name
+- **Email** - Salesperson's email address
+- **Phone** - Salesperson's phone number
+- **Department** - Department (e.g., Sales, Sales Manager)
+- **Region** - Region assigned (e.g., North, South, East, West)
+
+Example:
+```
+Name            | Email              | Phone         | Department    | Region
+Sarah Johnson   | sarah@example.com  | +1-234-567890 | Sales         | North
+Mike Chen       | mike@example.com   | +1-234-567891 | Sales         | South
+```
+
+**Important:** Only rows with values in the Name field will be imported. Empty rows are automatically skipped.
+
+### Make Sheets Public
+
+Make sure both sheets are publicly accessible:
 1. Click "Share" on your Google Sheet
 2. Set the access to "Anyone with the link can view"
 3. Copy the share link
 
-### Connect in Settings
-
-1. Go to Settings > Integrations in the CRM
-2. Paste your Google Sheet URL
-3. Click "Connect Sheet"
-
-The system will automatically sync new leads from the sheet every hour.
-
 ## Step 3: Configure the Application
 
-### Add Your Team Members
+### Add Salespersons
 
-1. Navigate to "Team Members" page
-2. Click "Add Salesperson"
-3. Enter their details (name, email, phone)
-4. They'll be available for lead assignment
+You can:
+1. **Manually add via UI**: Go to "Sales Team" page and click "Add Salesperson"
+2. **Sync from Google Sheet**: Go to Settings and connect your Salespersons sheet
 
-### Customize Settings
+### Import Leads
 
-1. Go to Settings > General
-2. Update your organization name and timezone
-3. Save the changes
+You can:
+1. **Manually add via UI**: Go to "Leads" page and click "Add Lead"
+2. **Sync from Google Sheet**: Go to Settings and connect your Leads sheet
+
+### Configure Settings
+
+1. Go to Settings > Integrations
+2. Paste your Google Sheet URL for Leads
+3. Click "Connect Sheet"
+4. Leads will sync automatically
 
 ## Usage
 
-### Adding Leads
+### Managing Leads
 
-#### Manual Entry
+#### Add Lead
 1. Go to "Leads" page
 2. Click "Add Lead"
-3. Fill in the lead details
-4. Click "Add Lead"
+3. Fill in all required fields (Name, Email, Company, Phone, Assigned To)
+4. Optionally add Status and Notes
+5. Click "Add Lead"
 
-#### From Google Sheet
-1. Ensure your Google Sheet is connected in Settings
-2. Leads will sync automatically
-3. New leads will appear in the "Leads" page
-
-### Assigning Leads
-
+#### Edit Lead
 1. Go to "Leads" page
-2. Find the lead you want to assign
-3. Click the "Assign" dropdown in the "Assigned To" column
-4. Select a salesperson
-5. The lead is now assigned
+2. Click the Edit icon for the lead
+3. Update any fields
+4. Click "Update Lead"
 
-### Tracking Progress
+#### Delete Lead
+1. Go to "Leads" page
+2. Click the Delete icon
+3. Confirm deletion
 
-1. View the Dashboard for overall metrics
-2. Check each lead's status (New, Contacted, Qualified, Converted, Lost)
-3. Update status as leads progress through your sales pipeline
-4. Monitor team performance on the "Team Members" page
+#### Filter & Search
+- Use the search box to find leads by name, email, or company
+- Use the Status dropdown to filter by lead status
+
+### Managing Salespersons
+
+#### Add Salesperson
+1. Go to "Sales Team" page
+2. Click "Add Salesperson"
+3. Fill in all fields (Name, Email, Phone, Department, Region)
+4. Click "Add Salesperson"
+
+#### Edit Salesperson
+1. Go to "Sales Team" page
+2. Click the Edit icon
+3. Update any fields
+4. Click "Update Salesperson"
+
+#### Delete Salesperson
+1. Go to "Sales Team" page
+2. Click the Delete icon
+3. Confirm deletion
+
+### Syncing from Google Sheets
+
+#### Sync Leads
+1. Prepare your Google Sheet with the leads columns
+2. Make it publicly shareable
+3. Go to Settings > Integrations
+4. Paste the sheet URL
+5. Click "Connect Sheet"
+
+#### Sync Salespersons
+1. Prepare your Google Sheet with the salespersons columns
+2. Make it publicly shareable
+3. Go to Settings > Integrations
+4. Paste the sheet URL for salespersons
+5. Click "Connect Sheet"
+
+## Status Options
+
+The following status options are available for leads:
+- **Not lifted** - Initial status, no contact attempted
+- **Not connected** - Contact attempted but no connection
+- **Voice Message** - Left voicemail
+- **Contacted** - Successfully contacted
+- **Quotation sent** - Quote/proposal sent
+- **Site visit** - Site visit scheduled/completed
+- **Advance payment** - Advance payment received
+- **Lead finished** - Deal closed or deal lost
 
 ## Real-Time Updates
 
 The application uses Supabase's real-time capabilities to automatically update data:
 - When a lead is added from Google Sheets, it appears instantly
-- When a team member updates a lead's status, others see it immediately
-- Team performance metrics update in real-time
+- When a team member updates lead info, others see it immediately
+- Team changes sync across all users in real-time
 
 ## Troubleshooting
 
 ### Google Sheet Not Syncing
 - Ensure the sheet is shared publicly ("Anyone with the link can view")
-- Check that column headers match exactly (Name, Email, Phone, Company)
+- Check that column headers match exactly (Name, Email, Phone, etc.)
 - Verify the share link format is correct
+- Ensure rows have values in required columns (Name for both sheets)
+
+### Empty Rows Issue
+- The system automatically skips empty rows
+- Only rows with a Name value are imported
+- Make sure your Google Sheet doesn't have blank rows between data
 
 ### Leads Not Appearing
 - Check that Supabase environment variables are correctly set
 - Verify the Supabase tables are created with correct schema
 - Check browser console for any error messages
 
-### Performance Issues
-- The app caches data for 5 minutes to improve performance
-- Real-time updates override cached data
-- Clear browser cache if you see stale data
+### Sync Errors
+- Verify the spreadsheet is publicly accessible
+- Check that all required columns exist with correct names
+- Ensure data format matches expected format (emails should be valid, etc.)
 
 ## API Routes
 
@@ -205,22 +264,60 @@ Content-Type: application/json
       "email": "john@example.com",
       "phone": "+1-234-567890",
       "company": "Tech Corp",
-      "status": "new"
+      "status": "Contacted",
+      "assignedTo": "Sarah Johnson",
+      "note1": "Interested",
+      "note2": "Follow up"
     }
   ],
   "source": "google_sheet"
 }
 ```
 
-Response:
-```json
+### Sync Salespersons from Google Sheet
+```bash
+POST /api/sync-salespersons
+Content-Type: application/json
+
 {
-  "success": true,
-  "message": "X leads synced successfully",
-  "synced": 5,
+  "salespersons": [
+    {
+      "name": "Sarah Johnson",
+      "email": "sarah@example.com",
+      "phone": "+1-234-567890",
+      "department": "Sales",
+      "region": "North"
+    }
+  ],
   "source": "google_sheet"
 }
 ```
+
+## Database Schema
+
+### Leads Table
+- `id` (UUID, Primary Key)
+- `name` (TEXT, Required)
+- `email` (TEXT, Unique, Required)
+- `phone` (TEXT, Required)
+- `company` (TEXT, Required)
+- `status` (TEXT, Default: 'Not lifted')
+- `assigned_to` (TEXT, Required)
+- `note1` (TEXT)
+- `note2` (TEXT)
+- `source` (TEXT)
+- `created_at` (TIMESTAMP)
+- `updated_at` (TIMESTAMP)
+
+### Salespersons Table
+- `id` (UUID, Primary Key)
+- `name` (TEXT, Required)
+- `email` (TEXT, Unique, Required)
+- `phone` (TEXT, Required)
+- `department` (TEXT, Required)
+- `region` (TEXT, Required)
+- `created_at` (TIMESTAMP)
+- `updated_at` (TIMESTAMP)
 
 ## Development
 
@@ -250,21 +347,23 @@ pnpm test
 ## Key Files
 
 - `client/pages/Index.tsx` - Dashboard page
-- `client/pages/Leads.tsx` - Leads management
-- `client/pages/Salespersons.tsx` - Team management
+- `client/pages/Leads.tsx` - Leads management (CRUD)
+- `client/pages/Salespersons.tsx` - Salespersons management (CRUD)
 - `client/pages/Settings.tsx` - Integration settings
 - `client/lib/supabase.ts` - Supabase client and helpers
 - `client/lib/googleSheets.ts` - Google Sheets utilities
 - `server/routes/sync-leads.ts` - Lead sync API endpoint
+- `server/routes/sync-salespersons.ts` - Salesperson sync API endpoint
 
 ## Next Steps
 
 1. ✅ Set up Supabase
 2. ✅ Create database tables
 3. ✅ Configure environment variables
-4. ✅ Set up Google Sheets
-5. ✅ Add your team members
-6. ✅ Start managing leads!
+4. ✅ Prepare Google Sheets
+5. ✅ Add your salespersons
+6. ✅ Import leads
+7. ✅ Start managing your sales pipeline!
 
 ## Support
 
@@ -273,6 +372,7 @@ For issues or questions:
 2. Review the browser console for error messages
 3. Verify all environment variables are set correctly
 4. Ensure Supabase tables are created with correct schema
+5. Confirm Google Sheets are publicly accessible
 
 ---
 
