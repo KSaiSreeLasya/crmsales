@@ -45,66 +45,88 @@ function getColumnValue(
 
 /**
  * Parse Google Sheet lead row into Lead format
- * Expected column order (based on user's sheet):
- * 0: what_type_of_property_do_you_want_to_install_solar_on?
- * 1: what_is_your_average_monthly_electricity_bill?
- * 2: full name
- * 3: phone
- * 4: email
- * 5: street address
- * 6: post_code
- * 7: lead_status (and feedback columns)
+ * Intelligently finds columns by matching keywords regardless of exact column names
  */
 export function parseLeadRow(row: GoogleSheetRow) {
-  // Get all values as an array in order
-  const values = Object.values(row).filter((v) => v !== undefined);
+  // Find columns by searching through all keys
+  let name = "";
+  let email = "";
+  let phone = "";
+  let company = "N/A";
+  let street_address = "";
+  let post_code = "";
+  let lead_status = "";
+  let electricity_bill = "";
+
+  // Iterate through all columns and match them intelligently
+  for (const [key, value] of Object.entries(row)) {
+    if (!value) continue;
+
+    const keyLower = key.toLowerCase();
+    const valueTrimmed = String(value).trim();
+
+    // Match name (full name, fname, etc.)
+    if (!name && (keyLower.includes("name") || keyLower.includes("fname"))) {
+      name = valueTrimmed;
+    }
+
+    // Match email
+    if (!email && keyLower.includes("email")) {
+      email = valueTrimmed;
+    }
+
+    // Match phone
+    if (!phone && (keyLower.includes("phone") || keyLower.includes("telephone"))) {
+      phone = valueTrimmed;
+    }
+
+    // Match property type
+    if (company === "N/A" && (keyLower.includes("property") || keyLower.includes("install"))) {
+      company = valueTrimmed || "N/A";
+    }
+
+    // Match street address
+    if (!street_address && (keyLower.includes("street") || keyLower.includes("address"))) {
+      street_address = valueTrimmed;
+    }
+
+    // Match post code
+    if (!post_code && (keyLower.includes("post") || keyLower.includes("zip") || keyLower.includes("postal"))) {
+      post_code = valueTrimmed;
+    }
+
+    // Match lead status
+    if (!lead_status && (keyLower.includes("lead") || keyLower.includes("status"))) {
+      lead_status = valueTrimmed;
+    }
+
+    // Match electricity bill
+    if (!electricity_bill && (keyLower.includes("electricity") || keyLower.includes("bill"))) {
+      electricity_bill = valueTrimmed;
+    }
+  }
 
   const parsed = {
-    // Try position-based first, then fallback to name-based
-    company:
-      values[0] || // Position 0: property type
-      getColumnValue(row, "what_type_of_property", "property") ||
-      "N/A",
-    electricity_bill:
-      values[1] || // Position 1: electricity bill
-      getColumnValue(row, "electricity", "bill") ||
-      "",
-    name:
-      values[2] || // Position 2: full name
-      getColumnValue(row, "full name", "name") ||
-      "",
-    phone:
-      values[3] || // Position 3: phone
-      getColumnValue(row, "phone") ||
-      "",
-    email:
-      values[4] || // Position 4: email
-      getColumnValue(row, "email") ||
-      "",
-    street_address:
-      values[5] || // Position 5: street address
-      getColumnValue(row, "street address", "address") ||
-      "",
-    post_code:
-      values[6] || // Position 6: post code
-      getColumnValue(row, "post code", "postcode") ||
-      "",
-    lead_status:
-      values[7] || // Position 7+: lead status and feedback
-      getColumnValue(row, "lead status", "feedback") ||
-      "",
+    name,
+    email,
+    phone,
+    company,
+    street_address,
+    post_code,
+    lead_status,
+    electricity_bill,
     status: "Not lifted" as LeadStatus,
     assignedTo: "Unassigned",
     note1: "",
     note2: "",
   };
 
-  console.log("Parsed lead from values:", {
-    company: parsed.company,
-    name: parsed.name,
-    email: parsed.email,
-    phone: parsed.phone,
-  });
+  if (name && email) {
+    console.log("✓ Valid lead found:", { name, email, phone });
+  } else {
+    console.log("✗ Invalid lead (missing name or email):", parsed);
+  }
+
   return parsed;
 }
 
