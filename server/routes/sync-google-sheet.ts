@@ -30,9 +30,7 @@ export const handleSyncGoogleSheet: RequestHandler = async (req, res) => {
     }
 
     if (!type || (type !== "leads" && type !== "salespersons")) {
-      res
-        .status(400)
-        .json({ error: "type must be 'leads' or 'salespersons'" });
+      res.status(400).json({ error: "type must be 'leads' or 'salespersons'" });
       return;
     }
 
@@ -68,7 +66,8 @@ export const handleSyncGoogleSheet: RequestHandler = async (req, res) => {
 
       if (leadsToSync.length === 0) {
         res.status(400).json({
-          error: "No valid leads found in Google Sheet (requires name and email)",
+          error:
+            "No valid leads found in Google Sheet (requires name and email)",
           processed: rows.length,
           valid: 0,
         });
@@ -107,10 +106,7 @@ export const handleSyncGoogleSheet: RequestHandler = async (req, res) => {
           ) {
             console.log("Duplicate key, updating existing records...");
             for (const lead of leadsData) {
-              await supabase
-                .from("leads")
-                .update(lead)
-                .eq("email", lead.email);
+              await supabase.from("leads").update(lead).eq("email", lead.email);
             }
 
             res.json({

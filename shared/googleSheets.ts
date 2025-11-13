@@ -238,11 +238,10 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
       // Also accept rows with reasonable number of columns and proper headers
       const hasReasonableHeaders =
         possibleHeaders.length >= 7 &&
-        possibleHeaders.some(
-          (h) =>
-            String(h)
-              .toLowerCase()
-              .match(/(name|email|phone|address|status)/),
+        possibleHeaders.some((h) =>
+          String(h)
+            .toLowerCase()
+            .match(/(name|email|phone|address|status)/),
         );
 
       if (hasKeyColumns || hasReasonableHeaders) {
@@ -353,7 +352,10 @@ export async function fetchGoogleSheet(
         },
       });
     } catch (fetchError) {
-      console.error("Initial fetch failed, trying alternative method:", fetchError);
+      console.error(
+        "Initial fetch failed, trying alternative method:",
+        fetchError,
+      );
       // If running on server, use node-fetch with redirect support
       if (typeof globalThis !== "undefined" && !globalThis.fetch) {
         throw new Error("Fetch is not available in this environment");
