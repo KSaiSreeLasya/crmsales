@@ -36,7 +36,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Search, Trash2, RefreshCw } from "lucide-react";
+import { Plus, Search, Trash2, RefreshCw, Zap } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
@@ -63,6 +63,7 @@ interface Lead {
   note2: string;
   status: LeadStatus;
   owner: string;
+  createdAt: number;
 }
 
 const STATUS_OPTIONS: LeadStatus[] = [
@@ -77,6 +78,13 @@ const STATUS_OPTIONS: LeadStatus[] = [
   "Contacted",
 ];
 
+const SALESPERSONS = [
+  "Sarah Johnson",
+  "Mike Chen",
+  "Emily Rodriguez",
+  "David Lee",
+];
+
 export default function Leads() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -85,6 +93,10 @@ export default function Leads() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [editingNote, setEditingNote] = useState<{
+    leadId: string;
+    field: "note1" | "note2";
+  } | null>(null);
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -140,8 +152,12 @@ export default function Leads() {
       const leadStatusIdx = headers.findIndex((h) =>
         h.includes("lead_status")
       );
-      const note1Idx = headers.findIndex((h) => h.includes("note_1") || h.includes("note1"));
-      const note2Idx = headers.findIndex((h) => h.includes("note_2") || h.includes("note2"));
+      const note1Idx = headers.findIndex((h) =>
+        h.includes("note_1") || h.includes("note1")
+      );
+      const note2Idx = headers.findIndex((h) =>
+        h.includes("note_2") || h.includes("note2")
+      );
       const statusIdx = headers.findIndex((h) => h === "status");
       const ownerIdx = headers.findIndex(
         (h) => h.includes("owner") || h.includes("assigned")
@@ -169,11 +185,14 @@ export default function Leads() {
           note2: values[note2Idx]?.trim() || "",
           status: (values[statusIdx]?.trim() || "New") as LeadStatus,
           owner: values[ownerIdx]?.trim() || "Unassigned",
+          createdAt: Date.now() - i * 1000, // Stagger timestamps for reverse order
         };
 
         parsedLeads.push(lead);
       }
 
+      // Sort by newest first
+      parsedLeads.sort((a, b) => b.createdAt - a.createdAt);
       setLeads(parsedLeads);
       toast.success(`Synced ${parsedLeads.length} leads from Google Sheet`);
     } catch (error) {
@@ -223,6 +242,29 @@ export default function Leads() {
     return matchesSearch && matchesStatus;
   });
 
+  const handleAutoAssign = () => {
+    const unassignedLeads = leads.filter((lead) => lead.owner === "Unassigned");
+
+    if (unassignedLeads.length === 0) {
+      toast.info("No unassigned leads found");
+      return;
+    }
+
+    let assignmentIndex = 0;
+    const updatedLeads = leads.map((lead) => {
+      if (lead.owner === "Unassigned") {
+        const assignedTo =
+          SALESPERSONS[assignmentIndex % SALESPERSONS.length];
+        assignmentIndex++;
+        return { ...lead, owner: assignedTo };
+      }
+      return lead;
+    });
+
+    setLeads(updatedLeads);
+    toast.success(`Auto-assigned ${unassignedLeads.length} leads`);
+  };
+
   const handleAddLead = () => {
     if (!formData.fullName || !formData.email || !formData.phone) {
       toast.error("Full Name, Email, and Phone are required");
@@ -245,6 +287,7 @@ export default function Leads() {
       const newLead: Lead = {
         id: Date.now().toString(),
         ...formData,
+        createdAt: Date.now(),
       };
       setLeads([newLead, ...leads]);
       toast.success("Lead added successfully");
@@ -304,6 +347,15 @@ export default function Leads() {
     toast.success("Lead deleted successfully");
   };
 
+  const handleNoteUpdate = (leadId: string, field: "note1" | "note2", value: string) => {
+    setLeads(
+      leads.map((lead) =>
+        lead.id === leadId ? { ...lead, [field]: value } : lead
+      )
+    );
+    setEditingNote(null);
+  };
+
   return (
     <CRMLayout>
       <div className="space-y-6 p-8">
@@ -317,6 +369,13 @@ export default function Leads() {
           </div>
           <div className="flex gap-2">
             <Button
+              className="gap-2 bg-purple-600 hover:bg-purple-700"
+              onClick={handleAutoAssign}
+            >
+              <Zap className="h-4 w-4" />
+              Auto-assign Unassigned
+            </Button>
+            <Button
               variant="outline"
               className="gap-2"
               onClick={syncFromGoogleSheet}
@@ -329,7 +388,7 @@ export default function Leads() {
               <DialogTrigger asChild>
                 <Button className="gap-2" onClick={() => handleOpenDialog()}>
                   <Plus className="h-4 w-4" />
-                  Add Lead
+                  New Lead
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-h-[90vh] overflow-y-auto">
@@ -493,7 +552,7 @@ export default function Leads() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by name, email, or phone..."
+              placeholder="Search leads"
               className="pl-10"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -519,18 +578,18 @@ export default function Leads() {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="border-b border-border">
-                  <TableHead className="whitespace-nowrap">FULL NAME</TableHead>
-                  <TableHead className="whitespace-nowrap">PHONE</TableHead>
-                  <TableHead className="whitespace-nowrap">EMAIL</TableHead>
-                  <TableHead className="whitespace-nowrap">STREET ADDRESS</TableHead>
-                  <TableHead className="whitespace-nowrap">POST CODE</TableHead>
-                  <TableHead className="whitespace-nowrap">LEAD STATUS</TableHead>
-                  <TableHead className="whitespace-nowrap">NOTE 1</TableHead>
-                  <TableHead className="whitespace-nowrap">NOTE 2</TableHead>
-                  <TableHead className="whitespace-nowrap">STATUS</TableHead>
-                  <TableHead className="whitespace-nowrap">OWNER</TableHead>
-                  <TableHead className="whitespace-nowrap">ACTION</TableHead>
+                <TableRow className="border-b border-border bg-gray-50">
+                  <TableHead className="whitespace-nowrap font-bold">FULL NAME</TableHead>
+                  <TableHead className="whitespace-nowrap font-bold">PHONE</TableHead>
+                  <TableHead className="whitespace-nowrap font-bold">EMAIL</TableHead>
+                  <TableHead className="whitespace-nowrap font-bold">STREET ADDRESS</TableHead>
+                  <TableHead className="whitespace-nowrap font-bold">POST CODE</TableHead>
+                  <TableHead className="whitespace-nowrap font-bold">LEAD STATUS</TableHead>
+                  <TableHead className="whitespace-nowrap font-bold">NOTE 1</TableHead>
+                  <TableHead className="whitespace-nowrap font-bold">NOTE 2</TableHead>
+                  <TableHead className="whitespace-nowrap font-bold">STATUS</TableHead>
+                  <TableHead className="whitespace-nowrap font-bold">OWNER</TableHead>
+                  <TableHead className="whitespace-nowrap font-bold">ACTION</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -544,7 +603,7 @@ export default function Leads() {
                   </TableRow>
                 ) : (
                   filteredLeads.map((lead) => (
-                    <TableRow key={lead.id} className="border-b border-border">
+                    <TableRow key={lead.id} className="border-b border-border hover:bg-gray-50">
                       <TableCell className="font-medium text-foreground whitespace-nowrap">
                         {lead.fullName}
                       </TableCell>
@@ -563,11 +622,47 @@ export default function Leads() {
                       <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
                         {lead.leadStatus}
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
-                        {lead.note1}
+                      <TableCell className="text-sm whitespace-nowrap">
+                        {editingNote?.leadId === lead.id && editingNote.field === "note1" ? (
+                          <Input
+                            autoFocus
+                            value={lead.note1}
+                            onChange={(e) => handleNoteUpdate(lead.id, "note1", e.target.value)}
+                            onBlur={() => setEditingNote(null)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") setEditingNote(null);
+                            }}
+                            className="text-xs"
+                          />
+                        ) : (
+                          <div
+                            onClick={() => setEditingNote({ leadId: lead.id, field: "note1" })}
+                            className="cursor-pointer hover:bg-gray-100 p-1 rounded min-h-6"
+                          >
+                            {lead.note1 || <span className="text-muted-foreground italic">Add note...</span>}
+                          </div>
+                        )}
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
-                        {lead.note2}
+                      <TableCell className="text-sm whitespace-nowrap">
+                        {editingNote?.leadId === lead.id && editingNote.field === "note2" ? (
+                          <Input
+                            autoFocus
+                            value={lead.note2}
+                            onChange={(e) => handleNoteUpdate(lead.id, "note2", e.target.value)}
+                            onBlur={() => setEditingNote(null)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") setEditingNote(null);
+                            }}
+                            className="text-xs"
+                          />
+                        ) : (
+                          <div
+                            onClick={() => setEditingNote({ leadId: lead.id, field: "note2" })}
+                            className="cursor-pointer hover:bg-gray-100 p-1 rounded min-h-6"
+                          >
+                            {lead.note2 || <span className="text-muted-foreground italic">Add note...</span>}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
                         <select
@@ -605,10 +700,11 @@ export default function Leads() {
                           className="rounded border border-border bg-background px-2 py-1 text-sm"
                         >
                           <option value="Unassigned">Unassigned</option>
-                          <option value="Sarah Johnson">Sarah Johnson</option>
-                          <option value="Mike Chen">Mike Chen</option>
-                          <option value="Emily Rodriguez">Emily Rodriguez</option>
-                          <option value="David Lee">David Lee</option>
+                          {SALESPERSONS.map((person) => (
+                            <option key={person} value={person}>
+                              {person}
+                            </option>
+                          ))}
                         </select>
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
@@ -616,8 +712,9 @@ export default function Leads() {
                           variant="ghost"
                           size="sm"
                           onClick={() => setDeleteId(lead.id)}
+                          className="text-red-600 hover:text-red-700"
                         >
-                          <Trash2 className="h-4 w-4 text-destructive" />
+                          Delete
                         </Button>
                       </TableCell>
                     </TableRow>

@@ -30,14 +30,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Plus, Search, Edit2, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 interface Salesperson {
   id: string;
   name: string;
   email: string;
   phone: string;
-  department: string;
-  region: string;
 }
 
 const MOCK_SALESPERSONS: Salesperson[] = [
@@ -46,32 +45,24 @@ const MOCK_SALESPERSONS: Salesperson[] = [
     name: "Sarah Johnson",
     email: "sarah@example.com",
     phone: "+1-234-567-8910",
-    department: "Sales",
-    region: "North",
   },
   {
     id: "2",
     name: "Mike Chen",
     email: "mike@example.com",
     phone: "+1-234-567-8911",
-    department: "Sales",
-    region: "South",
   },
   {
     id: "3",
     name: "Emily Rodriguez",
     email: "emily@example.com",
     phone: "+1-234-567-8912",
-    department: "Sales",
-    region: "East",
   },
   {
     id: "4",
     name: "David Lee",
     email: "david@example.com",
     phone: "+1-234-567-8913",
-    department: "Sales Manager",
-    region: "West",
   },
 ];
 
@@ -86,15 +77,13 @@ export default function Salespersons() {
     name: "",
     email: "",
     phone: "",
-    department: "",
-    region: "",
   });
 
   const filteredSalespersons = salespersons.filter(
     (person) =>
       person.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       person.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      person.department.toLowerCase().includes(searchTerm.toLowerCase())
+      person.phone.includes(searchTerm)
   );
 
   const handleOpenDialog = (person?: Salesperson) => {
@@ -103,8 +92,6 @@ export default function Salespersons() {
         name: person.name,
         email: person.email,
         phone: person.phone,
-        department: person.department,
-        region: person.region,
       });
       setEditingId(person.id);
     } else {
@@ -112,8 +99,6 @@ export default function Salespersons() {
         name: "",
         email: "",
         phone: "",
-        department: "",
-        region: "",
       });
       setEditingId(null);
     }
@@ -121,31 +106,25 @@ export default function Salespersons() {
   };
 
   const handleSave = () => {
-    if (
-      !formData.name ||
-      !formData.email ||
-      !formData.phone ||
-      !formData.department ||
-      !formData.region
-    ) {
-      alert("All fields are required");
+    if (!formData.name || !formData.email || !formData.phone) {
+      toast.error("All fields are required");
       return;
     }
 
     if (editingId) {
-      // Update existing
       setSalespersons(
         salespersons.map((person) =>
           person.id === editingId ? { ...person, ...formData } : person
         )
       );
+      toast.success("Salesperson updated successfully");
     } else {
-      // Create new
       const newPerson: Salesperson = {
         id: Date.now().toString(),
         ...formData,
       };
       setSalespersons([...salespersons, newPerson]);
+      toast.success("Salesperson added successfully");
     }
 
     setOpenDialog(false);
@@ -153,17 +132,14 @@ export default function Salespersons() {
       name: "",
       email: "",
       phone: "",
-      department: "",
-      region: "",
     });
   };
 
   const handleDelete = (id: string) => {
     setSalespersons(salespersons.filter((person) => person.id !== id));
     setDeleteId(null);
+    toast.success("Salesperson deleted successfully");
   };
-
-  const regions = [...new Set(salespersons.map((p) => p.region))];
 
   return (
     <CRMLayout>
@@ -175,7 +151,7 @@ export default function Salespersons() {
               Sales Team
             </h2>
             <p className="mt-1 text-muted-foreground">
-              Manage your sales team members and assignments
+              Manage your sales team members
             </p>
           </div>
           <Dialog open={openDialog} onOpenChange={setOpenDialog}>
@@ -231,28 +207,6 @@ export default function Salespersons() {
                     }
                   />
                 </div>
-                <div>
-                  <Label htmlFor="department">Department *</Label>
-                  <Input
-                    id="department"
-                    placeholder="e.g., Sales, Sales Manager"
-                    value={formData.department}
-                    onChange={(e) =>
-                      setFormData({ ...formData, department: e.target.value })
-                    }
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="region">Region *</Label>
-                  <Input
-                    id="region"
-                    placeholder="e.g., North, South, East, West"
-                    value={formData.region}
-                    onChange={(e) =>
-                      setFormData({ ...formData, region: e.target.value })
-                    }
-                  />
-                </div>
                 <Button onClick={handleSave} className="w-full">
                   {editingId ? "Update" : "Add"} Salesperson
                 </Button>
@@ -266,7 +220,7 @@ export default function Salespersons() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by name, email, or department..."
+              placeholder="Search by name, email, or phone..."
               className="pl-10"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -279,19 +233,17 @@ export default function Salespersons() {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="border-b border-border">
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Department</TableHead>
-                  <TableHead>Region</TableHead>
-                  <TableHead>Actions</TableHead>
+                <TableRow className="border-b border-border bg-gray-50">
+                  <TableHead className="font-bold">Name</TableHead>
+                  <TableHead className="font-bold">Email</TableHead>
+                  <TableHead className="font-bold">Phone</TableHead>
+                  <TableHead className="font-bold">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredSalespersons.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="py-8 text-center">
+                    <TableCell colSpan={4} className="py-8 text-center">
                       <p className="text-muted-foreground">
                         No salespersons found
                       </p>
@@ -299,7 +251,7 @@ export default function Salespersons() {
                   </TableRow>
                 ) : (
                   filteredSalespersons.map((person) => (
-                    <TableRow key={person.id} className="border-b border-border">
+                    <TableRow key={person.id} className="border-b border-border hover:bg-gray-50">
                       <TableCell className="font-medium text-foreground">
                         {person.name}
                       </TableCell>
@@ -308,12 +260,6 @@ export default function Salespersons() {
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {person.phone}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {person.department}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {person.region}
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-2">
