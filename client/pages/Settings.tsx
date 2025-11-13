@@ -4,18 +4,72 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertCircle, CheckCircle } from "lucide-react";
+import { AlertCircle, CheckCircle, RefreshCw } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
+import { syncLeadsFromGoogleSheet, syncSalespersonsFromGoogleSheet, extractSpreadsheetId } from "@/lib/googleSheets";
 
 export default function Settings() {
-  const [googleSheetUrl, setGoogleSheetUrl] = useState("");
+  const [leadsSheetUrl, setLeadsSheetUrl] = useState("");
+  const [salespersonsSheetUrl, setSalespersonsSheetUrl] = useState("");
   const [supabaseStatus, setSupabaseStatus] = useState("connected");
-  const [savedSettings, setSavedSettings] = useState(false);
+  const [isSyncingLeads, setIsSyncingLeads] = useState(false);
+  const [isSyncingSalespersons, setIsSyncingSalespersons] = useState(false);
 
-  const handleSaveSettings = () => {
-    // TODO: Save settings to backend
-    setSavedSettings(true);
-    setTimeout(() => setSavedSettings(false), 3000);
+  const handleSyncLeads = async () => {
+    if (!leadsSheetUrl.trim()) {
+      toast.error("Please enter a Google Sheets URL");
+      return;
+    }
+
+    const spreadsheetId = extractSpreadsheetId(leadsSheetUrl);
+    if (!spreadsheetId) {
+      toast.error("Invalid Google Sheets URL");
+      return;
+    }
+
+    setIsSyncingLeads(true);
+    try {
+      const result = await syncLeadsFromGoogleSheet(spreadsheetId, "0");
+      if (result.success) {
+        toast.success(`Successfully synced ${result.synced} leads from Google Sheet`);
+      } else {
+        toast.error("Failed to sync leads");
+      }
+    } catch (error) {
+      console.error("Error syncing leads:", error);
+      toast.error("Failed to sync leads from Google Sheet");
+    } finally {
+      setIsSyncingLeads(false);
+    }
+  };
+
+  const handleSyncSalespersons = async () => {
+    if (!salespersonsSheetUrl.trim()) {
+      toast.error("Please enter a Google Sheets URL");
+      return;
+    }
+
+    const spreadsheetId = extractSpreadsheetId(salespersonsSheetUrl);
+    if (!spreadsheetId) {
+      toast.error("Invalid Google Sheets URL");
+      return;
+    }
+
+    setIsSyncingSalespersons(true);
+    try {
+      const result = await syncSalespersonsFromGoogleSheet(spreadsheetId, "0");
+      if (result.success) {
+        toast.success(`Successfully synced ${result.synced} salespersons from Google Sheet`);
+      } else {
+        toast.error("Failed to sync salespersons");
+      }
+    } catch (error) {
+      console.error("Error syncing salespersons:", error);
+      toast.error("Failed to sync salespersons from Google Sheet");
+    } finally {
+      setIsSyncingSalespersons(false);
+    }
   };
 
   return (
