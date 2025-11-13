@@ -700,19 +700,22 @@ export default function Leads() {
                       FULL NAME
                     </TableHead>
                     <TableHead className="whitespace-nowrap font-bold">
-                      PHONE
-                    </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold">
                       EMAIL
                     </TableHead>
                     <TableHead className="whitespace-nowrap font-bold">
-                      COMPANY
+                      PHONE
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap font-bold">
+                      PROPERTY TYPE
                     </TableHead>
                     <TableHead className="whitespace-nowrap font-bold">
                       STREET ADDRESS
                     </TableHead>
                     <TableHead className="whitespace-nowrap font-bold">
                       POST CODE
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap font-bold">
+                      ELECTRICITY BILL
                     </TableHead>
                     <TableHead className="whitespace-nowrap font-bold">
                       LEAD STATUS
