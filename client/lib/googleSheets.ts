@@ -289,7 +289,16 @@ export async function syncLeadsFromGoogleSheet(
 ) {
   try {
     const rows = await fetchGoogleSheet(spreadsheetId, sheetId);
+    console.log("Fetched", rows.length, "rows from Google Sheet");
+
     const leads = rows.map(parseLeadRow).filter((lead) => lead.name); // Only rows with names
+    console.log("Parsed", leads.length, "valid leads");
+
+    if (leads.length === 0) {
+      throw new Error("No valid leads found in Google Sheet");
+    }
+
+    console.log("First lead to sync:", leads[0]);
 
     // Send to backend for syncing to Supabase
     const response = await fetch("/api/sync-leads", {
@@ -303,11 +312,17 @@ export async function syncLeadsFromGoogleSheet(
       }),
     });
 
+    const responseData = await response.json();
+    console.log("Server response:", responseData);
+
     if (!response.ok) {
-      throw new Error("Failed to sync leads to database");
+      console.error("Server error response:", responseData);
+      throw new Error(
+        responseData.message || responseData.error || "Failed to sync leads to database"
+      );
     }
 
-    return await response.json();
+    return responseData;
   } catch (error) {
     console.error("Error syncing leads from Google Sheet:", error);
     throw error;
