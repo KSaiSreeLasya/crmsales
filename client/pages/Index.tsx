@@ -11,12 +11,16 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 
 interface DashboardStats {
   totalLeads: number;
   activeLeads: number;
   convertedLeads: number;
   totalSalespersons: number;
+  leadsByStatus: Record<string, number>;
+  leadsBySalesperson: Array<{ name: string; count: number }>;
 }
 
 export default function Index() {
@@ -25,21 +29,89 @@ export default function Index() {
     activeLeads: 0,
     convertedLeads: 0,
     totalSalespersons: 0,
+    leadsByStatus: {},
+    leadsBySalesperson: [],
   });
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // TODO: Fetch actual data from Supabase
-    setTimeout(() => {
-      setStats({
-        totalLeads: 124,
-        activeLeads: 87,
-        convertedLeads: 37,
-        totalSalespersons: 12,
-      });
-      setIsLoading(false);
-    }, 500);
+    loadDashboardStats();
   }, []);
+
+  const loadDashboardStats = async () => {
+    setIsLoading(true);
+    try {
+      // Fetch all leads
+      const { data: leads, error: leadsError } = await supabase
+        .from("leads")
+        .select("*");
+
+      if (leadsError) throw leadsError;
+
+      // Fetch all salespersons
+      const { data: salespersons, error: salesError } = await supabase
+        .from("salespersons")
+        .select("*");
+
+      if (salesError) throw salesError;
+
+      const leadsList = leads || [];
+      const salespersonsList = salespersons || [];
+
+      // Calculate metrics
+      const totalLeads = leadsList.length;
+      const convertedLeads = leadsList.filter(
+        (l) => l.status === "Lead finished" || l.status === "Advance payment",
+      ).length;
+      const activeLeads = leadsList.filter(
+        (l) =>
+          l.status &&
+          !["Lead finished", "Not lifted", "Not connected"].includes(
+            l.status,
+          ),
+      ).length;
+
+      // Group by status
+      const leadsByStatus: Record<string, number> = {};
+      leadsList.forEach((lead) => {
+        const status = lead.status || "Unknown";
+        leadsByStatus[status] = (leadsByStatus[status] || 0) + 1;
+      });
+
+      // Group by salesperson
+      const leadsBySalesMap: Record<string, number> = {};
+      leadsList.forEach((lead) => {
+        const owner = lead.assigned_to || "Unassigned";
+        leadsBySalesMap[owner] = (leadsBySalesMap[owner] || 0) + 1;
+      });
+
+      const leadsBySalesperson = Object.entries(leadsBySalesMap)
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count);
+
+      setStats({
+        totalLeads,
+        activeLeads,
+        convertedLeads,
+        totalSalespersons: salespersonsList.length,
+        leadsByStatus,
+        leadsBySalesperson,
+      });
+    } catch (error) {
+      console.error("Error loading dashboard stats:", error);
+      toast.error("Failed to load dashboard stats");
+      setStats({
+        totalLeads: 0,
+        activeLeads: 0,
+        convertedLeads: 0,
+        totalSalespersons: 0,
+        leadsByStatus: {},
+        leadsBySalesperson: [],
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const StatCard = ({
     icon: Icon,
@@ -87,21 +159,18 @@ export default function Index() {
             icon={<Users className="h-6 w-6 text-white" />}
             label="Total Leads"
             value={stats.totalLeads}
-            trend="↑ 12% from last week"
             color="bg-blue-500"
           />
           <StatCard
             icon={<Target className="h-6 w-6 text-white" />}
             label="Active Leads"
             value={stats.activeLeads}
-            trend="↑ 8% from last week"
             color="bg-purple-500"
           />
           <StatCard
             icon={<TrendingUp className="h-6 w-6 text-white" />}
             label="Converted"
             value={stats.convertedLeads}
-            trend="↑ 5% from last week"
             color="bg-green-500"
           />
           <StatCard
@@ -110,6 +179,107 @@ export default function Index() {
             value={stats.totalSalespersons}
             color="bg-orange-500"
           />
+        </div>
+
+        {/* Metrics by Salesperson and Status */}
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Leads by Salesperson */}
+          <Card className="border border-border bg-card p-6">
+            <h3 className="text-lg font-semibold text-foreground">
+              Leads by Salesperson
+            </h3>
+            <div className="mt-6 space-y-4">
+              {isLoading ? (
+                <p className="text-center text-muted-foreground">
+                  Loading...
+                </p>
+              ) : stats.leadsBySalesperson.length === 0 ? (
+                <p className="text-center text-muted-foreground">
+                  No leads assigned yet
+                </p>
+              ) : (
+                stats.leadsBySalesperson.map((item) => (
+                  <div
+                    key={item.name}
+                    className="flex items-center justify-between border-b border-border pb-3 last:border-b-0"
+                  >
+                    <p className="text-sm font-medium text-foreground">
+                      {item.name}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-24 rounded-full bg-gray-200">
+                        <div
+                          className="h-full rounded-full bg-blue-500"
+                          style={{
+                            width: `${Math.min(
+                              (item.count / Math.max(...stats.leadsBySalesperson.map((s) => s.count), 1)) * 100,
+                              100,
+                            )}%`,
+                          }}
+                        ></div>
+                      </div>
+                      <span className="text-sm font-bold text-foreground w-8">
+                        {item.count}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </Card>
+
+          {/* Leads by Status */}
+          <Card className="border border-border bg-card p-6">
+            <h3 className="text-lg font-semibold text-foreground">
+              Leads by Status
+            </h3>
+            <div className="mt-6 space-y-4">
+              {isLoading ? (
+                <p className="text-center text-muted-foreground">
+                  Loading...
+                </p>
+              ) : Object.keys(stats.leadsByStatus).length === 0 ? (
+                <p className="text-center text-muted-foreground">
+                  No leads available
+                </p>
+              ) : (
+                Object.entries(stats.leadsByStatus)
+                  .sort((a, b) => b[1] - a[1])
+                  .slice(0, 8)
+                  .map(([status, count]) => (
+                    <div
+                      key={status}
+                      className="flex items-center justify-between border-b border-border pb-3 last:border-b-0"
+                    >
+                      <p className="text-sm font-medium text-foreground">
+                        {status}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <div className="h-2 w-24 rounded-full bg-gray-200">
+                          <div
+                            className="h-full rounded-full bg-purple-500"
+                            style={{
+                              width: `${Math.min(
+                                (count /
+                                  Math.max(
+                                    ...Object.values(stats.leadsByStatus),
+                                    1,
+                                  )) *
+                                  100,
+                                100,
+                              )}%`,
+                            }}
+                          ></div>
+                        </div>
+                        <span className="text-sm font-bold text-foreground w-8">
+                          {count}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+              )}
+            </div>
+          </Card>
         </div>
 
         {/* Quick Actions */}
@@ -159,7 +329,7 @@ export default function Index() {
         {/* Recent Activity */}
         <Card className="border border-border bg-card p-6">
           <h3 className="text-lg font-semibold text-foreground">
-            Recent Activity
+            Quick Stats
           </h3>
           <div className="mt-6 space-y-4">
             {isLoading ? (
@@ -171,34 +341,54 @@ export default function Index() {
                 <div className="flex items-center justify-between border-b border-border pb-4">
                   <div>
                     <p className="text-sm font-medium text-foreground">
-                      New lead: John Smith
+                      Conversion Rate
                     </p>
-                    <p className="text-xs text-muted-foreground">2 hours ago</p>
+                    <p className="text-xs text-muted-foreground">
+                      {stats.totalLeads > 0
+                        ? Math.round(
+                            (stats.convertedLeads / stats.totalLeads) * 100,
+                          )
+                        : 0}
+                      % of total leads converted
+                    </p>
                   </div>
-                  <span className="inline-flex rounded-full bg-success/10 px-3 py-1 text-xs font-medium text-success">
-                    New
+                  <span className="text-xl font-bold text-green-600">
+                    {stats.totalLeads > 0
+                      ? Math.round(
+                          (stats.convertedLeads / stats.totalLeads) * 100,
+                        )
+                      : 0}
+                    %
                   </span>
                 </div>
                 <div className="flex items-center justify-between border-b border-border pb-4">
                   <div>
                     <p className="text-sm font-medium text-foreground">
-                      Lead assigned to Sarah Johnson
+                      Average Leads per Salesperson
                     </p>
-                    <p className="text-xs text-muted-foreground">4 hours ago</p>
+                    <p className="text-xs text-muted-foreground">
+                      Total leads distributed across team
+                    </p>
                   </div>
-                  <span className="inline-flex rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                    Assigned
+                  <span className="text-xl font-bold text-blue-600">
+                    {stats.totalSalespersons > 0
+                      ? Math.round(
+                          stats.totalLeads / stats.totalSalespersons,
+                        )
+                      : 0}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-foreground">
-                      Lead converted: Jane Doe
+                      Leads Status Distribution
                     </p>
-                    <p className="text-xs text-muted-foreground">1 day ago</p>
+                    <p className="text-xs text-muted-foreground">
+                      {Object.keys(stats.leadsByStatus).length} different statuses
+                    </p>
                   </div>
-                  <span className="inline-flex rounded-full bg-success/10 px-3 py-1 text-xs font-medium text-success">
-                    Converted
+                  <span className="text-xl font-bold text-purple-600">
+                    {Object.keys(stats.leadsByStatus).length}
                   </span>
                 </div>
               </>
