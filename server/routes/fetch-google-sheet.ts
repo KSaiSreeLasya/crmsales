@@ -5,7 +5,7 @@
  */
 
 import { RequestHandler } from "express";
-import { fetchGoogleSheet } from "@shared/googleSheets";
+import { fetchGoogleSheet } from "../../shared/googleSheets";
 
 export const handleFetchGoogleSheet: RequestHandler = async (req, res) => {
   try {
