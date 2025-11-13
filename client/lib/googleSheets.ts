@@ -33,8 +33,10 @@ function getColumnValue(
   for (const name of possibleNames) {
     const normalizedName = normalizeKey(name);
     for (const [key, value] of Object.entries(row)) {
-      if (normalizeKey(key) === normalizedName && value) {
-        return String(value).trim();
+      const normalizedKey = normalizeKey(key);
+      if (normalizedKey === normalizedName && value) {
+        const result = String(value).trim().replace(/^["']|["']$/g, "");
+        if (result) return result;
       }
     }
   }
