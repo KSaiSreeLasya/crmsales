@@ -42,7 +42,7 @@ function getColumnValue(
  * Expected columns: Name/Full Name, Email, Company, Phone, Assigned to/Owner, Status, Note1/Note 1, Note2/Note 2
  */
 export function parseLeadRow(row: GoogleSheetRow) {
-  return {
+  const parsed = {
     name: getColumnValue(row, "Full Name", "Name"),
     email: getColumnValue(row, "Email"),
     phone: getColumnValue(row, "Phone"),
@@ -52,6 +52,12 @@ export function parseLeadRow(row: GoogleSheetRow) {
     note1: getColumnValue(row, "Note 1", "Note1", "Note 1"),
     note2: getColumnValue(row, "Note 2", "Note2", "Note 2"),
   };
+
+  if (!parsed.name || !parsed.email || !parsed.phone) {
+    console.warn("Row missing required fields:", { row, parsed });
+  }
+
+  return parsed;
 }
 
 /**
