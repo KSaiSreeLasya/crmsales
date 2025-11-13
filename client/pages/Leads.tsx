@@ -291,6 +291,7 @@ export default function Leads() {
             street_address: formData.street_address || null,
             post_code: formData.post_code || null,
             lead_status: formData.lead_status || null,
+            electricity_bill: formData.electricity_bill || null,
             note1: formData.note1,
             note2: formData.note2,
             status: formData.status,
