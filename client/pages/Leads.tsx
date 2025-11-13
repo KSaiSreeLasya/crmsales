@@ -66,6 +66,7 @@ interface Lead {
   street_address?: string;
   post_code?: string;
   lead_status?: string;
+  electricity_bill?: string;
   source?: string;
   created_at?: string;
   updated_at?: string;
