@@ -130,7 +130,8 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
 }
 
 /**
- * Parse a single CSV line (handles quoted values)
+ * Parse a single CSV line (handles quoted values properly)
+ * Properly handles RFC 4180 CSV format with quoted fields
  */
 function parseCSVLine(line: string): string[] {
   const result: string[] = [];
@@ -139,27 +140,43 @@ function parseCSVLine(line: string): string[] {
 
   for (let i = 0; i < line.length; i++) {
     const char = line[i];
+    const nextChar = line[i + 1];
 
     if (char === '"') {
-      if (inQuotes && line[i + 1] === '"') {
-        // Escaped quote
+      if (inQuotes && nextChar === '"') {
+        // Escaped quote within quoted field
         current += '"';
-        i++;
+        i++; // Skip the next quote
+      } else if (!inQuotes && current === "") {
+        // Start of quoted field
+        inQuotes = true;
+      } else if (inQuotes) {
+        // End of quoted field
+        inQuotes = false;
       } else {
-        // Toggle quotes
-        inQuotes = !inQuotes;
+        // Quote in unquoted field
+        current += char;
       }
     } else if (char === "," && !inQuotes) {
-      // Field separator
-      result.push(current.trim());
+      // Field separator (only when not in quotes)
+      const trimmed = current.trim();
+      result.push(trimmed);
       current = "";
     } else {
       current += char;
     }
   }
 
-  result.push(current.trim());
-  return result;
+  // Add the last field
+  const trimmed = current.trim();
+  result.push(trimmed);
+
+  // Remove any leading/trailing empty strings
+  return result.filter((field, index) => {
+    // Keep the field if it's not empty, or if there are more non-empty fields after it
+    if (field) return true;
+    return result.slice(index + 1).some(f => f);
+  });
 }
 
 /**
