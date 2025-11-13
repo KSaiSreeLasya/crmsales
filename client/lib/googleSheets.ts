@@ -100,6 +100,7 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
 
   // Parse header
   const headers = parseCSVLine(lines[0]);
+  console.log("CSV Headers count:", headers.length);
   console.log("CSV Headers:", headers);
 
   // Parse data rows, skip empty rows
@@ -111,7 +112,9 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
     const row: GoogleSheetRow = {};
 
     headers.forEach((header, index) => {
-      row[header] = values[index] || "";
+      if (header) {
+        row[header] = values[index] || "";
+      }
     });
 
     // Only add row if it has at least one non-empty cell
@@ -123,7 +126,14 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
   console.log("Total parsed data rows:", rows.length);
   if (rows.length > 0) {
     console.log("First data row keys:", Object.keys(rows[0]));
-    console.log("First data row sample:", rows[0]);
+    console.log("First data row:", rows[0]);
+
+    // Show which columns we can find
+    const sampleRow = rows[0];
+    console.log("Sample column values:");
+    console.log("  Full Name / full name:", sampleRow["full name"] || sampleRow["Full Name"] || "NOT FOUND");
+    console.log("  Email:", sampleRow["email"] || sampleRow["Email"] || "NOT FOUND");
+    console.log("  Phone:", sampleRow["phone"] || sampleRow["Phone"] || "NOT FOUND");
   }
 
   return rows;
