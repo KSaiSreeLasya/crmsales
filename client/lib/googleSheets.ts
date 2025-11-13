@@ -148,7 +148,7 @@ function parseCSVLine(line: string): string[] {
         current += '"';
         i++; // Skip the next quote
       } else if (!inQuotes && current === "") {
-        // Start of quoted field
+        // Start of quoted field (only if at field start)
         inQuotes = true;
       } else if (inQuotes) {
         // End of quoted field
@@ -159,8 +159,7 @@ function parseCSVLine(line: string): string[] {
       }
     } else if (char === "," && !inQuotes) {
       // Field separator (only when not in quotes)
-      const trimmed = current.trim();
-      result.push(trimmed);
+      result.push(current.trim());
       current = "";
     } else {
       current += char;
@@ -168,15 +167,9 @@ function parseCSVLine(line: string): string[] {
   }
 
   // Add the last field
-  const trimmed = current.trim();
-  result.push(trimmed);
+  result.push(current.trim());
 
-  // Remove any leading/trailing empty strings
-  return result.filter((field, index) => {
-    // Keep the field if it's not empty, or if there are more non-empty fields after it
-    if (field) return true;
-    return result.slice(index + 1).some(f => f);
-  });
+  return result;
 }
 
 /**
