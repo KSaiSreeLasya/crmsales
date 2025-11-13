@@ -758,10 +758,10 @@ export default function Leads() {
                           {lead.name}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
-                          {lead.phone}
+                          {lead.email}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
-                          {lead.email}
+                          {lead.phone}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
                           {lead.company}
@@ -771,6 +771,9 @@ export default function Leads() {
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
                           {lead.post_code || "-"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                          {lead.electricity_bill || "-"}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
                           {lead.lead_status || "-"}
