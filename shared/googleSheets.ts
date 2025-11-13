@@ -71,13 +71,10 @@ export function parseLeadRow(row: GoogleSheetRow) {
     street_address = normalizedRow["street address"];
   if (normalizedRow["street_address"])
     street_address = normalizedRow["street_address"];
-  if (normalizedRow["post code"])
-    post_code = normalizedRow["post code"];
+  if (normalizedRow["post code"]) post_code = normalizedRow["post code"];
   if (normalizedRow["post_code"]) post_code = normalizedRow["post_code"];
-  if (normalizedRow["lead status"])
-    lead_status = normalizedRow["lead status"];
-  if (normalizedRow["lead_status"])
-    lead_status = normalizedRow["lead_status"];
+  if (normalizedRow["lead status"]) lead_status = normalizedRow["lead status"];
+  if (normalizedRow["lead_status"]) lead_status = normalizedRow["lead_status"];
   if (normalizedRow["note1"]) note1 = normalizedRow["note1"];
   if (normalizedRow["note 1"]) note1 = normalizedRow["note 1"];
   if (normalizedRow["note2"]) note2 = normalizedRow["note2"];
@@ -240,10 +237,7 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
         headerTextLower.includes("name") || headerTextLower.includes("full");
 
       if (hasEmailColumn && hasPhoneColumn && hasNameColumn) {
-        console.log(
-          `✓ Found valid header row at line ${i}:`,
-          possibleHeaders,
-        );
+        console.log(`✓ Found valid header row at line ${i}:`, possibleHeaders);
         headers = possibleHeaders;
         startIndex = i + 1;
         break;
@@ -259,10 +253,7 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
   if (headers.length > 0) {
     const firstHeader = headers[0];
     // If first column header is very long or contains question marks, it's likely malformed
-    if (
-      (firstHeader && firstHeader.length > 50) ||
-      firstHeader.includes("?")
-    ) {
+    if ((firstHeader && firstHeader.length > 50) || firstHeader.includes("?")) {
       console.log("First column appears malformed, will skip it");
       skipFirstColumn = true;
       // Remove the first malformed header
