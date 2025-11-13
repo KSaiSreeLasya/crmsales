@@ -72,7 +72,6 @@ interface Lead {
 }
 
 const STATUS_OPTIONS: LeadStatus[] = [
-  "New",
   "Not lifted",
   "Not connected",
   "Voice Message",
