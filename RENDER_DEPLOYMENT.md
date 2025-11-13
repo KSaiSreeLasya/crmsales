@@ -107,12 +107,14 @@ Ensure your repository has:
 Fill in the following details:
 
 **Basic Settings:**
+
 - **Name**: `saleshub-crm` (or your preferred name)
 - **Environment**: `Node`
 - **Region**: Choose closest to your location
 - **Branch**: `main`
 
 **Build & Deploy:**
+
 - **Build Command**: `pnpm install && pnpm build`
 - **Start Command**: `pnpm start`
 
@@ -120,13 +122,14 @@ Fill in the following details:
 
 Click **Add Environment Variable** for each:
 
-| Key | Value | Example |
-|-----|-------|---------|
-| `VITE_SUPABASE_URL` | Your Supabase URL | `https://bapbepwybsznjhrgipbt.supabase.co` |
-| `VITE_SUPABASE_ANON_KEY` | Your Supabase anon key | `eyJhbGc...` |
-| `NODE_ENV` | `production` | `production` |
+| Key                      | Value                  | Example                                    |
+| ------------------------ | ---------------------- | ------------------------------------------ |
+| `VITE_SUPABASE_URL`      | Your Supabase URL      | `https://bapbepwybsznjhrgipbt.supabase.co` |
+| `VITE_SUPABASE_ANON_KEY` | Your Supabase anon key | `eyJhbGc...`                               |
+| `NODE_ENV`               | `production`           | `production`                               |
 
 **Plan:**
+
 - Select **Free Plan** or **Paid Plan** depending on your needs
 - Free plan includes: 750 hours/month, auto-pause after 15 min inactivity
 
@@ -142,10 +145,12 @@ Click **Add Environment Variable** for each:
    - Provide a public URL
 
 **Build Status:**
+
 - Watch the deploy logs in real-time
 - Successful deployment shows: `Build successful`
 
 **Your App URL:**
+
 - Format: `https://saleshub-crm.onrender.com`
 - May take 2-5 minutes to become available
 
@@ -164,21 +169,25 @@ Click **Add Environment Variable** for each:
 ### Common Issues
 
 **Issue: "Failed to load leads"**
+
 - ✅ Verify Supabase credentials in Render environment variables
 - ✅ Check Supabase tables are created
 - ✅ Ensure RLS is disabled (for development)
 
 **Issue: "Cannot connect to database"**
+
 - ✅ Check `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are correct
 - ✅ Verify Supabase project is active
 - ✅ Check Render logs for detailed errors
 
 **Issue: "Google Sheet sync fails"**
+
 - ✅ Verify Google Sheet is publicly shared
 - ✅ Check spreadsheet ID is correct in code
 - ✅ Ensure columns match expected format
 
 **Issue: Application won't start**
+
 - ✅ Check Node.js version: `node --version` (requires 18+)
 - ✅ Review build logs in Render dashboard
 - ✅ Verify `pnpm install` completes successfully
@@ -294,13 +303,13 @@ Your deployment is now configured to:
 
 ### Common Errors and Solutions
 
-| Error | Cause | Solution |
-|-------|-------|----------|
-| `Cannot find module 'express'` | Dependencies not installed | Check `package.json` and `pnpm-lock.yaml` |
-| `VITE_SUPABASE_URL is undefined` | Missing env variable | Add to Render environment variables |
-| `Failed to sync leads` | Google Sheet not accessible | Ensure sheet is publicly shared |
-| `Port already in use` | Port conflict | Render uses port 3000 by default |
-| `Build timeout` | Build takes too long | Check for large dependencies |
+| Error                            | Cause                       | Solution                                  |
+| -------------------------------- | --------------------------- | ----------------------------------------- |
+| `Cannot find module 'express'`   | Dependencies not installed  | Check `package.json` and `pnpm-lock.yaml` |
+| `VITE_SUPABASE_URL is undefined` | Missing env variable        | Add to Render environment variables       |
+| `Failed to sync leads`           | Google Sheet not accessible | Ensure sheet is publicly shared           |
+| `Port already in use`            | Port conflict               | Render uses port 3000 by default          |
+| `Build timeout`                  | Build takes too long        | Check for large dependencies              |
 
 ### View Deployment Metrics
 
@@ -343,6 +352,7 @@ Your deployment is now configured to:
 **Supabase Free Plan**: Manual backups only
 
 **Supabase Paid Plans**:
+
 1. Go to Settings > Backups
 2. Configure backup frequency
 3. Set retention policy

@@ -158,7 +158,9 @@ export default function Salespersons() {
     } catch (error) {
       console.error("Error saving salesperson:", error);
       if (error instanceof Error && error.message.includes("relation")) {
-        toast.error("Database not set up. Please run SUPABASE_TABLES.sql first");
+        toast.error(
+          "Database not set up. Please run SUPABASE_TABLES.sql first",
+        );
       } else {
         toast.error("Failed to save salesperson");
       }
@@ -272,9 +274,7 @@ export default function Salespersons() {
           <div className="overflow-x-auto">
             {isLoading ? (
               <div className="p-8 text-center">
-                <p className="text-muted-foreground">
-                  Loading salespersons...
-                </p>
+                <p className="text-muted-foreground">Loading salespersons...</p>
               </div>
             ) : (
               <Table>

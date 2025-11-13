@@ -202,7 +202,9 @@ export default function Leads() {
 
       if (leadsToSync.length === 0) {
         if (showNotification) {
-          toast.error("No valid leads found in Google Sheet. Check browser console for details.");
+          toast.error(
+            "No valid leads found in Google Sheet. Check browser console for details.",
+          );
         }
         setIsSyncing(false);
         return;
@@ -408,7 +410,8 @@ export default function Leads() {
       lead.phone.includes(searchTerm) ||
       lead.company.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesStatus = filterStatus === "all" || lead.status === filterStatus;
+    const matchesStatus =
+      filterStatus === "all" || lead.status === filterStatus;
 
     return matchesSearch && matchesStatus;
   });
@@ -532,7 +535,10 @@ export default function Leads() {
                         placeholder="Post Code"
                         value={formData.post_code}
                         onChange={(e) =>
-                          setFormData({ ...formData, post_code: e.target.value })
+                          setFormData({
+                            ...formData,
+                            post_code: e.target.value,
+                          })
                         }
                       />
                     </div>

@@ -66,9 +66,7 @@ export default function Index() {
       const activeLeads = leadsList.filter(
         (l) =>
           l.status &&
-          !["Lead finished", "Not lifted", "Not connected"].includes(
-            l.status,
-          ),
+          !["Lead finished", "Not lifted", "Not connected"].includes(l.status),
       ).length;
 
       // Group by status
@@ -190,9 +188,7 @@ export default function Index() {
             </h3>
             <div className="mt-6 space-y-4">
               {isLoading ? (
-                <p className="text-center text-muted-foreground">
-                  Loading...
-                </p>
+                <p className="text-center text-muted-foreground">Loading...</p>
               ) : stats.leadsBySalesperson.length === 0 ? (
                 <p className="text-center text-muted-foreground">
                   No leads assigned yet
@@ -212,7 +208,14 @@ export default function Index() {
                           className="h-full rounded-full bg-blue-500"
                           style={{
                             width: `${Math.min(
-                              (item.count / Math.max(...stats.leadsBySalesperson.map((s) => s.count), 1)) * 100,
+                              (item.count /
+                                Math.max(
+                                  ...stats.leadsBySalesperson.map(
+                                    (s) => s.count,
+                                  ),
+                                  1,
+                                )) *
+                                100,
                               100,
                             )}%`,
                           }}
@@ -235,9 +238,7 @@ export default function Index() {
             </h3>
             <div className="mt-6 space-y-4">
               {isLoading ? (
-                <p className="text-center text-muted-foreground">
-                  Loading...
-                </p>
+                <p className="text-center text-muted-foreground">Loading...</p>
               ) : Object.keys(stats.leadsByStatus).length === 0 ? (
                 <p className="text-center text-muted-foreground">
                   No leads available
@@ -328,9 +329,7 @@ export default function Index() {
 
         {/* Recent Activity */}
         <Card className="border border-border bg-card p-6">
-          <h3 className="text-lg font-semibold text-foreground">
-            Quick Stats
-          </h3>
+          <h3 className="text-lg font-semibold text-foreground">Quick Stats</h3>
           <div className="mt-6 space-y-4">
             {isLoading ? (
               <p className="text-center text-muted-foreground">
@@ -372,9 +371,7 @@ export default function Index() {
                   </div>
                   <span className="text-xl font-bold text-blue-600">
                     {stats.totalSalespersons > 0
-                      ? Math.round(
-                          stats.totalLeads / stats.totalSalespersons,
-                        )
+                      ? Math.round(stats.totalLeads / stats.totalSalespersons)
                       : 0}
                   </span>
                 </div>
@@ -384,7 +381,8 @@ export default function Index() {
                       Leads Status Distribution
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {Object.keys(stats.leadsByStatus).length} different statuses
+                      {Object.keys(stats.leadsByStatus).length} different
+                      statuses
                     </p>
                   </div>
                   <span className="text-xl font-bold text-purple-600">

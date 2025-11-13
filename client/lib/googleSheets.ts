@@ -43,14 +43,49 @@ function getColumnValue(
  */
 export function parseLeadRow(row: GoogleSheetRow) {
   const parsed = {
-    name: getColumnValue(row, "Full Name", "full name", "Name", "name", "FULL_NAME", "full_name"),
+    name: getColumnValue(
+      row,
+      "Full Name",
+      "full name",
+      "Name",
+      "name",
+      "FULL_NAME",
+      "full_name",
+    ),
     email: getColumnValue(row, "Email", "email", "EMAIL"),
     phone: getColumnValue(row, "Phone", "phone", "PHONE"),
     company: getColumnValue(row, "Company", "company", "COMPANY") || "N/A",
-    status: (getColumnValue(row, "Status", "status", "STATUS") || "Not lifted") as LeadStatus,
-    assignedTo: getColumnValue(row, "Assigned to", "Assigned To", "assigned_to", "assigned to", "Owner", "owner", "OWNER") || "Unassigned",
-    note1: getColumnValue(row, "Note 1", "Note1", "note_1", "note 1", "note1", "NOTE_1"),
-    note2: getColumnValue(row, "Note 2", "Note2", "note_2", "note 2", "note2", "NOTE_2"),
+    status: (getColumnValue(row, "Status", "status", "STATUS") ||
+      "Not lifted") as LeadStatus,
+    assignedTo:
+      getColumnValue(
+        row,
+        "Assigned to",
+        "Assigned To",
+        "assigned_to",
+        "assigned to",
+        "Owner",
+        "owner",
+        "OWNER",
+      ) || "Unassigned",
+    note1: getColumnValue(
+      row,
+      "Note 1",
+      "Note1",
+      "note_1",
+      "note 1",
+      "note1",
+      "NOTE_1",
+    ),
+    note2: getColumnValue(
+      row,
+      "Note 2",
+      "Note2",
+      "note_2",
+      "note 2",
+      "note2",
+      "NOTE_2",
+    ),
   };
 
   return parsed;
@@ -131,9 +166,18 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
     // Show which columns we can find
     const sampleRow = rows[0];
     console.log("Sample column values:");
-    console.log("  Full Name / full name:", sampleRow["full name"] || sampleRow["Full Name"] || "NOT FOUND");
-    console.log("  Email:", sampleRow["email"] || sampleRow["Email"] || "NOT FOUND");
-    console.log("  Phone:", sampleRow["phone"] || sampleRow["Phone"] || "NOT FOUND");
+    console.log(
+      "  Full Name / full name:",
+      sampleRow["full name"] || sampleRow["Full Name"] || "NOT FOUND",
+    );
+    console.log(
+      "  Email:",
+      sampleRow["email"] || sampleRow["Email"] || "NOT FOUND",
+    );
+    console.log(
+      "  Phone:",
+      sampleRow["phone"] || sampleRow["Phone"] || "NOT FOUND",
+    );
   }
 
   return rows;
@@ -196,7 +240,11 @@ export async function fetchGoogleSheet(
     const response = await fetch(url);
 
     if (!response.ok) {
-      console.error("Google Sheets fetch failed:", response.status, response.statusText);
+      console.error(
+        "Google Sheets fetch failed:",
+        response.status,
+        response.statusText,
+      );
       throw new Error(`Failed to fetch Google Sheet: ${response.statusText}`);
     }
 

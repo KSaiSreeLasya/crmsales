@@ -3,16 +3,19 @@
 ## ✅ Issues Fixed
 
 ### 1. Salesperson Form - Department & Region Removed
+
 - ✅ Removed Department and Region fields from the "Add Salesperson" form
 - ✅ Form now only requires: Name, Email, Phone
 - ✅ Table columns updated to show only: Name, Email, Phone, Actions
 
 ### 2. Auto-Sync Google Sheets
+
 - ✅ Leads now **automatically sync from Google Sheets on page load**
 - ✅ Silent sync (no notification) on page load
 - ✅ Manual sync shows success/error notification when you click "Sync Sheet" button
 
 ### 3. Google Sheets Column Flexibility
+
 - ✅ Parser now handles flexible column names:
   - "Name" or "Full Name"
   - "Email"
@@ -23,6 +26,7 @@
   - "Note 1", "Note1", "Note 2", or "Note2"
 
 ### 4. Better Error Messages
+
 - ✅ Clear error message if Supabase tables aren't created: "Database not set up. Please run SUPABASE_TABLES.sql first"
 - ✅ No error notifications during auto-sync on page load
 
@@ -126,10 +130,13 @@ Your Google Sheet: https://docs.google.com/spreadsheets/d/1QY8_Q8-ybLKNVs4hynPZs
 ## 🔍 Troubleshooting
 
 ### "Failed to save salesperson"
+
 **Solution**: Run the SQL above to create the salespersons table
 
 ### "No leads showing"
-**Solution**: 
+
+**Solution**:
+
 1. Make sure Google Sheet is **publicly shared** ("Anyone with the link can view")
 2. Check that sheet has these columns:
    - Name (or Full Name)
@@ -138,6 +145,7 @@ Your Google Sheet: https://docs.google.com/spreadsheets/d/1QY8_Q8-ybLKNVs4hynPZs
    - Any other columns are optional
 
 ### "Database not set up" message
+
 **Solution**: Run the SQL script from Step 1 above
 
 ---
@@ -147,11 +155,13 @@ Your Google Sheet: https://docs.google.com/spreadsheets/d/1QY8_Q8-ybLKNVs4hynPZs
 Your sheet can have these column names (case-insensitive, spacing flexible):
 
 **Required:**
+
 - Name, Full Name, or FULL NAME
 - Email
 - Phone
 
 **Optional (will be used if found):**
+
 - Company
 - Street Address or STREET ADDRESS
 - Post Code or POST CODE
