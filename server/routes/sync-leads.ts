@@ -105,57 +105,64 @@ export const handleSyncLeads: RequestHandler = async (req, res) => {
     console.log("Total leads to sync:", leadsToSync.length);
     console.log("Sample lead:", leadsToSync[0]);
 
-    const { data, error } = await supabase
-      .from("leads")
-      .insert(leadsToSync)
-      .select();
+    try {
+      console.log("Inserting leads into Supabase...");
+      const { data, error } = await supabase
+        .from("leads")
+        .insert(leadsToSync)
+        .select();
 
-    if (error) {
-      console.error("Supabase error:", error);
-      console.error("Error details:", {
-        message: error.message,
-        code: (error as any).code,
-        details: (error as any).details,
-        hint: (error as any).hint,
-      });
+      if (error) {
+        console.error("Supabase insert error:", error);
+        console.error("Full error object:", JSON.stringify(error, null, 2));
+        console.error("Attempting to sync leads:", JSON.stringify(leadsToSync[0]));
 
-      // If duplicate key error, try updating instead
-      if (error.message.includes("duplicate") || error.code === "23505") {
-        console.log("Duplicate detected, attempting update instead...");
-        try {
-          const updateResults = await Promise.all(
-            leadsToSync.map((lead) =>
-              supabase
-                .from("leads")
-                .update(lead)
-                .eq("email", lead.email)
-                .select()
-            )
-          );
+        // If duplicate key error, try update
+        if (error.message?.includes("duplicate") || (error as any).code === "23505") {
+          console.log("Duplicate key detected, attempting to update existing records...");
 
-          const updatedCount = updateResults.filter((r) => !r.error).length;
+          for (const lead of leadsToSync) {
+            await supabase
+              .from("leads")
+              .update(lead)
+              .eq("email", lead.email);
+          }
+
           res.json({
             success: true,
-            message: `${updatedCount} leads updated and ${leadsToSync.length - updatedCount} new leads added`,
+            message: `Successfully updated existing leads`,
             synced: leadsToSync.length,
             source: source,
           });
           return;
-        } catch (updateError) {
-          console.error("Update failed:", updateError);
         }
+
+        // For other errors, return details
+        res.status(400).json({
+          error: "Failed to insert leads",
+          message: error.message,
+          details: (error as any).details,
+          code: (error as any).code,
+          sample_lead: leadsToSync[0],
+        });
+        return;
       }
 
-      res.status(500).json({
-        error: "Failed to sync leads to database",
-        message: error.message,
-        details: (error as any).details,
-        code: (error as any).code,
+      console.log("Successfully inserted", data?.length, "leads");
+      res.json({
+        success: true,
+        message: `${leadsToSync.length} leads synced successfully`,
+        synced: leadsToSync.length,
+        source: source,
+        data: data,
       });
-      return;
+    } catch (err) {
+      console.error("Unexpected error during sync:", err);
+      res.status(500).json({
+        error: "Unexpected error syncing leads",
+        message: err instanceof Error ? err.message : String(err),
+      });
     }
-
-    console.log("Successfully synced", data?.length, "leads");
 
     res.json({
       success: true,
