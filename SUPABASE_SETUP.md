@@ -3,12 +3,14 @@
 ## Step 1: Connect Supabase to the Application
 
 ### 1.1 Connect Supabase MCP
+
 - Click [Open MCP popover](#open-mcp-popover)
 - Find and connect to **Supabase**
 - Follow the prompts to authenticate and select your project
 - Note down your **Project URL** and **Anon Key**
 
 ### 1.2 Set Environment Variables
+
 Once Supabase is connected, set these environment variables:
 
 ```
@@ -17,6 +19,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
 
 You can find these values in your Supabase project:
+
 1. Go to your Supabase dashboard
 2. Navigate to **Settings > API**
 3. Copy the **Project URL** and **anon/public key**
@@ -103,6 +106,7 @@ Similarly, the Salespersons page can fetch/store data from Supabase.
 ## Step 4: Database Access & Management
 
 ### 4.1 Query Data in Supabase
+
 Go to **Supabase SQL Editor** to view your data:
 
 ```sql
@@ -120,6 +124,7 @@ SELECT * FROM leads WHERE owner = 'Unassigned' ORDER BY created_at DESC;
 ```
 
 ### 4.2 Manage Data
+
 - Use **Supabase Dashboard > Table Editor** to manually edit data
 - Use **SQL Editor** for bulk operations
 - Use **Realtime** to enable live updates
@@ -129,6 +134,7 @@ SELECT * FROM leads WHERE owner = 'Unassigned' ORDER BY created_at DESC;
 ## Step 5: Deployment to Render
 
 ### 5.1 Prerequisites
+
 - GitHub repository with your code
 - Render account (free at render.com)
 - Supabase project (already created)
@@ -136,6 +142,7 @@ SELECT * FROM leads WHERE owner = 'Unassigned' ORDER BY created_at DESC;
 ### 5.2 Deploy to Render
 
 1. **Push code to GitHub**
+
    ```bash
    git add .
    git commit -m "Ready for deployment"
@@ -150,6 +157,7 @@ SELECT * FROM leads WHERE owner = 'Unassigned' ORDER BY created_at DESC;
 
 3. **Configure environment variables on Render**
    - Add these environment variables in Render dashboard:
+
    ```
    VITE_SUPABASE_URL=https://your-project.supabase.co
    VITE_SUPABASE_ANON_KEY=your-anon-key
@@ -166,7 +174,9 @@ SELECT * FROM leads WHERE owner = 'Unassigned' ORDER BY created_at DESC;
    - Access your app at: `https://your-app-name.onrender.com`
 
 ### 5.3 Post-Deployment
+
 After deployment, your app will:
+
 - ✅ Automatically sync leads from Google Sheets on page load
 - ✅ Store data locally in browser (for future Supabase integration)
 - ✅ Allow manual sync with "Sync Sheet" button
@@ -195,23 +205,21 @@ export const handleSyncLeads = async (req, res) => {
     const { leads } = req.body;
 
     // Insert leads into Supabase
-    const { data, error } = await supabase
-      .from("leads")
-      .upsert(
-        leads.map((lead) => ({
-          full_name: lead.fullName,
-          email: lead.email,
-          phone: lead.phone,
-          street_address: lead.streetAddress,
-          post_code: lead.postCode,
-          lead_status: lead.leadStatus,
-          note1: lead.note1,
-          note2: lead.note2,
-          status: lead.status,
-          owner: lead.owner,
-        })),
-        { onConflict: "email" }
-      );
+    const { data, error } = await supabase.from("leads").upsert(
+      leads.map((lead) => ({
+        full_name: lead.fullName,
+        email: lead.email,
+        phone: lead.phone,
+        street_address: lead.streetAddress,
+        post_code: lead.postCode,
+        lead_status: lead.leadStatus,
+        note1: lead.note1,
+        note2: lead.note2,
+        status: lead.status,
+        owner: lead.owner,
+      })),
+      { onConflict: "email" },
+    );
 
     if (error) throw error;
 
@@ -246,21 +254,25 @@ async function fetchLeadsFromSupabase() {
 ## Step 7: Troubleshooting
 
 ### Issue: "Connection refused" when deploying
+
 - ✅ Check Supabase credentials are correct
 - ✅ Ensure environment variables are set on Render
 - ✅ Verify Supabase project is running
 
 ### Issue: "Column does not exist" error
+
 - ✅ Run the table creation SQL again
 - ✅ Check column names match (use snake_case in Supabase)
 - ✅ Ensure migrations were applied
 
 ### Issue: Data not persisting after refresh
+
 - ✅ Currently, data is stored locally in browser
 - ✅ Implement Supabase API endpoints for persistence
 - ✅ Use `useEffect` to fetch from Supabase on page load
 
 ### Issue: Render deployment failing
+
 - ✅ Check build logs in Render dashboard
 - ✅ Verify `pnpm install` works locally
 - ✅ Check for any TypeScript errors: `pnpm typecheck`
@@ -271,16 +283,19 @@ async function fetchLeadsFromSupabase() {
 ## Step 8: Monitoring & Maintenance
 
 ### 8.1 Monitor Supabase Usage
+
 - Go to Supabase Dashboard > **Usage**
 - Monitor database connections, storage, API calls
 - Set up alerts for quota limits
 
 ### 8.2 Monitor Render Deployment
+
 - Go to Render Dashboard > **Logs**
 - Check for errors and performance issues
 - Monitor CPU and memory usage
 
 ### 8.3 Backup Data
+
 - Use Supabase **Backups** feature (paid plans)
 - Manually export data using SQL queries
 - Schedule regular backups
@@ -327,6 +342,7 @@ async function fetchLeadsFromSupabase() {
 ## Summary
 
 You now have:
+
 1. ✅ Supabase project created
 2. ✅ Database tables with proper schema
 3. ✅ Environment variables configured
@@ -335,6 +351,7 @@ You now have:
 6. ✅ Persistent storage ready (optional Supabase integration)
 
 **Next Steps:**
+
 - Deploy to Render for production
 - Monitor usage and performance
 - Implement Supabase API endpoints for full persistence

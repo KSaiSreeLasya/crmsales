@@ -83,7 +83,7 @@ export default function Salespersons() {
     (person) =>
       person.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       person.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      person.phone.includes(searchTerm)
+      person.phone.includes(searchTerm),
   );
 
   const handleOpenDialog = (person?: Salesperson) => {
@@ -114,8 +114,8 @@ export default function Salespersons() {
     if (editingId) {
       setSalespersons(
         salespersons.map((person) =>
-          person.id === editingId ? { ...person, ...formData } : person
-        )
+          person.id === editingId ? { ...person, ...formData } : person,
+        ),
       );
       toast.success("Salesperson updated successfully");
     } else {
@@ -147,9 +147,7 @@ export default function Salespersons() {
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-3xl font-bold text-foreground">
-              Sales Team
-            </h2>
+            <h2 className="text-3xl font-bold text-foreground">Sales Team</h2>
             <p className="mt-1 text-muted-foreground">
               Manage your sales team members
             </p>
@@ -251,7 +249,10 @@ export default function Salespersons() {
                   </TableRow>
                 ) : (
                   filteredSalespersons.map((person) => (
-                    <TableRow key={person.id} className="border-b border-border hover:bg-gray-50">
+                    <TableRow
+                      key={person.id}
+                      className="border-b border-border hover:bg-gray-50"
+                    >
                       <TableCell className="font-medium text-foreground">
                         {person.name}
                       </TableCell>

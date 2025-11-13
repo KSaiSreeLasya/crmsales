@@ -3,12 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertCircle, CheckCircle } from "lucide-react";
 import { useState } from "react";
 
@@ -72,9 +67,7 @@ export default function Settings() {
                         className="mt-2"
                       />
                     </div>
-                    <Button onClick={handleSaveSettings}>
-                      Connect Sheet
-                    </Button>
+                    <Button onClick={handleSaveSettings}>Connect Sheet</Button>
                   </div>
                 </div>
 

@@ -30,7 +30,7 @@ export const handleSyncLeads: RequestHandler = async (req, res) => {
 
     // Validate leads - only require name, email, phone, company
     const validLeads = leads.filter(
-      (lead) => lead.name && lead.email && lead.phone && lead.company
+      (lead) => lead.name && lead.email && lead.phone && lead.company,
     );
 
     if (validLeads.length === 0) {

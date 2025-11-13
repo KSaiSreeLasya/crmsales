@@ -32,7 +32,7 @@ export function CRMLayout({ children }: CRMLayoutProps) {
       <aside
         className={cn(
           "border-r border-border bg-card transition-all duration-300",
-          sidebarOpen ? "w-64" : "w-20"
+          sidebarOpen ? "w-64" : "w-20",
         )}
       >
         <div className="flex h-16 items-center justify-between border-b border-border px-4">
@@ -70,7 +70,7 @@ export function CRMLayout({ children }: CRMLayoutProps) {
                   "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                   isActive
                     ? "bg-primary text-primary-foreground"
-                    : "text-foreground hover:bg-secondary"
+                    : "text-foreground hover:bg-secondary",
                 )}
               >
                 <Icon className="h-5 w-5 flex-shrink-0" />

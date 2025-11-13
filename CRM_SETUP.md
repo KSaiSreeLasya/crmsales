@@ -16,6 +16,7 @@ SalesHub is a modern CRM application designed for sales teams to manage leads, a
 ## Prerequisites
 
 Before you start, you need:
+
 1. A Supabase project
 2. Google Sheets with your leads and salespersons data
 3. Environment variables configured
@@ -33,6 +34,7 @@ Before you start, you need:
 Once Supabase is connected, create the following tables:
 
 #### Table: `leads`
+
 ```sql
 CREATE TABLE leads (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -51,6 +53,7 @@ CREATE TABLE leads (
 ```
 
 #### Table: `salespersons`
+
 ```sql
 CREATE TABLE salespersons (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -74,6 +77,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
 
 You can find these values in your Supabase project settings:
+
 1. Go to your Supabase project dashboard
 2. Navigate to Settings > API
 3. Copy the Project URL and anon/public key
@@ -83,6 +87,7 @@ You can find these values in your Supabase project settings:
 ### Leads Sheet
 
 Create a Google Sheet named "Leads" with these columns (in order):
+
 - **Name** - Lead's full name
 - **Email** - Lead's email address
 - **Company** - Company name
@@ -93,6 +98,7 @@ Create a Google Sheet named "Leads" with these columns (in order):
 - **Note2** - Second note/comment
 
 Example:
+
 ```
 Name       | Email              | Company      | Phone         | Assigned to    | Status           | Note1          | Note2
 John Smith | john@example.com   | Tech Corp    | +1-234-567890 | Sarah Johnson  | Contacted        | Interested     | Follow up
@@ -104,6 +110,7 @@ Jane Doe   | jane@example.com   | Business Inc | +1-234-567891 | Mike Chen      
 ### Salespersons Sheet
 
 Create a Google Sheet named "Salespersons" with these columns (in order):
+
 - **Name** - Salesperson's full name
 - **Email** - Salesperson's email address
 - **Phone** - Salesperson's phone number
@@ -111,6 +118,7 @@ Create a Google Sheet named "Salespersons" with these columns (in order):
 - **Region** - Region assigned (e.g., North, South, East, West)
 
 Example:
+
 ```
 Name            | Email              | Phone         | Department    | Region
 Sarah Johnson   | sarah@example.com  | +1-234-567890 | Sales         | North
@@ -122,6 +130,7 @@ Mike Chen       | mike@example.com   | +1-234-567891 | Sales         | South
 ### Make Sheets Public
 
 Make sure both sheets are publicly accessible:
+
 1. Click "Share" on your Google Sheet
 2. Set the access to "Anyone with the link can view"
 3. Copy the share link
@@ -131,12 +140,14 @@ Make sure both sheets are publicly accessible:
 ### Add Salespersons
 
 You can:
+
 1. **Manually add via UI**: Go to "Sales Team" page and click "Add Salesperson"
 2. **Sync from Google Sheet**: Go to Settings and connect your Salespersons sheet
 
 ### Import Leads
 
 You can:
+
 1. **Manually add via UI**: Go to "Leads" page and click "Add Lead"
 2. **Sync from Google Sheet**: Go to Settings and connect your Leads sheet
 
@@ -152,6 +163,7 @@ You can:
 ### Managing Leads
 
 #### Add Lead
+
 1. Go to "Leads" page
 2. Click "Add Lead"
 3. Fill in all required fields (Name, Email, Company, Phone, Assigned To)
@@ -159,35 +171,41 @@ You can:
 5. Click "Add Lead"
 
 #### Edit Lead
+
 1. Go to "Leads" page
 2. Click the Edit icon for the lead
 3. Update any fields
 4. Click "Update Lead"
 
 #### Delete Lead
+
 1. Go to "Leads" page
 2. Click the Delete icon
 3. Confirm deletion
 
 #### Filter & Search
+
 - Use the search box to find leads by name, email, or company
 - Use the Status dropdown to filter by lead status
 
 ### Managing Salespersons
 
 #### Add Salesperson
+
 1. Go to "Sales Team" page
 2. Click "Add Salesperson"
 3. Fill in all fields (Name, Email, Phone, Department, Region)
 4. Click "Add Salesperson"
 
 #### Edit Salesperson
+
 1. Go to "Sales Team" page
 2. Click the Edit icon
 3. Update any fields
 4. Click "Update Salesperson"
 
 #### Delete Salesperson
+
 1. Go to "Sales Team" page
 2. Click the Delete icon
 3. Confirm deletion
@@ -195,6 +213,7 @@ You can:
 ### Syncing from Google Sheets
 
 #### Sync Leads
+
 1. Prepare your Google Sheet with the leads columns
 2. Make it publicly shareable
 3. Go to Settings > Integrations
@@ -202,6 +221,7 @@ You can:
 5. Click "Connect Sheet"
 
 #### Sync Salespersons
+
 1. Prepare your Google Sheet with the salespersons columns
 2. Make it publicly shareable
 3. Go to Settings > Integrations
@@ -211,6 +231,7 @@ You can:
 ## Status Options
 
 The following status options are available for leads:
+
 - **Not lifted** - Initial status, no contact attempted
 - **Not connected** - Contact attempted but no connection
 - **Voice Message** - Left voicemail
@@ -223,6 +244,7 @@ The following status options are available for leads:
 ## Real-Time Updates
 
 The application uses Supabase's real-time capabilities to automatically update data:
+
 - When a lead is added from Google Sheets, it appears instantly
 - When a team member updates lead info, others see it immediately
 - Team changes sync across all users in real-time
@@ -230,22 +252,26 @@ The application uses Supabase's real-time capabilities to automatically update d
 ## Troubleshooting
 
 ### Google Sheet Not Syncing
+
 - Ensure the sheet is shared publicly ("Anyone with the link can view")
 - Check that column headers match exactly (Name, Email, Phone, etc.)
 - Verify the share link format is correct
 - Ensure rows have values in required columns (Name for both sheets)
 
 ### Empty Rows Issue
+
 - The system automatically skips empty rows
 - Only rows with a Name value are imported
 - Make sure your Google Sheet doesn't have blank rows between data
 
 ### Leads Not Appearing
+
 - Check that Supabase environment variables are correctly set
 - Verify the Supabase tables are created with correct schema
 - Check browser console for any error messages
 
 ### Sync Errors
+
 - Verify the spreadsheet is publicly accessible
 - Check that all required columns exist with correct names
 - Ensure data format matches expected format (emails should be valid, etc.)
@@ -253,6 +279,7 @@ The application uses Supabase's real-time capabilities to automatically update d
 ## API Routes
 
 ### Sync Leads from Google Sheet
+
 ```bash
 POST /api/sync-leads
 Content-Type: application/json
@@ -275,6 +302,7 @@ Content-Type: application/json
 ```
 
 ### Sync Salespersons from Google Sheet
+
 ```bash
 POST /api/sync-salespersons
 Content-Type: application/json
@@ -296,6 +324,7 @@ Content-Type: application/json
 ## Database Schema
 
 ### Leads Table
+
 - `id` (UUID, Primary Key)
 - `name` (TEXT, Required)
 - `email` (TEXT, Unique, Required)
@@ -310,6 +339,7 @@ Content-Type: application/json
 - `updated_at` (TIMESTAMP)
 
 ### Salespersons Table
+
 - `id` (UUID, Primary Key)
 - `name` (TEXT, Required)
 - `email` (TEXT, Unique, Required)
@@ -322,16 +352,19 @@ Content-Type: application/json
 ## Development
 
 ### Run Development Server
+
 ```bash
 pnpm dev
 ```
 
 ### Build for Production
+
 ```bash
 pnpm build
 ```
 
 ### Run Tests
+
 ```bash
 pnpm test
 ```
@@ -368,6 +401,7 @@ pnpm test
 ## Support
 
 For issues or questions:
+
 1. Check this guide's Troubleshooting section
 2. Review the browser console for error messages
 3. Verify all environment variables are set correctly

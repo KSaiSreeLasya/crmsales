@@ -21,7 +21,7 @@ export function useAddSalesperson() {
 
   return useMutation({
     mutationFn: (
-      salesperson: Omit<Salesperson, "id" | "createdAt" | "updatedAt">
+      salesperson: Omit<Salesperson, "id" | "createdAt" | "updatedAt">,
     ) => addSalesperson(salesperson),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["salespersons"] });

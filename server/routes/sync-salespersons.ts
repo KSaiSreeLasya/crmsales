@@ -27,7 +27,7 @@ export const handleSyncSalespersons: RequestHandler = async (req, res) => {
 
     // Validate salespersons - require name, email, phone
     const validSalespersons = salespersons.filter(
-      (person) => person.name && person.email && person.phone
+      (person) => person.name && person.email && person.phone,
     );
 
     if (validSalespersons.length === 0) {

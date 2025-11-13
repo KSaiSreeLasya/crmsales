@@ -1,7 +1,7 @@
 /**
  * Google Sheets Integration
  * Utilities to sync leads and salespersons from Google Sheets to Supabase
- * 
+ *
  * Expected columns for Leads: Name, Email, Company, Phone, Assigned to, Status, Note1, Note2
  * Expected columns for Salespersons: Name, Email, Phone, Department, Region
  */
@@ -84,7 +84,7 @@ export function extractSpreadsheetId(url: string): string | null {
  */
 export function getGoogleSheetsCsvUrl(
   spreadsheetId: string,
-  sheetId: string = "0"
+  sheetId: string = "0",
 ): string {
   return `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${sheetId}`;
 }
@@ -159,7 +159,7 @@ function parseCSVLine(line: string): string[] {
  */
 export async function fetchGoogleSheet(
   spreadsheetId: string,
-  sheetId?: string
+  sheetId?: string,
 ): Promise<GoogleSheetRow[]> {
   try {
     const url = getGoogleSheetsCsvUrl(spreadsheetId, sheetId || "0");
@@ -183,7 +183,7 @@ export async function fetchGoogleSheet(
  */
 export async function syncLeadsFromGoogleSheet(
   spreadsheetId: string,
-  sheetId?: string
+  sheetId?: string,
 ) {
   try {
     const rows = await fetchGoogleSheet(spreadsheetId, sheetId);
@@ -217,7 +217,7 @@ export async function syncLeadsFromGoogleSheet(
  */
 export async function syncSalespersonsFromGoogleSheet(
   spreadsheetId: string,
-  sheetId?: string
+  sheetId?: string,
 ) {
   try {
     const rows = await fetchGoogleSheet(spreadsheetId, sheetId);

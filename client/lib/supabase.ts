@@ -1,7 +1,7 @@
 /**
  * Supabase Client Setup
  * Configure and export Supabase client for database and real-time operations
- * 
+ *
  * TODO: Set up environment variables:
  * - VITE_SUPABASE_URL: Your Supabase project URL
  * - VITE_SUPABASE_ANON_KEY: Your Supabase anonymous key
@@ -14,13 +14,13 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.warn(
-    "Supabase credentials not configured. Some features may not work."
+    "Supabase credentials not configured. Some features may not work.",
   );
 }
 
 export const supabase = createClient(
   supabaseUrl || "https://placeholder.supabase.co",
-  supabaseAnonKey || "placeholder-key"
+  supabaseAnonKey || "placeholder-key",
 );
 
 /**
@@ -83,7 +83,7 @@ export async function getLeads() {
  * Helper function to add a new lead
  */
 export async function addLead(
-  lead: Omit<Lead, "id" | "createdAt" | "updatedAt">
+  lead: Omit<Lead, "id" | "createdAt" | "updatedAt">,
 ) {
   const { data, error } = await supabase
     .from("leads")
@@ -174,7 +174,7 @@ export async function getSalespersons() {
  * Helper function to add a new salesperson
  */
 export async function addSalesperson(
-  salesperson: Omit<Salesperson, "id" | "createdAt" | "updatedAt">
+  salesperson: Omit<Salesperson, "id" | "createdAt" | "updatedAt">,
 ) {
   const { data, error } = await supabase
     .from("salespersons")
@@ -195,7 +195,7 @@ export async function addSalesperson(
  */
 export async function updateSalesperson(
   salespersonId: string,
-  updates: Partial<Salesperson>
+  updates: Partial<Salesperson>,
 ) {
   const { data, error } = await supabase
     .from("salespersons")
