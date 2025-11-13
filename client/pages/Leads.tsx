@@ -166,6 +166,7 @@ export default function Leads() {
     setIsSyncing(true);
     try {
       const rows = await fetchGoogleSheet(SPREADSHEET_ID);
+      console.log("Fetched rows from Google Sheet:", rows.length);
 
       if (rows.length === 0) {
         if (showNotification) {
@@ -189,11 +190,19 @@ export default function Leads() {
             note2: parsed.note2 || "",
           };
         })
-        .filter((lead) => lead.name && lead.email && lead.phone);
+        .filter((lead) => {
+          const isValid = lead.name && lead.email && lead.phone;
+          if (!isValid) {
+            console.log("Filtering out invalid lead:", lead);
+          }
+          return isValid;
+        });
+
+      console.log("Valid leads after filtering:", leadsToSync.length);
 
       if (leadsToSync.length === 0) {
         if (showNotification) {
-          toast.error("No valid leads found in Google Sheet");
+          toast.error("No valid leads found in Google Sheet. Check browser console for details.");
         }
         setIsSyncing(false);
         return;
