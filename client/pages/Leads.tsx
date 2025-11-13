@@ -2,7 +2,7 @@ import { CRMLayout } from "@/components/CRMLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -26,8 +26,28 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Search, Download, Filter } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Plus, Search, Edit2, Trash2 } from "lucide-react";
 import { useState } from "react";
+
+type LeadStatus =
+  | "Not lifted"
+  | "Not connected"
+  | "Voice Message"
+  | "Quotation sent"
+  | "Site visit"
+  | "Advance payment"
+  | "Lead finished"
+  | "Contacted";
 
 interface Lead {
   id: string;
@@ -35,10 +55,23 @@ interface Lead {
   email: string;
   phone: string;
   company: string;
-  status: "new" | "contacted" | "qualified" | "converted" | "lost";
-  assignedTo?: string;
+  status: LeadStatus;
+  assignedTo: string;
+  note1: string;
+  note2: string;
   createdAt: string;
 }
+
+const STATUS_OPTIONS: LeadStatus[] = [
+  "Not lifted",
+  "Not connected",
+  "Voice Message",
+  "Quotation sent",
+  "Site visit",
+  "Advance payment",
+  "Lead finished",
+  "Contacted",
+];
 
 const MOCK_LEADS: Lead[] = [
   {
@@ -47,8 +80,10 @@ const MOCK_LEADS: Lead[] = [
     email: "john@example.com",
     phone: "+1-234-567-8900",
     company: "Tech Corp",
-    status: "qualified",
+    status: "Contacted",
     assignedTo: "Sarah Johnson",
+    note1: "Interested in Q2",
+    note2: "Follow up next week",
     createdAt: "2024-01-15",
   },
   {
@@ -57,57 +92,30 @@ const MOCK_LEADS: Lead[] = [
     email: "jane@example.com",
     phone: "+1-234-567-8901",
     company: "Business Inc",
-    status: "contacted",
+    status: "Quotation sent",
     assignedTo: "Mike Chen",
+    note1: "Requested 3 units",
+    note2: "",
     createdAt: "2024-01-14",
   },
-  {
-    id: "3",
-    name: "Bob Wilson",
-    email: "bob@example.com",
-    phone: "+1-234-567-8902",
-    company: "StartUp Labs",
-    status: "new",
-    createdAt: "2024-01-13",
-  },
-  {
-    id: "4",
-    name: "Alice Johnson",
-    email: "alice@example.com",
-    phone: "+1-234-567-8903",
-    company: "Global Solutions",
-    status: "converted",
-    assignedTo: "Sarah Johnson",
-    createdAt: "2024-01-12",
-  },
 ];
-
-const SALESPERSONS = [
-  "Sarah Johnson",
-  "Mike Chen",
-  "Emily Rodriguez",
-  "David Lee",
-];
-
-const STATUS_COLORS: Record<string, string> = {
-  new: "bg-blue-100 text-blue-800",
-  contacted: "bg-yellow-100 text-yellow-800",
-  qualified: "bg-purple-100 text-purple-800",
-  converted: "bg-green-100 text-green-800",
-  lost: "bg-red-100 text-red-800",
-};
 
 export default function Leads() {
   const [leads, setLeads] = useState<Lead[]>(MOCK_LEADS);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [openDialog, setOpenDialog] = useState(false);
-  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-  const [newLead, setNewLead] = useState({
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
     company: "",
+    status: "Not lifted" as LeadStatus,
+    assignedTo: "",
+    note1: "",
+    note2: "",
   });
 
   const filteredLeads = leads.filter((lead) => {
@@ -122,42 +130,92 @@ export default function Leads() {
     return matchesSearch && matchesStatus;
   });
 
-  const handleAddLead = () => {
+  const handleOpenDialog = (lead?: Lead) => {
+    if (lead) {
+      setFormData({
+        name: lead.name,
+        email: lead.email,
+        phone: lead.phone,
+        company: lead.company,
+        status: lead.status,
+        assignedTo: lead.assignedTo,
+        note1: lead.note1,
+        note2: lead.note2,
+      });
+      setEditingId(lead.id);
+    } else {
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+        company: "",
+        status: "Not lifted",
+        assignedTo: "",
+        note1: "",
+        note2: "",
+      });
+      setEditingId(null);
+    }
+    setOpenDialog(true);
+  };
+
+  const handleSave = () => {
     if (
-      newLead.name &&
-      newLead.email &&
-      newLead.phone &&
-      newLead.company
+      !formData.name ||
+      !formData.email ||
+      !formData.phone ||
+      !formData.company ||
+      !formData.assignedTo
     ) {
-      const lead: Lead = {
-        id: (leads.length + 1).toString(),
-        ...newLead,
-        status: "new",
+      alert("Name, Email, Phone, Company, and Assigned To are required");
+      return;
+    }
+
+    if (editingId) {
+      // Update existing
+      setLeads(
+        leads.map((lead) =>
+          lead.id === editingId
+            ? {
+                ...lead,
+                ...formData,
+                status: formData.status as LeadStatus,
+              }
+            : lead
+        )
+      );
+    } else {
+      // Create new
+      const newLead: Lead = {
+        id: Date.now().toString(),
+        ...formData,
+        status: formData.status as LeadStatus,
         createdAt: new Date().toISOString().split("T")[0],
       };
-      setLeads([lead, ...leads]);
-      setNewLead({ name: "", email: "", phone: "", company: "" });
-      setOpenDialog(false);
+      setLeads([newLead, ...leads]);
     }
+
+    setOpenDialog(false);
+    setFormData({
+      name: "",
+      email: "",
+      phone: "",
+      company: "",
+      status: "Not lifted",
+      assignedTo: "",
+      note1: "",
+      note2: "",
+    });
   };
 
-  const handleAssignLead = (leadId: string, salesperson: string) => {
-    setLeads(
-      leads.map((lead) =>
-        lead.id === leadId ? { ...lead, assignedTo: salesperson } : lead
-      )
-    );
+  const handleDelete = (id: string) => {
+    setLeads(leads.filter((lead) => lead.id !== id));
+    setDeleteId(null);
   };
 
-  const handleChangeStatus = (leadId: string, newStatus: string) => {
-    setLeads(
-      leads.map((lead) =>
-        lead.id === leadId
-          ? { ...lead, status: newStatus as Lead["status"] }
-          : lead
-      )
-    );
-  };
+  const salespersons = [
+    ...new Set(leads.map((lead) => lead.assignedTo).filter(Boolean)),
+  ];
 
   return (
     <CRMLayout>
@@ -172,50 +230,138 @@ export default function Leads() {
           </div>
           <Dialog open={openDialog} onOpenChange={setOpenDialog}>
             <DialogTrigger asChild>
-              <Button className="gap-2">
+              <Button className="gap-2" onClick={() => handleOpenDialog()}>
                 <Plus className="h-4 w-4" />
                 Add Lead
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Add New Lead</DialogTitle>
+                <DialogTitle>{editingId ? "Edit" : "Add"} Lead</DialogTitle>
                 <DialogDescription>
-                  Add a new lead to your database
+                  {editingId
+                    ? "Update lead information"
+                    : "Add a new sales lead"}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
-                <Input
-                  placeholder="Full Name"
-                  value={newLead.name}
-                  onChange={(e) =>
-                    setNewLead({ ...newLead, name: e.target.value })
-                  }
-                />
-                <Input
-                  type="email"
-                  placeholder="Email"
-                  value={newLead.email}
-                  onChange={(e) =>
-                    setNewLead({ ...newLead, email: e.target.value })
-                  }
-                />
-                <Input
-                  placeholder="Phone"
-                  value={newLead.phone}
-                  onChange={(e) =>
-                    setNewLead({ ...newLead, phone: e.target.value })
-                  }
-                />
-                <Input
-                  placeholder="Company"
-                  value={newLead.company}
-                  onChange={(e) =>
-                    setNewLead({ ...newLead, company: e.target.value })
-                  }
-                />
-                <Button onClick={handleAddLead} className="w-full">
-                  Add Lead
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="name">Name *</Label>
+                    <Input
+                      id="name"
+                      placeholder="Full Name"
+                      value={formData.name}
+                      onChange={(e) =>
+                        setFormData({ ...formData, name: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="email">Email *</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="Email"
+                      value={formData.email}
+                      onChange={(e) =>
+                        setFormData({ ...formData, email: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="phone">Phone *</Label>
+                    <Input
+                      id="phone"
+                      placeholder="Phone"
+                      value={formData.phone}
+                      onChange={(e) =>
+                        setFormData({ ...formData, phone: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="company">Company *</Label>
+                    <Input
+                      id="company"
+                      placeholder="Company Name"
+                      value={formData.company}
+                      onChange={(e) =>
+                        setFormData({ ...formData, company: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="status">Status</Label>
+                    <Select
+                      value={formData.status}
+                      onValueChange={(value) =>
+                        setFormData({
+                          ...formData,
+                          status: value as LeadStatus,
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {STATUS_OPTIONS.map((status) => (
+                          <SelectItem key={status} value={status}>
+                            {status}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="assignedTo">Assigned To *</Label>
+                    <Input
+                      id="assignedTo"
+                      placeholder="Salesperson Name"
+                      value={formData.assignedTo}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          assignedTo: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="note1">Note 1</Label>
+                  <Textarea
+                    id="note1"
+                    placeholder="Additional notes"
+                    value={formData.note1}
+                    onChange={(e) =>
+                      setFormData({ ...formData, note1: e.target.value })
+                    }
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="note2">Note 2</Label>
+                  <Textarea
+                    id="note2"
+                    placeholder="More notes"
+                    value={formData.note2}
+                    onChange={(e) =>
+                      setFormData({ ...formData, note2: e.target.value })
+                    }
+                  />
+                </div>
+
+                <Button onClick={handleSave} className="w-full">
+                  {editingId ? "Update" : "Add"} Lead
                 </Button>
               </div>
             </DialogContent>
@@ -239,37 +385,36 @@ export default function Leads() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="new">New</SelectItem>
-              <SelectItem value="contacted">Contacted</SelectItem>
-              <SelectItem value="qualified">Qualified</SelectItem>
-              <SelectItem value="converted">Converted</SelectItem>
-              <SelectItem value="lost">Lost</SelectItem>
+              {STATUS_OPTIONS.map((status) => (
+                <SelectItem key={status} value={status}>
+                  {status}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
-          <Button variant="outline" className="gap-2">
-            <Download className="h-4 w-4" />
-            Export
-          </Button>
         </div>
 
-        {/* Leads Table */}
+        {/* Table */}
         <Card className="border border-border bg-card">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="border-b border-border">
-                  <TableHead className="h-12">Name</TableHead>
+                  <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Company</TableHead>
+                  <TableHead>Phone</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Assigned To</TableHead>
+                  <TableHead>Note 1</TableHead>
+                  <TableHead>Note 2</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredLeads.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="py-8 text-center">
+                    <TableCell colSpan={9} className="py-8 text-center">
                       <p className="text-muted-foreground">
                         No leads found matching your criteria
                       </p>
@@ -281,54 +426,46 @@ export default function Leads() {
                       <TableCell className="font-medium text-foreground">
                         {lead.name}
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
+                      <TableCell className="text-muted-foreground text-sm">
                         {lead.email}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {lead.company}
                       </TableCell>
-                      <TableCell>
-                        <select
-                          value={lead.status}
-                          onChange={(e) =>
-                            handleChangeStatus(lead.id, e.target.value)
-                          }
-                          className="rounded px-2 py-1 text-sm"
-                        >
-                          <option value="new">New</option>
-                          <option value="contacted">Contacted</option>
-                          <option value="qualified">Qualified</option>
-                          <option value="converted">Converted</option>
-                          <option value="lost">Lost</option>
-                        </select>
+                      <TableCell className="text-muted-foreground text-sm">
+                        {lead.phone}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        <span className="inline-block rounded-full bg-primary/10 px-2 py-1 text-primary">
+                          {lead.status}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {lead.assignedTo}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-sm max-w-xs truncate">
+                        {lead.note1}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-sm max-w-xs truncate">
+                        {lead.note2}
                       </TableCell>
                       <TableCell>
-                        {lead.assignedTo ? (
-                          <Badge variant="secondary">{lead.assignedTo}</Badge>
-                        ) : (
-                          <select
-                            onChange={(e) =>
-                              handleAssignLead(lead.id, e.target.value)
-                            }
-                            className="text-sm text-primary underline"
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleOpenDialog(lead)}
                           >
-                            <option value="">Assign</option>
-                            {SALESPERSONS.map((person) => (
-                              <option key={person} value={person}>
-                                {person}
-                              </option>
-                            ))}
-                          </select>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setSelectedLead(lead)}
-                        >
-                          View
-                        </Button>
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setDeleteId(lead.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -337,6 +474,31 @@ export default function Leads() {
             </Table>
           </div>
         </Card>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog
+          open={!!deleteId}
+          onOpenChange={(open) => !open && setDeleteId(null)}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Lead</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this lead? This action cannot
+                be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="flex gap-4">
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => deleteId && handleDelete(deleteId)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete
+              </AlertDialogAction>
+            </div>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </CRMLayout>
   );
