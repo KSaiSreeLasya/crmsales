@@ -564,6 +564,21 @@ export default function Leads() {
                     />
                   </div>
 
+                  <div>
+                    <Label htmlFor="electricityBill">Monthly Electricity Bill</Label>
+                    <Input
+                      id="electricityBill"
+                      placeholder="Average Monthly Electricity Bill"
+                      value={formData.electricity_bill}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          electricity_bill: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="status">Status</Label>
