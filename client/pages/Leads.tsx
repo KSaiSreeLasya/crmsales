@@ -40,7 +40,7 @@ import { Plus, Search, Trash2, RefreshCw, Zap } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
-import { fetchGoogleSheet, parseLeadRow } from "@/lib/googleSheets";
+import { parseLeadRow } from "@shared/googleSheets";
 
 type LeadStatus =
   | "New"
