@@ -78,22 +78,28 @@ export const handleSyncLeads: RequestHandler = async (req, res) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Map leads to Supabase schema and upsert by email
-    const leadsToSync = validLeads.map((lead) => ({
-      name: lead.name,
-      email: lead.email,
-      phone: lead.phone,
-      company: lead.company,
-      street_address: lead.street_address || "",
-      post_code: lead.post_code || "",
-      lead_status: lead.lead_status || "",
-      electricity_bill: lead.electricity_bill || "",
-      status: lead.status || "Not lifted",
-      assigned_to: lead.assignedTo || "Unassigned",
-      note1: lead.note1 || "",
-      note2: lead.note2 || "",
-      source: source || "api",
-    }));
+    // Map leads to Supabase schema - only required fields
+    const leadsToSync = validLeads.map((lead) => {
+      const syncData: any = {
+        name: lead.name,
+        email: lead.email,
+        phone: lead.phone || "",
+        company: lead.company || "",
+        status: lead.status || "Not lifted",
+        assigned_to: lead.assignedTo || "Unassigned",
+        source: source || "google_sheet",
+      };
+
+      // Add optional fields only if they have values
+      if (lead.street_address) syncData.street_address = lead.street_address;
+      if (lead.post_code) syncData.post_code = lead.post_code;
+      if (lead.lead_status) syncData.lead_status = lead.lead_status;
+      if (lead.electricity_bill) syncData.electricity_bill = lead.electricity_bill;
+      if (lead.note1) syncData.note1 = lead.note1;
+      if (lead.note2) syncData.note2 = lead.note2;
+
+      return syncData;
+    });
 
     console.log("Attempting to insert leads to Supabase...");
     console.log("Total leads to sync:", leadsToSync.length);
