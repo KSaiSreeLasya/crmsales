@@ -52,16 +52,23 @@ export function parseLeadRow(row: GoogleSheetRow) {
   let post_code = "";
   let lead_status = "";
   let electricity_bill = "";
+  let note1 = "";
+  let note2 = "";
 
   // Iterate through all columns and match them intelligently
   for (const [key, value] of Object.entries(row)) {
     if (!value) continue;
 
-    const keyLower = key.toLowerCase();
+    const keyLower = key.toLowerCase().trim();
     const valueTrimmed = String(value).trim();
 
-    // Match name (full name, fname, etc.)
-    if (!name && (keyLower.includes("name") || keyLower.includes("fname"))) {
+    // Skip headers and empty keys
+    if (!valueTrimmed || keyLower === "" || keyLower.includes("?")) {
+      continue;
+    }
+
+    // Match full name (full name, name, fname, etc.)
+    if (!name && (keyLower.includes("full") || keyLower.includes("name"))) {
       name = valueTrimmed;
     }
 
@@ -78,10 +85,12 @@ export function parseLeadRow(row: GoogleSheetRow) {
       phone = valueTrimmed;
     }
 
-    // Match property type
+    // Match property type / company
     if (
       company === "N/A" &&
-      (keyLower.includes("property") || keyLower.includes("install"))
+      (keyLower.includes("property") ||
+        keyLower.includes("install") ||
+        keyLower.includes("solar"))
     ) {
       company = valueTrimmed || "N/A";
     }
@@ -94,12 +103,13 @@ export function parseLeadRow(row: GoogleSheetRow) {
       street_address = valueTrimmed;
     }
 
-    // Match post code
+    // Match post code / zip code
     if (
       !post_code &&
       (keyLower.includes("post") ||
         keyLower.includes("zip") ||
-        keyLower.includes("postal"))
+        keyLower.includes("postal") ||
+        keyLower.includes("code"))
     ) {
       post_code = valueTrimmed;
     }
@@ -119,6 +129,16 @@ export function parseLeadRow(row: GoogleSheetRow) {
     ) {
       electricity_bill = valueTrimmed;
     }
+
+    // Match note1
+    if (!note1 && (keyLower === "note1" || keyLower === "note_1")) {
+      note1 = valueTrimmed;
+    }
+
+    // Match note2
+    if (!note2 && (keyLower === "note2" || keyLower === "note_2")) {
+      note2 = valueTrimmed;
+    }
   }
 
   const parsed = {
@@ -132,12 +152,12 @@ export function parseLeadRow(row: GoogleSheetRow) {
     electricity_bill,
     status: "Not lifted",
     assignedTo: "Unassigned",
-    note1: "",
-    note2: "",
+    note1: note1 || "",
+    note2: note2 || "",
   };
 
   if (name && email) {
-    console.log("✓ Valid lead found:", { name, email, phone });
+    console.log("✓ Valid lead found:", { name, email, phone, company });
   } else {
     console.log("✗ Invalid lead (missing name or email):", parsed);
   }
