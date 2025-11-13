@@ -253,7 +253,25 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
 
   console.log("CSV Headers count:", headers.length);
   console.log("CSV Headers:", headers);
-  console.log("Starting to parse data from line:", startIndex);
+
+  // Detect if first column is malformed (very long header or garbage)
+  let skipFirstColumn = false;
+  if (headers.length > 0) {
+    const firstHeader = headers[0];
+    // If first column header is very long or contains question marks, it's likely malformed
+    if (
+      (firstHeader && firstHeader.length > 50) ||
+      firstHeader.includes("?")
+    ) {
+      console.log("First column appears malformed, will skip it");
+      skipFirstColumn = true;
+      // Remove the first malformed header
+      headers = headers.slice(1);
+    }
+  }
+
+  console.log("Final headers after cleanup:", headers);
+  console.log(`Data starts from line ${startIndex}`);
 
   // Parse data rows
   const rows: GoogleSheetRow[] = [];
@@ -261,11 +279,15 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
     if (lines[i].trim() === "") continue;
 
     const values = parseCSVLine(lines[i]);
+
+    // Skip first value if first column was malformed
+    const dataValues = skipFirstColumn ? values.slice(1) : values;
+
     const row: GoogleSheetRow = {};
 
     headers.forEach((header, index) => {
       if (header && header.trim()) {
-        row[header] = values[index] || "";
+        row[header] = dataValues[index] || "";
       }
     });
 
