@@ -14,8 +14,6 @@ interface SyncSalespersonRequest {
     name: string;
     email: string;
     phone: string;
-    department?: string;
-    region?: string;
   }>;
   source: string;
 }
