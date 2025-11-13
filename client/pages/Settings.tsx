@@ -7,11 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertCircle, CheckCircle, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import {
-  syncLeadsFromGoogleSheet,
-  syncSalespersonsFromGoogleSheet,
-  extractSpreadsheetId,
-} from "@/lib/googleSheets";
+import { extractSpreadsheetId } from "@shared/googleSheets";
 
 export default function Settings() {
   const [leadsSheetUrl, setLeadsSheetUrl] = useState("");
