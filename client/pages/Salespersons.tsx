@@ -38,8 +38,6 @@ interface Salesperson {
   name: string;
   email: string;
   phone: string;
-  department?: string;
-  region?: string;
   created_at?: string;
   updated_at?: string;
 }
