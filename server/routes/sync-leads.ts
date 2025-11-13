@@ -169,14 +169,6 @@ export const handleSyncLeads: RequestHandler = async (req, res) => {
         message: err instanceof Error ? err.message : String(err),
       });
     }
-
-    res.json({
-      success: true,
-      message: `${validLeads.length} leads synced successfully`,
-      synced: validLeads.length,
-      source: source,
-      data: data,
-    });
   } catch (error) {
     console.error("Error syncing leads:", error);
     res.status(500).json({

@@ -4,6 +4,8 @@ import cors from "cors";
 import { handleDemo } from "./routes/demo";
 import { handleSyncLeads } from "./routes/sync-leads";
 import { handleSyncSalespersons } from "./routes/sync-salespersons";
+import { handleFetchGoogleSheet } from "./routes/fetch-google-sheet";
+import { handleSyncGoogleSheet } from "./routes/sync-google-sheet";
 
 export function createServer() {
   const app = express();
@@ -20,6 +22,10 @@ export function createServer() {
   });
 
   app.get("/api/demo", handleDemo);
+
+  // Google Sheets API routes
+  app.get("/api/fetch-google-sheet", handleFetchGoogleSheet);
+  app.post("/api/sync-google-sheet", handleSyncGoogleSheet);
 
   // CRM API routes
   app.post("/api/sync-leads", handleSyncLeads);
