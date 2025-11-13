@@ -39,18 +39,18 @@ function getColumnValue(
 
 /**
  * Parse Google Sheet lead row into Lead format
- * Expected columns: Name, Email, Company, Phone, Assigned to, Status, Note1, Note2
+ * Expected columns: Name/Full Name, Email, Company, Phone, Assigned to/Owner, Status, Note1/Note 1, Note2/Note 2
  */
 export function parseLeadRow(row: GoogleSheetRow) {
   return {
-    name: getColumnValue(row, "Name"),
+    name: getColumnValue(row, "Full Name", "Name"),
     email: getColumnValue(row, "Email"),
     phone: getColumnValue(row, "Phone"),
-    company: getColumnValue(row, "Company"),
+    company: getColumnValue(row, "Company") || "N/A",
     status: (getColumnValue(row, "Status") || "Not lifted") as LeadStatus,
-    assignedTo: getColumnValue(row, "Assigned to", "Assigned To"),
-    note1: getColumnValue(row, "Note1", "Note 1"),
-    note2: getColumnValue(row, "Note2", "Note 2"),
+    assignedTo: getColumnValue(row, "Assigned to", "Assigned To", "Owner") || "Unassigned",
+    note1: getColumnValue(row, "Note 1", "Note1", "Note 1"),
+    note2: getColumnValue(row, "Note 2", "Note2", "Note 2"),
   };
 }
 
