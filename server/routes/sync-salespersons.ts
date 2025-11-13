@@ -4,6 +4,10 @@
  */
 
 import { RequestHandler } from "express";
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseUrl = process.env.VITE_SUPABASE_URL || "";
+const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || "";
 
 interface SyncSalespersonRequest {
   salespersons: Array<{
@@ -35,26 +39,52 @@ export const handleSyncSalespersons: RequestHandler = async (req, res) => {
       return;
     }
 
-    // TODO: Implement Supabase integration
-    // const supabase = createSupabaseClient();
-    // const { data, error } = await supabase
-    //   .from("salespersons")
-    //   .upsert(validSalespersons.map(person => ({
-    //     name: person.name,
-    //     email: person.email,
-    //     phone: person.phone,
-    //     department: person.department || "",
-    //     region: person.region || "",
-    //   })), {
-    //     onConflict: "email" // Avoid duplicates by email
-    //   });
+    if (!supabaseUrl || !supabaseKey) {
+      // If Supabase is not configured, return success but don't persist
+      console.warn("Supabase not configured, returning mock response");
+      res.json({
+        success: true,
+        message: `${validSalespersons.length} salespersons processed (Supabase not configured)`,
+        synced: validSalespersons.length,
+        source: source,
+        warning: "Supabase credentials not configured",
+      });
+      return;
+    }
 
-    // For now, return mock success response
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Map salespersons to Supabase schema and upsert by email
+    const personsToSync = validSalespersons.map((person) => ({
+      name: person.name,
+      email: person.email,
+      phone: person.phone,
+      department: person.department || "",
+      region: person.region || "",
+    }));
+
+    const { data, error } = await supabase
+      .from("salespersons")
+      .upsert(personsToSync, {
+        onConflict: "email",
+      })
+      .select();
+
+    if (error) {
+      console.error("Supabase error:", error);
+      res.status(500).json({
+        error: "Failed to sync salespersons to database",
+        message: error.message,
+      });
+      return;
+    }
+
     res.json({
       success: true,
       message: `${validSalespersons.length} salespersons synced successfully`,
       synced: validSalespersons.length,
       source: source,
+      data: data,
     });
   } catch (error) {
     console.error("Error syncing salespersons:", error);

@@ -39,8 +39,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Plus, Search, Trash2, RefreshCw, Zap } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
+import { fetchGoogleSheet, parseLeadRow } from "@/lib/googleSheets";
 
 type LeadStatus =
+  | "New"
   | "Not lifted"
   | "Not connected"
   | "Voice Message"
@@ -48,22 +51,24 @@ type LeadStatus =
   | "Site visit"
   | "Advance payment"
   | "Lead finished"
-  | "Contacted"
-  | "New";
+  | "Contacted";
 
 interface Lead {
   id: string;
-  fullName: string;
+  name: string;
   email: string;
   phone: string;
-  streetAddress: string;
-  postCode: string;
-  leadStatus: string;
+  company: string;
+  status: LeadStatus;
+  assigned_to: string;
   note1: string;
   note2: string;
-  status: LeadStatus;
-  owner: string;
-  createdAt: number;
+  street_address?: string;
+  post_code?: string;
+  lead_status?: string;
+  source?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 const STATUS_OPTIONS: LeadStatus[] = [
@@ -78,12 +83,7 @@ const STATUS_OPTIONS: LeadStatus[] = [
   "Contacted",
 ];
 
-const SALESPERSONS = [
-  "Sarah Johnson",
-  "Mike Chen",
-  "Emily Rodriguez",
-  "David Lee",
-];
+const SPREADSHEET_ID = "1QY8_Q8-ybLKNVs4hynPZslZDwUfC-PIJrViJfL0-tpM";
 
 export default function Leads() {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -93,270 +93,328 @@ export default function Leads() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [editingNote, setEditingNote] = useState<{
     leadId: string;
     field: "note1" | "note2";
   } | null>(null);
   const [formData, setFormData] = useState({
-    fullName: "",
+    name: "",
     email: "",
     phone: "",
-    streetAddress: "",
-    postCode: "",
-    leadStatus: "",
+    company: "",
+    street_address: "",
+    post_code: "",
+    lead_status: "",
     note1: "",
     note2: "",
     status: "New" as LeadStatus,
-    owner: "",
+    assigned_to: "",
   });
 
-  // Auto-sync on page load
+  const [salespersons, setSalespersons] = useState<string[]>([]);
+
+  // Load leads from Supabase on component mount
   useEffect(() => {
+    loadLeads();
+    loadSalespersons();
+    // Auto-sync from Google Sheets on page load
     syncFromGoogleSheet();
   }, []);
 
-  const syncFromGoogleSheet = async () => {
+  const loadLeads = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("leads")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Error loading leads:", error);
+        if (!error.message.includes("relation")) {
+          toast.error("Failed to load leads");
+        }
+        setLeads([]);
+      } else {
+        setLeads(data || []);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      setLeads([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadSalespersons = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("salespersons")
+        .select("name")
+        .order("name");
+
+      if (!error && data) {
+        setSalespersons(data.map((s) => s.name));
+      }
+    } catch (error) {
+      console.error("Error loading salespersons:", error);
+    }
+  };
+
+  const syncFromGoogleSheet = async (showNotification = false) => {
     setIsSyncing(true);
     try {
-      const spreadsheetId = "1QY8_Q8-ybLKNVs4hynPZslZDwUfC-PIJrViJfL0-tpM";
-      const csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv`;
+      const rows = await fetchGoogleSheet(SPREADSHEET_ID);
+      console.log("Fetched rows from Google Sheet:", rows.length);
 
-      const response = await fetch(csvUrl);
-      const csv = await response.text();
-
-      // Parse CSV
-      const lines = csv.trim().split("\n");
-      if (lines.length < 2) {
-        toast.error("Google Sheet is empty");
+      if (rows.length === 0) {
+        if (showNotification) {
+          toast.error("Google Sheet is empty");
+        }
         setIsSyncing(false);
         return;
       }
 
-      // Get headers
-      const headers = parseCSVLine(lines[0]).map((h) =>
-        h.trim().toLowerCase().replace(/\s+/g, "_"),
-      );
+      const leadsToSync = rows
+        .map((row) => {
+          const parsed = parseLeadRow(row);
+          return {
+            name: parsed.name,
+            email: parsed.email,
+            phone: parsed.phone,
+            company: parsed.company,
+            status: parsed.status || ("Not lifted" as LeadStatus),
+            assigned_to: parsed.assignedTo || "Unassigned",
+            note1: parsed.note1 || "",
+            note2: parsed.note2 || "",
+          };
+        })
+        .filter((lead) => {
+          const isValid = lead.name && lead.email && lead.phone;
+          if (!isValid) {
+            console.log("Filtering out invalid lead:", lead);
+          }
+          return isValid;
+        });
 
-      // Find column indices
-      const fullNameIdx = headers.findIndex(
-        (h) => h.includes("full_name") || h.includes("name"),
-      );
-      const emailIdx = headers.findIndex((h) => h.includes("email"));
-      const phoneIdx = headers.findIndex((h) => h.includes("phone"));
-      const streetIdx = headers.findIndex(
-        (h) => h.includes("street") || h.includes("address"),
-      );
-      const postCodeIdx = headers.findIndex(
-        (h) =>
-          h.includes("post_code") || h.includes("post") || h.includes("code"),
-      );
-      const leadStatusIdx = headers.findIndex((h) => h.includes("lead_status"));
-      const note1Idx = headers.findIndex(
-        (h) => h.includes("note_1") || h.includes("note1"),
-      );
-      const note2Idx = headers.findIndex(
-        (h) => h.includes("note_2") || h.includes("note2"),
-      );
-      const statusIdx = headers.findIndex((h) => h === "status");
-      const ownerIdx = headers.findIndex(
-        (h) => h.includes("owner") || h.includes("assigned"),
-      );
+      console.log("Valid leads after filtering:", leadsToSync.length);
 
-      const parsedLeads: Lead[] = [];
-
-      for (let i = 1; i < lines.length; i++) {
-        if (lines[i].trim() === "") continue;
-
-        const values = parseCSVLine(lines[i]);
-
-        // Skip if no name
-        if (!values[fullNameIdx] || values[fullNameIdx].trim() === "") continue;
-
-        const lead: Lead = {
-          id: `${Date.now()}-${i}`,
-          fullName: values[fullNameIdx]?.trim() || "",
-          email: values[emailIdx]?.trim() || "",
-          phone: values[phoneIdx]?.trim() || "",
-          streetAddress: values[streetIdx]?.trim() || "",
-          postCode: values[postCodeIdx]?.trim() || "",
-          leadStatus: values[leadStatusIdx]?.trim() || "",
-          note1: values[note1Idx]?.trim() || "",
-          note2: values[note2Idx]?.trim() || "",
-          status: (values[statusIdx]?.trim() || "New") as LeadStatus,
-          owner: values[ownerIdx]?.trim() || "Unassigned",
-          createdAt: Date.now() - i * 1000, // Stagger timestamps for reverse order
-        };
-
-        parsedLeads.push(lead);
+      if (leadsToSync.length === 0) {
+        if (showNotification) {
+          toast.error(
+            "No valid leads found in Google Sheet. Check browser console for details.",
+          );
+        }
+        setIsSyncing(false);
+        return;
       }
 
-      // Sort by newest first
-      parsedLeads.sort((a, b) => b.createdAt - a.createdAt);
-      setLeads(parsedLeads);
-      toast.success(`Synced ${parsedLeads.length} leads from Google Sheet`);
+      // Sync to backend
+      const response = await fetch("/api/sync-leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          leads: leadsToSync,
+          source: "google_sheet",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to sync leads");
+      }
+
+      // Reload leads from Supabase
+      await loadLeads();
+      if (showNotification) {
+        toast.success(`Synced ${leadsToSync.length} leads from Google Sheet`);
+      }
     } catch (error) {
       console.error("Error syncing from Google Sheet:", error);
-      toast.error("Failed to sync from Google Sheet");
+      if (showNotification) {
+        toast.error("Failed to sync from Google Sheet");
+      }
     } finally {
       setIsSyncing(false);
     }
   };
 
-  function parseCSVLine(line: string): string[] {
-    const result: string[] = [];
-    let current = "";
-    let inQuotes = false;
-
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i];
-
-      if (char === '"') {
-        if (inQuotes && line[i + 1] === '"') {
-          current += '"';
-          i++;
-        } else {
-          inQuotes = !inQuotes;
-        }
-      } else if (char === "," && !inQuotes) {
-        result.push(current);
-        current = "";
-      } else {
-        current += char;
-      }
+  const handleAutoAssign = async () => {
+    if (salespersons.length === 0) {
+      toast.error("No salespersons available for assignment");
+      return;
     }
 
-    result.push(current);
-    return result;
-  }
-
-  const filteredLeads = leads.filter((lead) => {
-    const matchesSearch =
-      lead.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.phone.includes(searchTerm);
-
-    const matchesStatus =
-      filterStatus === "all" || lead.status === filterStatus;
-
-    return matchesSearch && matchesStatus;
-  });
-
-  const handleAutoAssign = () => {
-    const unassignedLeads = leads.filter((lead) => lead.owner === "Unassigned");
+    const unassignedLeads = leads.filter(
+      (lead) => !lead.assigned_to || lead.assigned_to === "Unassigned",
+    );
 
     if (unassignedLeads.length === 0) {
       toast.info("No unassigned leads found");
       return;
     }
 
-    let assignmentIndex = 0;
-    const updatedLeads = leads.map((lead) => {
-      if (lead.owner === "Unassigned") {
-        const assignedTo = SALESPERSONS[assignmentIndex % SALESPERSONS.length];
-        assignmentIndex++;
-        return { ...lead, owner: assignedTo };
-      }
-      return lead;
-    });
+    try {
+      for (let i = 0; i < unassignedLeads.length; i++) {
+        const lead = unassignedLeads[i];
+        const assignedTo = salespersons[i % salespersons.length];
 
-    setLeads(updatedLeads);
-    toast.success(`Auto-assigned ${unassignedLeads.length} leads`);
+        await supabase
+          .from("leads")
+          .update({ assigned_to: assignedTo })
+          .eq("id", lead.id);
+      }
+
+      await loadLeads();
+      toast.success(`Auto-assigned ${unassignedLeads.length} leads`);
+    } catch (error) {
+      console.error("Error auto-assigning leads:", error);
+      toast.error("Failed to auto-assign leads");
+    }
   };
 
-  const handleAddLead = () => {
-    if (!formData.fullName || !formData.email || !formData.phone) {
-      toast.error("Full Name, Email, and Phone are required");
+  const handleAddLead = async () => {
+    if (!formData.name || !formData.email || !formData.phone) {
+      toast.error("Name, Email, and Phone are required");
       return;
     }
 
-    if (editingId) {
-      setLeads(
-        leads.map((lead) =>
-          lead.id === editingId
-            ? {
-                ...lead,
-                ...formData,
-              }
-            : lead,
-        ),
-      );
-      toast.success("Lead updated successfully");
-    } else {
-      const newLead: Lead = {
-        id: Date.now().toString(),
-        ...formData,
-        createdAt: Date.now(),
-      };
-      setLeads([newLead, ...leads]);
-      toast.success("Lead added successfully");
-    }
+    try {
+      if (editingId) {
+        const { error } = await supabase
+          .from("leads")
+          .update({
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone,
+            company: formData.company,
+            street_address: formData.street_address || null,
+            post_code: formData.post_code || null,
+            lead_status: formData.lead_status || null,
+            note1: formData.note1,
+            note2: formData.note2,
+            status: formData.status,
+            assigned_to: formData.assigned_to || "Unassigned",
+          })
+          .eq("id", editingId);
 
-    setOpenDialog(false);
+        if (error) throw error;
+        toast.success("Lead updated successfully");
+      } else {
+        const { error } = await supabase.from("leads").insert([
+          {
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone,
+            company: formData.company,
+            street_address: formData.street_address || null,
+            post_code: formData.post_code || null,
+            lead_status: formData.lead_status || null,
+            note1: formData.note1,
+            note2: formData.note2,
+            status: formData.status || "New",
+            assigned_to: formData.assigned_to || "Unassigned",
+            source: "manual",
+          },
+        ]);
+
+        if (error) throw error;
+        toast.success("Lead added successfully");
+      }
+
+      await loadLeads();
+      setOpenDialog(false);
+      resetForm();
+    } catch (error) {
+      console.error("Error saving lead:", error);
+      toast.error("Failed to save lead");
+    }
+  };
+
+  const resetForm = () => {
     setFormData({
-      fullName: "",
+      name: "",
       email: "",
       phone: "",
-      streetAddress: "",
-      postCode: "",
-      leadStatus: "",
+      company: "",
+      street_address: "",
+      post_code: "",
+      lead_status: "",
       note1: "",
       note2: "",
       status: "New",
-      owner: "",
+      assigned_to: "",
     });
+    setEditingId(null);
   };
 
   const handleOpenDialog = (lead?: Lead) => {
     if (lead) {
       setFormData({
-        fullName: lead.fullName,
+        name: lead.name,
         email: lead.email,
         phone: lead.phone,
-        streetAddress: lead.streetAddress,
-        postCode: lead.postCode,
-        leadStatus: lead.leadStatus,
+        company: lead.company,
+        street_address: lead.street_address || "",
+        post_code: lead.post_code || "",
+        lead_status: lead.lead_status || "",
         note1: lead.note1,
         note2: lead.note2,
         status: lead.status,
-        owner: lead.owner,
+        assigned_to: lead.assigned_to,
       });
       setEditingId(lead.id);
     } else {
-      setFormData({
-        fullName: "",
-        email: "",
-        phone: "",
-        streetAddress: "",
-        postCode: "",
-        leadStatus: "",
-        note1: "",
-        note2: "",
-        status: "New",
-        owner: "",
-      });
-      setEditingId(null);
+      resetForm();
     }
     setOpenDialog(true);
   };
 
-  const handleDelete = (id: string) => {
-    setLeads(leads.filter((lead) => lead.id !== id));
-    setDeleteId(null);
-    toast.success("Lead deleted successfully");
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase.from("leads").delete().eq("id", id);
+      if (error) throw error;
+      await loadLeads();
+      setDeleteId(null);
+      toast.success("Lead deleted successfully");
+    } catch (error) {
+      console.error("Error deleting lead:", error);
+      toast.error("Failed to delete lead");
+    }
   };
 
-  const handleNoteUpdate = (
+  const handleNoteUpdate = async (
     leadId: string,
     field: "note1" | "note2",
     value: string,
   ) => {
-    setLeads(
-      leads.map((lead) =>
-        lead.id === leadId ? { ...lead, [field]: value } : lead,
-      ),
-    );
-    setEditingNote(null);
+    try {
+      const { error } = await supabase
+        .from("leads")
+        .update({ [field]: value })
+        .eq("id", leadId);
+
+      if (error) throw error;
+      await loadLeads();
+      setEditingNote(null);
+    } catch (error) {
+      console.error("Error updating note:", error);
+      toast.error("Failed to update note");
+    }
   };
+
+  const filteredLeads = leads.filter((lead) => {
+    const matchesSearch =
+      lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lead.phone.includes(searchTerm) ||
+      lead.company.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesStatus =
+      filterStatus === "all" || lead.status === filterStatus;
+
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <CRMLayout>
@@ -369,7 +427,7 @@ export default function Leads() {
               Manage and track all your sales leads
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button
               className="gap-2 bg-purple-600 hover:bg-purple-700"
               onClick={handleAutoAssign}
@@ -380,7 +438,7 @@ export default function Leads() {
             <Button
               variant="outline"
               className="gap-2"
-              onClick={syncFromGoogleSheet}
+              onClick={() => syncFromGoogleSheet(true)}
               disabled={isSyncing}
             >
               <RefreshCw
@@ -406,13 +464,13 @@ export default function Leads() {
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="fullName">Full Name *</Label>
+                    <Label htmlFor="name">Name *</Label>
                     <Input
-                      id="fullName"
+                      id="name"
                       placeholder="Full Name"
-                      value={formData.fullName}
+                      value={formData.name}
                       onChange={(e) =>
-                        setFormData({ ...formData, fullName: e.target.value })
+                        setFormData({ ...formData, name: e.target.value })
                       }
                     />
                   </div>
@@ -443,17 +501,29 @@ export default function Leads() {
                     </div>
                   </div>
 
+                  <div>
+                    <Label htmlFor="company">Company</Label>
+                    <Input
+                      id="company"
+                      placeholder="Company Name"
+                      value={formData.company}
+                      onChange={(e) =>
+                        setFormData({ ...formData, company: e.target.value })
+                      }
+                    />
+                  </div>
+
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="streetAddress">Street Address</Label>
                       <Input
                         id="streetAddress"
                         placeholder="Street Address"
-                        value={formData.streetAddress}
+                        value={formData.street_address}
                         onChange={(e) =>
                           setFormData({
                             ...formData,
-                            streetAddress: e.target.value,
+                            street_address: e.target.value,
                           })
                         }
                       />
@@ -463,9 +533,12 @@ export default function Leads() {
                       <Input
                         id="postCode"
                         placeholder="Post Code"
-                        value={formData.postCode}
+                        value={formData.post_code}
                         onChange={(e) =>
-                          setFormData({ ...formData, postCode: e.target.value })
+                          setFormData({
+                            ...formData,
+                            post_code: e.target.value,
+                          })
                         }
                       />
                     </div>
@@ -476,9 +549,12 @@ export default function Leads() {
                     <Input
                       id="leadStatus"
                       placeholder="Lead Status"
-                      value={formData.leadStatus}
+                      value={formData.lead_status}
                       onChange={(e) =>
-                        setFormData({ ...formData, leadStatus: e.target.value })
+                        setFormData({
+                          ...formData,
+                          lead_status: e.target.value,
+                        })
                       }
                     />
                   </div>
@@ -508,15 +584,25 @@ export default function Leads() {
                       </Select>
                     </div>
                     <div>
-                      <Label htmlFor="owner">Owner</Label>
-                      <Input
-                        id="owner"
-                        placeholder="Owner/Assigned To"
-                        value={formData.owner}
-                        onChange={(e) =>
-                          setFormData({ ...formData, owner: e.target.value })
+                      <Label htmlFor="assigned_to">Assigned To</Label>
+                      <Select
+                        value={formData.assigned_to}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, assigned_to: value })
                         }
-                      />
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select salesperson" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Unassigned">Unassigned</SelectItem>
+                          {salespersons.map((person) => (
+                            <SelectItem key={person} value={person}>
+                              {person}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
 
@@ -558,7 +644,7 @@ export default function Leads() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search leads"
+              placeholder="Search leads by name, email, phone, or company"
               className="pl-10"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -582,206 +668,231 @@ export default function Leads() {
         {/* Table */}
         <Card className="border border-border bg-card">
           <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-b border-border bg-gray-50">
-                  <TableHead className="whitespace-nowrap font-bold">
-                    FULL NAME
-                  </TableHead>
-                  <TableHead className="whitespace-nowrap font-bold">
-                    PHONE
-                  </TableHead>
-                  <TableHead className="whitespace-nowrap font-bold">
-                    EMAIL
-                  </TableHead>
-                  <TableHead className="whitespace-nowrap font-bold">
-                    STREET ADDRESS
-                  </TableHead>
-                  <TableHead className="whitespace-nowrap font-bold">
-                    POST CODE
-                  </TableHead>
-                  <TableHead className="whitespace-nowrap font-bold">
-                    LEAD STATUS
-                  </TableHead>
-                  <TableHead className="whitespace-nowrap font-bold">
-                    NOTE 1
-                  </TableHead>
-                  <TableHead className="whitespace-nowrap font-bold">
-                    NOTE 2
-                  </TableHead>
-                  <TableHead className="whitespace-nowrap font-bold">
-                    STATUS
-                  </TableHead>
-                  <TableHead className="whitespace-nowrap font-bold">
-                    OWNER
-                  </TableHead>
-                  <TableHead className="whitespace-nowrap font-bold">
-                    ACTION
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredLeads.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={11} className="py-8 text-center">
-                      <p className="text-muted-foreground">
-                        No leads found.{" "}
-                        {leads.length === 0 &&
-                          "Click 'Sync Sheet' to import leads from Google Sheet."}
-                      </p>
-                    </TableCell>
+            {isLoading ? (
+              <div className="p-8 text-center">
+                <p className="text-muted-foreground">Loading leads...</p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-b border-border bg-gray-50">
+                    <TableHead className="whitespace-nowrap font-bold">
+                      FULL NAME
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap font-bold">
+                      PHONE
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap font-bold">
+                      EMAIL
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap font-bold">
+                      COMPANY
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap font-bold">
+                      STREET ADDRESS
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap font-bold">
+                      POST CODE
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap font-bold">
+                      LEAD STATUS
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap font-bold">
+                      NOTE 1
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap font-bold">
+                      NOTE 2
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap font-bold">
+                      STATUS
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap font-bold">
+                      OWNER
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap font-bold">
+                      ACTION
+                    </TableHead>
                   </TableRow>
-                ) : (
-                  filteredLeads.map((lead) => (
-                    <TableRow
-                      key={lead.id}
-                      className="border-b border-border hover:bg-gray-50"
-                    >
-                      <TableCell className="font-medium text-foreground whitespace-nowrap">
-                        {lead.fullName}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
-                        {lead.phone}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
-                        {lead.email}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
-                        {lead.streetAddress}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
-                        {lead.postCode}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
-                        {lead.leadStatus}
-                      </TableCell>
-                      <TableCell className="text-sm whitespace-nowrap">
-                        {editingNote?.leadId === lead.id &&
-                        editingNote.field === "note1" ? (
-                          <Input
-                            autoFocus
-                            value={lead.note1}
-                            onChange={(e) =>
-                              handleNoteUpdate(lead.id, "note1", e.target.value)
-                            }
-                            onBlur={() => setEditingNote(null)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") setEditingNote(null);
-                            }}
-                            className="text-xs"
-                          />
-                        ) : (
-                          <div
-                            onClick={() =>
-                              setEditingNote({
-                                leadId: lead.id,
-                                field: "note1",
-                              })
-                            }
-                            className="cursor-pointer hover:bg-gray-100 p-1 rounded min-h-6"
-                          >
-                            {lead.note1 || (
-                              <span className="text-muted-foreground italic">
-                                Add note...
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-sm whitespace-nowrap">
-                        {editingNote?.leadId === lead.id &&
-                        editingNote.field === "note2" ? (
-                          <Input
-                            autoFocus
-                            value={lead.note2}
-                            onChange={(e) =>
-                              handleNoteUpdate(lead.id, "note2", e.target.value)
-                            }
-                            onBlur={() => setEditingNote(null)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") setEditingNote(null);
-                            }}
-                            className="text-xs"
-                          />
-                        ) : (
-                          <div
-                            onClick={() =>
-                              setEditingNote({
-                                leadId: lead.id,
-                                field: "note2",
-                              })
-                            }
-                            className="cursor-pointer hover:bg-gray-100 p-1 rounded min-h-6"
-                          >
-                            {lead.note2 || (
-                              <span className="text-muted-foreground italic">
-                                Add note...
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        <select
-                          value={lead.status}
-                          onChange={(e) => {
-                            setLeads(
-                              leads.map((l) =>
-                                l.id === lead.id
-                                  ? {
-                                      ...l,
-                                      status: e.target.value as LeadStatus,
-                                    }
-                                  : l,
-                              ),
-                            );
-                          }}
-                          className="rounded border border-border bg-background px-2 py-1 text-sm"
-                        >
-                          {STATUS_OPTIONS.map((status) => (
-                            <option key={status} value={status}>
-                              {status}
-                            </option>
-                          ))}
-                        </select>
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        <select
-                          value={lead.owner}
-                          onChange={(e) => {
-                            setLeads(
-                              leads.map((l) =>
-                                l.id === lead.id
-                                  ? { ...l, owner: e.target.value }
-                                  : l,
-                              ),
-                            );
-                          }}
-                          className="rounded border border-border bg-background px-2 py-1 text-sm"
-                        >
-                          <option value="Unassigned">Unassigned</option>
-                          {SALESPERSONS.map((person) => (
-                            <option key={person} value={person}>
-                              {person}
-                            </option>
-                          ))}
-                        </select>
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDeleteId(lead.id)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          Delete
-                        </Button>
+                </TableHeader>
+                <TableBody>
+                  {filteredLeads.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={12} className="py-8 text-center">
+                        <p className="text-muted-foreground">
+                          No leads found.{" "}
+                          {leads.length === 0 &&
+                            "Click 'Sync Sheet' to import leads from Google Sheet."}
+                        </p>
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : (
+                    filteredLeads.map((lead) => (
+                      <TableRow
+                        key={lead.id}
+                        className="border-b border-border hover:bg-gray-50"
+                      >
+                        <TableCell className="font-medium text-foreground whitespace-nowrap">
+                          {lead.name}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                          {lead.phone}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                          {lead.email}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                          {lead.company}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                          {lead.street_address || "-"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                          {lead.post_code || "-"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                          {lead.lead_status || "-"}
+                        </TableCell>
+                        <TableCell className="text-sm whitespace-nowrap">
+                          {editingNote?.leadId === lead.id &&
+                          editingNote.field === "note1" ? (
+                            <Input
+                              autoFocus
+                              value={lead.note1}
+                              onChange={(e) =>
+                                handleNoteUpdate(
+                                  lead.id,
+                                  "note1",
+                                  e.target.value,
+                                )
+                              }
+                              onBlur={() => setEditingNote(null)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") setEditingNote(null);
+                              }}
+                              className="text-xs"
+                            />
+                          ) : (
+                            <div
+                              onClick={() =>
+                                setEditingNote({
+                                  leadId: lead.id,
+                                  field: "note1",
+                                })
+                              }
+                              className="cursor-pointer hover:bg-gray-100 p-1 rounded min-h-6"
+                            >
+                              {lead.note1 || (
+                                <span className="text-muted-foreground italic">
+                                  Add note...
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm whitespace-nowrap">
+                          {editingNote?.leadId === lead.id &&
+                          editingNote.field === "note2" ? (
+                            <Input
+                              autoFocus
+                              value={lead.note2}
+                              onChange={(e) =>
+                                handleNoteUpdate(
+                                  lead.id,
+                                  "note2",
+                                  e.target.value,
+                                )
+                              }
+                              onBlur={() => setEditingNote(null)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") setEditingNote(null);
+                              }}
+                              className="text-xs"
+                            />
+                          ) : (
+                            <div
+                              onClick={() =>
+                                setEditingNote({
+                                  leadId: lead.id,
+                                  field: "note2",
+                                })
+                              }
+                              className="cursor-pointer hover:bg-gray-100 p-1 rounded min-h-6"
+                            >
+                              {lead.note2 || (
+                                <span className="text-muted-foreground italic">
+                                  Add note...
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          <select
+                            value={lead.status}
+                            onChange={async (e) => {
+                              try {
+                                await supabase
+                                  .from("leads")
+                                  .update({
+                                    status: e.target.value as LeadStatus,
+                                  })
+                                  .eq("id", lead.id);
+                                await loadLeads();
+                              } catch (error) {
+                                console.error("Error updating status:", error);
+                                toast.error("Failed to update status");
+                              }
+                            }}
+                            className="rounded border border-border bg-background px-2 py-1 text-sm"
+                          >
+                            {STATUS_OPTIONS.map((status) => (
+                              <option key={status} value={status}>
+                                {status}
+                              </option>
+                            ))}
+                          </select>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          <select
+                            value={lead.assigned_to || "Unassigned"}
+                            onChange={async (e) => {
+                              try {
+                                await supabase
+                                  .from("leads")
+                                  .update({ assigned_to: e.target.value })
+                                  .eq("id", lead.id);
+                                await loadLeads();
+                              } catch (error) {
+                                console.error("Error updating owner:", error);
+                                toast.error("Failed to update owner");
+                              }
+                            }}
+                            className="rounded border border-border bg-background px-2 py-1 text-sm"
+                          >
+                            <option value="Unassigned">Unassigned</option>
+                            {salespersons.map((person) => (
+                              <option key={person} value={person}>
+                                {person}
+                              </option>
+                            ))}
+                          </select>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setDeleteId(lead.id)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            Delete
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            )}
           </div>
         </Card>
 

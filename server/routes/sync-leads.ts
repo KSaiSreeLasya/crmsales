@@ -4,6 +4,10 @@
  */
 
 import { RequestHandler } from "express";
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseUrl = process.env.VITE_SUPABASE_URL || "";
+const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || "";
 
 interface SyncLeadRequest {
   leads: Array<{
@@ -38,30 +42,56 @@ export const handleSyncLeads: RequestHandler = async (req, res) => {
       return;
     }
 
-    // TODO: Implement Supabase integration
-    // const supabase = createSupabaseClient();
-    // const { data, error } = await supabase
-    //   .from("leads")
-    //   .upsert(validLeads.map(lead => ({
-    //     name: lead.name,
-    //     email: lead.email,
-    //     phone: lead.phone,
-    //     company: lead.company,
-    //     status: lead.status || "Not lifted",
-    //     assigned_to: lead.assignedTo || "",
-    //     note1: lead.note1 || "",
-    //     note2: lead.note2 || "",
-    //     source: source || "api",
-    //   })), {
-    //     onConflict: "email" // Avoid duplicates by email
-    //   });
+    if (!supabaseUrl || !supabaseKey) {
+      // If Supabase is not configured, return success but don't persist
+      console.warn("Supabase not configured, returning mock response");
+      res.json({
+        success: true,
+        message: `${validLeads.length} leads processed (Supabase not configured)`,
+        synced: validLeads.length,
+        source: source,
+        warning: "Supabase credentials not configured",
+      });
+      return;
+    }
 
-    // For now, return mock success response
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Map leads to Supabase schema and upsert by email
+    const leadsToSync = validLeads.map((lead) => ({
+      name: lead.name,
+      email: lead.email,
+      phone: lead.phone,
+      company: lead.company,
+      status: lead.status || "Not lifted",
+      assigned_to: lead.assignedTo || "Unassigned",
+      note1: lead.note1 || "",
+      note2: lead.note2 || "",
+      source: source || "api",
+    }));
+
+    const { data, error } = await supabase
+      .from("leads")
+      .upsert(leadsToSync, {
+        onConflict: "email",
+      })
+      .select();
+
+    if (error) {
+      console.error("Supabase error:", error);
+      res.status(500).json({
+        error: "Failed to sync leads to database",
+        message: error.message,
+      });
+      return;
+    }
+
     res.json({
       success: true,
       message: `${validLeads.length} leads synced successfully`,
       synced: validLeads.length,
       source: source,
+      data: data,
     });
   } catch (error) {
     console.error("Error syncing leads:", error);

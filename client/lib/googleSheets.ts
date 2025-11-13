@@ -39,19 +39,56 @@ function getColumnValue(
 
 /**
  * Parse Google Sheet lead row into Lead format
- * Expected columns: Name, Email, Company, Phone, Assigned to, Status, Note1, Note2
+ * Expected columns: Name/Full Name, Email, Company, Phone, Assigned to/Owner, Status, Note1/Note 1, Note2/Note 2
  */
 export function parseLeadRow(row: GoogleSheetRow) {
-  return {
-    name: getColumnValue(row, "Name"),
-    email: getColumnValue(row, "Email"),
-    phone: getColumnValue(row, "Phone"),
-    company: getColumnValue(row, "Company"),
-    status: (getColumnValue(row, "Status") || "Not lifted") as LeadStatus,
-    assignedTo: getColumnValue(row, "Assigned to", "Assigned To"),
-    note1: getColumnValue(row, "Note1", "Note 1"),
-    note2: getColumnValue(row, "Note2", "Note 2"),
+  const parsed = {
+    name: getColumnValue(
+      row,
+      "Full Name",
+      "full name",
+      "Name",
+      "name",
+      "FULL_NAME",
+      "full_name",
+    ),
+    email: getColumnValue(row, "Email", "email", "EMAIL"),
+    phone: getColumnValue(row, "Phone", "phone", "PHONE"),
+    company: getColumnValue(row, "Company", "company", "COMPANY") || "N/A",
+    status: (getColumnValue(row, "Status", "status", "STATUS") ||
+      "Not lifted") as LeadStatus,
+    assignedTo:
+      getColumnValue(
+        row,
+        "Assigned to",
+        "Assigned To",
+        "assigned_to",
+        "assigned to",
+        "Owner",
+        "owner",
+        "OWNER",
+      ) || "Unassigned",
+    note1: getColumnValue(
+      row,
+      "Note 1",
+      "Note1",
+      "note_1",
+      "note 1",
+      "note1",
+      "NOTE_1",
+    ),
+    note2: getColumnValue(
+      row,
+      "Note 2",
+      "Note2",
+      "note_2",
+      "note 2",
+      "note2",
+      "NOTE_2",
+    ),
   };
+
+  return parsed;
 }
 
 /**
@@ -98,6 +135,8 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
 
   // Parse header
   const headers = parseCSVLine(lines[0]);
+  console.log("CSV Headers count:", headers.length);
+  console.log("CSV Headers:", headers);
 
   // Parse data rows, skip empty rows
   const rows: GoogleSheetRow[] = [];
@@ -108,7 +147,9 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
     const row: GoogleSheetRow = {};
 
     headers.forEach((header, index) => {
-      row[header] = values[index] || "";
+      if (header) {
+        row[header] = values[index] || "";
+      }
     });
 
     // Only add row if it has at least one non-empty cell
@@ -117,11 +158,34 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
     }
   }
 
+  console.log("Total parsed data rows:", rows.length);
+  if (rows.length > 0) {
+    console.log("First data row keys:", Object.keys(rows[0]));
+    console.log("First data row:", rows[0]);
+
+    // Show which columns we can find
+    const sampleRow = rows[0];
+    console.log("Sample column values:");
+    console.log(
+      "  Full Name / full name:",
+      sampleRow["full name"] || sampleRow["Full Name"] || "NOT FOUND",
+    );
+    console.log(
+      "  Email:",
+      sampleRow["email"] || sampleRow["Email"] || "NOT FOUND",
+    );
+    console.log(
+      "  Phone:",
+      sampleRow["phone"] || sampleRow["Phone"] || "NOT FOUND",
+    );
+  }
+
   return rows;
 }
 
 /**
- * Parse a single CSV line (handles quoted values)
+ * Parse a single CSV line (handles quoted values properly)
+ * Properly handles RFC 4180 CSV format with quoted fields
  */
 function parseCSVLine(line: string): string[] {
   const result: string[] = [];
@@ -130,18 +194,25 @@ function parseCSVLine(line: string): string[] {
 
   for (let i = 0; i < line.length; i++) {
     const char = line[i];
+    const nextChar = line[i + 1];
 
     if (char === '"') {
-      if (inQuotes && line[i + 1] === '"') {
-        // Escaped quote
+      if (inQuotes && nextChar === '"') {
+        // Escaped quote within quoted field
         current += '"';
-        i++;
+        i++; // Skip the next quote
+      } else if (!inQuotes && current === "") {
+        // Start of quoted field (only if at field start)
+        inQuotes = true;
+      } else if (inQuotes) {
+        // End of quoted field
+        inQuotes = false;
       } else {
-        // Toggle quotes
-        inQuotes = !inQuotes;
+        // Quote in unquoted field
+        current += char;
       }
     } else if (char === "," && !inQuotes) {
-      // Field separator
+      // Field separator (only when not in quotes)
       result.push(current.trim());
       current = "";
     } else {
@@ -149,7 +220,9 @@ function parseCSVLine(line: string): string[] {
     }
   }
 
+  // Add the last field
   result.push(current.trim());
+
   return result;
 }
 
@@ -163,14 +236,27 @@ export async function fetchGoogleSheet(
 ): Promise<GoogleSheetRow[]> {
   try {
     const url = getGoogleSheetsCsvUrl(spreadsheetId, sheetId || "0");
+    console.log("Fetching Google Sheet from:", url);
     const response = await fetch(url);
 
     if (!response.ok) {
+      console.error(
+        "Google Sheets fetch failed:",
+        response.status,
+        response.statusText,
+      );
       throw new Error(`Failed to fetch Google Sheet: ${response.statusText}`);
     }
 
     const csv = await response.text();
-    return parseCsv(csv);
+    console.log("Raw CSV data:", csv.substring(0, 500)); // First 500 chars
+    const rows = parseCsv(csv);
+    console.log("Parsed rows count:", rows.length);
+    if (rows.length > 0) {
+      console.log("First row keys:", Object.keys(rows[0]));
+      console.log("First row data:", rows[0]);
+    }
+    return rows;
   } catch (error) {
     console.error("Error fetching Google Sheet:", error);
     throw error;

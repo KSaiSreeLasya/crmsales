@@ -29,55 +29,66 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Plus, Search, Edit2, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
 interface Salesperson {
   id: string;
   name: string;
   email: string;
   phone: string;
+  department?: string;
+  region?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
-const MOCK_SALESPERSONS: Salesperson[] = [
-  {
-    id: "1",
-    name: "Sarah Johnson",
-    email: "sarah@example.com",
-    phone: "+1-234-567-8910",
-  },
-  {
-    id: "2",
-    name: "Mike Chen",
-    email: "mike@example.com",
-    phone: "+1-234-567-8911",
-  },
-  {
-    id: "3",
-    name: "Emily Rodriguez",
-    email: "emily@example.com",
-    phone: "+1-234-567-8912",
-  },
-  {
-    id: "4",
-    name: "David Lee",
-    email: "david@example.com",
-    phone: "+1-234-567-8913",
-  },
-];
-
 export default function Salespersons() {
-  const [salespersons, setSalespersons] =
-    useState<Salesperson[]>(MOCK_SALESPERSONS);
+  const [salespersons, setSalespersons] = useState<Salesperson[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [openDialog, setOpenDialog] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
   });
+
+  // Load salespersons from Supabase on component mount
+  useEffect(() => {
+    loadSalespersons();
+  }, []);
+
+  const loadSalespersons = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("salespersons")
+        .select("*")
+        .order("name");
+
+      if (error) {
+        console.error("Error loading salespersons:", error);
+        if (error.message.includes("relation")) {
+          // Table doesn't exist yet
+          console.warn("Salespersons table not created yet");
+        } else {
+          toast.error("Failed to load salespersons");
+        }
+        setSalespersons([]);
+      } else {
+        setSalespersons(data || []);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      setSalespersons([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const filteredSalespersons = salespersons.filter(
     (person) =>
@@ -105,40 +116,72 @@ export default function Salespersons() {
     setOpenDialog(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.name || !formData.email || !formData.phone) {
-      toast.error("All fields are required");
+      toast.error("Name, Email, and Phone are required");
       return;
     }
 
-    if (editingId) {
-      setSalespersons(
-        salespersons.map((person) =>
-          person.id === editingId ? { ...person, ...formData } : person,
-        ),
-      );
-      toast.success("Salesperson updated successfully");
-    } else {
-      const newPerson: Salesperson = {
-        id: Date.now().toString(),
-        ...formData,
-      };
-      setSalespersons([...salespersons, newPerson]);
-      toast.success("Salesperson added successfully");
-    }
+    try {
+      if (editingId) {
+        const { error } = await supabase
+          .from("salespersons")
+          .update({
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone,
+          })
+          .eq("id", editingId);
 
-    setOpenDialog(false);
-    setFormData({
-      name: "",
-      email: "",
-      phone: "",
-    });
+        if (error) throw error;
+        toast.success("Salesperson updated successfully");
+      } else {
+        const { error } = await supabase.from("salespersons").insert([
+          {
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone,
+          },
+        ]);
+
+        if (error) throw error;
+        toast.success("Salesperson added successfully");
+      }
+
+      await loadSalespersons();
+      setOpenDialog(false);
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+      });
+    } catch (error) {
+      console.error("Error saving salesperson:", error);
+      if (error instanceof Error && error.message.includes("relation")) {
+        toast.error(
+          "Database not set up. Please run SUPABASE_TABLES.sql first",
+        );
+      } else {
+        toast.error("Failed to save salesperson");
+      }
+    }
   };
 
-  const handleDelete = (id: string) => {
-    setSalespersons(salespersons.filter((person) => person.id !== id));
-    setDeleteId(null);
-    toast.success("Salesperson deleted successfully");
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("salespersons")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+      await loadSalespersons();
+      setDeleteId(null);
+      toast.success("Salesperson deleted successfully");
+    } catch (error) {
+      console.error("Error deleting salesperson:", error);
+      toast.error("Failed to delete salesperson");
+    }
   };
 
   return (
@@ -229,62 +272,68 @@ export default function Salespersons() {
         {/* Table */}
         <Card className="border border-border bg-card">
           <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-b border-border bg-gray-50">
-                  <TableHead className="font-bold">Name</TableHead>
-                  <TableHead className="font-bold">Email</TableHead>
-                  <TableHead className="font-bold">Phone</TableHead>
-                  <TableHead className="font-bold">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredSalespersons.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={4} className="py-8 text-center">
-                      <p className="text-muted-foreground">
-                        No salespersons found
-                      </p>
-                    </TableCell>
+            {isLoading ? (
+              <div className="p-8 text-center">
+                <p className="text-muted-foreground">Loading salespersons...</p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-b border-border bg-gray-50">
+                    <TableHead className="font-bold">Name</TableHead>
+                    <TableHead className="font-bold">Email</TableHead>
+                    <TableHead className="font-bold">Phone</TableHead>
+                    <TableHead className="font-bold">Actions</TableHead>
                   </TableRow>
-                ) : (
-                  filteredSalespersons.map((person) => (
-                    <TableRow
-                      key={person.id}
-                      className="border-b border-border hover:bg-gray-50"
-                    >
-                      <TableCell className="font-medium text-foreground">
-                        {person.name}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {person.email}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {person.phone}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleOpenDialog(person)}
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setDeleteId(person.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
+                </TableHeader>
+                <TableBody>
+                  {filteredSalespersons.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="py-8 text-center">
+                        <p className="text-muted-foreground">
+                          No salespersons found
+                        </p>
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : (
+                    filteredSalespersons.map((person) => (
+                      <TableRow
+                        key={person.id}
+                        className="border-b border-border hover:bg-gray-50"
+                      >
+                        <TableCell className="font-medium text-foreground">
+                          {person.name}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {person.email}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {person.phone}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleOpenDialog(person)}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDeleteId(person.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            )}
           </div>
         </Card>
 
