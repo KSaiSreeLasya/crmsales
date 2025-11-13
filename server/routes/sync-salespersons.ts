@@ -14,8 +14,6 @@ interface SyncSalespersonRequest {
     name: string;
     email: string;
     phone: string;
-    department?: string;
-    region?: string;
   }>;
   source: string;
 }
@@ -59,8 +57,6 @@ export const handleSyncSalespersons: RequestHandler = async (req, res) => {
       name: person.name,
       email: person.email,
       phone: person.phone,
-      department: person.department || "",
-      region: person.region || "",
     }));
 
     const { data, error } = await supabase

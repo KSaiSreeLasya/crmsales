@@ -15,6 +15,10 @@ interface SyncLeadRequest {
     email: string;
     phone: string;
     company: string;
+    street_address?: string;
+    post_code?: string;
+    lead_status?: string;
+    electricity_bill?: string;
     status?: string;
     assignedTo?: string;
     note1?: string;
@@ -27,18 +31,35 @@ export const handleSyncLeads: RequestHandler = async (req, res) => {
   try {
     const { leads, source } = req.body as SyncLeadRequest;
 
+    console.log("Sync request received with leads:", leads.length);
+    if (leads.length > 0) {
+      console.log("First lead sample:", leads[0]);
+    }
+
     if (!Array.isArray(leads) || leads.length === 0) {
       res.status(400).json({ error: "No leads provided" });
       return;
     }
 
-    // Validate leads - only require name, email, phone, company
-    const validLeads = leads.filter(
-      (lead) => lead.name && lead.email && lead.phone && lead.company,
-    );
+    // Validate leads - only require name and email
+    const validLeads = leads.filter((lead) => {
+      const isValid = lead.name && lead.email;
+      if (!isValid) {
+        console.log("Invalid lead filtered out - missing name or email:", lead);
+      }
+      return isValid;
+    });
+
+    console.log("Valid leads after filtering:", validLeads.length);
+    if (validLeads.length > 0) {
+      console.log("First valid lead:", validLeads[0]);
+    }
 
     if (validLeads.length === 0) {
-      res.status(400).json({ error: "No valid leads found" });
+      res.status(400).json({
+        error: "No valid leads found - requires at minimum: name, email",
+        sample: leads[0],
+      });
       return;
     }
 
@@ -57,33 +78,96 @@ export const handleSyncLeads: RequestHandler = async (req, res) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Map leads to Supabase schema and upsert by email
-    const leadsToSync = validLeads.map((lead) => ({
-      name: lead.name,
-      email: lead.email,
-      phone: lead.phone,
-      company: lead.company,
-      status: lead.status || "Not lifted",
-      assigned_to: lead.assignedTo || "Unassigned",
-      note1: lead.note1 || "",
-      note2: lead.note2 || "",
-      source: source || "api",
-    }));
+    // Map leads to Supabase schema - only required fields
+    const leadsToSync = validLeads.map((lead) => {
+      const syncData: any = {
+        name: lead.name,
+        email: lead.email,
+        phone: lead.phone || "",
+        company: lead.company || "",
+        status: lead.status || "Not lifted",
+        assigned_to: lead.assignedTo || "Unassigned",
+        source: source || "google_sheet",
+      };
 
-    const { data, error } = await supabase
-      .from("leads")
-      .upsert(leadsToSync, {
-        onConflict: "email",
-      })
-      .select();
+      // Add optional fields only if they have values
+      if (lead.street_address) syncData.street_address = lead.street_address;
+      if (lead.post_code) syncData.post_code = lead.post_code;
+      if (lead.lead_status) syncData.lead_status = lead.lead_status;
+      if (lead.electricity_bill)
+        syncData.electricity_bill = lead.electricity_bill;
+      if (lead.note1) syncData.note1 = lead.note1;
+      if (lead.note2) syncData.note2 = lead.note2;
 
-    if (error) {
-      console.error("Supabase error:", error);
-      res.status(500).json({
-        error: "Failed to sync leads to database",
-        message: error.message,
+      return syncData;
+    });
+
+    console.log("Attempting to insert leads to Supabase...");
+    console.log("Total leads to sync:", leadsToSync.length);
+    console.log("Sample lead:", leadsToSync[0]);
+
+    try {
+      console.log("Inserting leads into Supabase...");
+      const { data, error } = await supabase
+        .from("leads")
+        .insert(leadsToSync)
+        .select();
+
+      if (error) {
+        console.error("Supabase insert error:", error);
+        console.error("Full error object:", JSON.stringify(error, null, 2));
+        console.error(
+          "Attempting to sync leads:",
+          JSON.stringify(leadsToSync[0]),
+        );
+
+        // If duplicate key error, try update
+        if (
+          error.message?.includes("duplicate") ||
+          (error as any).code === "23505"
+        ) {
+          console.log(
+            "Duplicate key detected, attempting to update existing records...",
+          );
+
+          for (const lead of leadsToSync) {
+            await supabase.from("leads").update(lead).eq("email", lead.email);
+          }
+
+          res.json({
+            success: true,
+            message: `Successfully updated existing leads`,
+            synced: leadsToSync.length,
+            source: source,
+          });
+          return;
+        }
+
+        // For other errors, return details
+        res.status(400).json({
+          error: "Failed to insert leads",
+          message: error.message,
+          details: (error as any).details,
+          code: (error as any).code,
+          sample_lead: leadsToSync[0],
+        });
+        return;
+      }
+
+      console.log("Successfully inserted", data?.length, "leads");
+      res.json({
+        success: true,
+        message: `${leadsToSync.length} leads synced successfully`,
+        synced: leadsToSync.length,
+        source: source,
+        data: data,
       });
-      return;
+    } catch (err) {
+      console.error("Unexpected error during sync:", err);
+      res.status(500).json({
+        error: "Unexpected error syncing leads",
+        message: err instanceof Error ? err.message : String(err),
+      });
     }
 
     res.json({

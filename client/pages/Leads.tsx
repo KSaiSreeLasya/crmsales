@@ -66,13 +66,13 @@ interface Lead {
   street_address?: string;
   post_code?: string;
   lead_status?: string;
+  electricity_bill?: string;
   source?: string;
   created_at?: string;
   updated_at?: string;
 }
 
 const STATUS_OPTIONS: LeadStatus[] = [
-  "New",
   "Not lifted",
   "Not connected",
   "Voice Message",
@@ -106,9 +106,10 @@ export default function Leads() {
     street_address: "",
     post_code: "",
     lead_status: "",
+    electricity_bill: "",
     note1: "",
     note2: "",
-    status: "New" as LeadStatus,
+    status: "Not lifted" as LeadStatus,
     assigned_to: "",
   });
 
@@ -291,6 +292,7 @@ export default function Leads() {
             street_address: formData.street_address || null,
             post_code: formData.post_code || null,
             lead_status: formData.lead_status || null,
+            electricity_bill: formData.electricity_bill || null,
             note1: formData.note1,
             note2: formData.note2,
             status: formData.status,
@@ -310,9 +312,10 @@ export default function Leads() {
             street_address: formData.street_address || null,
             post_code: formData.post_code || null,
             lead_status: formData.lead_status || null,
+            electricity_bill: formData.electricity_bill || null,
             note1: formData.note1,
             note2: formData.note2,
-            status: formData.status || "New",
+            status: formData.status || "Not lifted",
             assigned_to: formData.assigned_to || "Unassigned",
             source: "manual",
           },
@@ -340,9 +343,10 @@ export default function Leads() {
       street_address: "",
       post_code: "",
       lead_status: "",
+      electricity_bill: "",
       note1: "",
       note2: "",
-      status: "New",
+      status: "Not lifted",
       assigned_to: "",
     });
     setEditingId(null);
@@ -358,6 +362,7 @@ export default function Leads() {
         street_address: lead.street_address || "",
         post_code: lead.post_code || "",
         lead_status: lead.lead_status || "",
+        electricity_bill: (lead as any).electricity_bill || "",
         note1: lead.note1,
         note2: lead.note2,
         status: lead.status,
@@ -559,6 +564,23 @@ export default function Leads() {
                     />
                   </div>
 
+                  <div>
+                    <Label htmlFor="electricityBill">
+                      Monthly Electricity Bill
+                    </Label>
+                    <Input
+                      id="electricityBill"
+                      placeholder="Average Monthly Electricity Bill"
+                      value={formData.electricity_bill}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          electricity_bill: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="status">Status</Label>
@@ -680,19 +702,22 @@ export default function Leads() {
                       FULL NAME
                     </TableHead>
                     <TableHead className="whitespace-nowrap font-bold">
-                      PHONE
-                    </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold">
                       EMAIL
                     </TableHead>
                     <TableHead className="whitespace-nowrap font-bold">
-                      COMPANY
+                      PHONE
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap font-bold">
+                      PROPERTY TYPE
                     </TableHead>
                     <TableHead className="whitespace-nowrap font-bold">
                       STREET ADDRESS
                     </TableHead>
                     <TableHead className="whitespace-nowrap font-bold">
                       POST CODE
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap font-bold">
+                      ELECTRICITY BILL
                     </TableHead>
                     <TableHead className="whitespace-nowrap font-bold">
                       LEAD STATUS
@@ -735,10 +760,10 @@ export default function Leads() {
                           {lead.name}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
-                          {lead.phone}
+                          {lead.email}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
-                          {lead.email}
+                          {lead.phone}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
                           {lead.company}
@@ -748,6 +773,9 @@ export default function Leads() {
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
                           {lead.post_code || "-"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                          {lead.electricity_bill || "-"}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
                           {lead.lead_status || "-"}
@@ -884,7 +912,7 @@ export default function Leads() {
                             onClick={() => setDeleteId(lead.id)}
                             className="text-red-600 hover:text-red-700"
                           >
-                            Delete
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </TableCell>
                       </TableRow>

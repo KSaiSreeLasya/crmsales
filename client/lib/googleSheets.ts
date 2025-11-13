@@ -13,10 +13,14 @@ export interface GoogleSheetRow {
 }
 
 /**
- * Normalize column names (case-insensitive, trim whitespace)
+ * Normalize column names (case-insensitive, trim whitespace, remove quotes)
  */
 function normalizeKey(key: string): string {
-  return key.trim().toLowerCase().replace(/\s+/g, "_");
+  return key
+    .trim()
+    .toLowerCase()
+    .replace(/^["']|["']$/g, "") // Remove leading/trailing quotes
+    .replace(/\s+/g, "_");
 }
 
 /**
@@ -29,8 +33,12 @@ function getColumnValue(
   for (const name of possibleNames) {
     const normalizedName = normalizeKey(name);
     for (const [key, value] of Object.entries(row)) {
-      if (normalizeKey(key) === normalizedName && value) {
-        return String(value).trim();
+      const normalizedKey = normalizeKey(key);
+      if (normalizedKey === normalizedName && value) {
+        const result = String(value)
+          .trim()
+          .replace(/^["']|["']$/g, "");
+        if (result) return result;
       }
     }
   }
@@ -39,69 +47,120 @@ function getColumnValue(
 
 /**
  * Parse Google Sheet lead row into Lead format
- * Expected columns: Name/Full Name, Email, Company, Phone, Assigned to/Owner, Status, Note1/Note 1, Note2/Note 2
+ * Intelligently finds columns by matching keywords regardless of exact column names
  */
 export function parseLeadRow(row: GoogleSheetRow) {
+  // Find columns by searching through all keys
+  let name = "";
+  let email = "";
+  let phone = "";
+  let company = "N/A";
+  let street_address = "";
+  let post_code = "";
+  let lead_status = "";
+  let electricity_bill = "";
+
+  // Iterate through all columns and match them intelligently
+  for (const [key, value] of Object.entries(row)) {
+    if (!value) continue;
+
+    const keyLower = key.toLowerCase();
+    const valueTrimmed = String(value).trim();
+
+    // Match name (full name, fname, etc.)
+    if (!name && (keyLower.includes("name") || keyLower.includes("fname"))) {
+      name = valueTrimmed;
+    }
+
+    // Match email
+    if (!email && keyLower.includes("email")) {
+      email = valueTrimmed;
+    }
+
+    // Match phone
+    if (
+      !phone &&
+      (keyLower.includes("phone") || keyLower.includes("telephone"))
+    ) {
+      phone = valueTrimmed;
+    }
+
+    // Match property type
+    if (
+      company === "N/A" &&
+      (keyLower.includes("property") || keyLower.includes("install"))
+    ) {
+      company = valueTrimmed || "N/A";
+    }
+
+    // Match street address
+    if (
+      !street_address &&
+      (keyLower.includes("street") || keyLower.includes("address"))
+    ) {
+      street_address = valueTrimmed;
+    }
+
+    // Match post code
+    if (
+      !post_code &&
+      (keyLower.includes("post") ||
+        keyLower.includes("zip") ||
+        keyLower.includes("postal"))
+    ) {
+      post_code = valueTrimmed;
+    }
+
+    // Match lead status
+    if (
+      !lead_status &&
+      (keyLower.includes("lead") || keyLower.includes("status"))
+    ) {
+      lead_status = valueTrimmed;
+    }
+
+    // Match electricity bill
+    if (
+      !electricity_bill &&
+      (keyLower.includes("electricity") || keyLower.includes("bill"))
+    ) {
+      electricity_bill = valueTrimmed;
+    }
+  }
+
   const parsed = {
-    name: getColumnValue(
-      row,
-      "Full Name",
-      "full name",
-      "Name",
-      "name",
-      "FULL_NAME",
-      "full_name",
-    ),
-    email: getColumnValue(row, "Email", "email", "EMAIL"),
-    phone: getColumnValue(row, "Phone", "phone", "PHONE"),
-    company: getColumnValue(row, "Company", "company", "COMPANY") || "N/A",
-    status: (getColumnValue(row, "Status", "status", "STATUS") ||
-      "Not lifted") as LeadStatus,
-    assignedTo:
-      getColumnValue(
-        row,
-        "Assigned to",
-        "Assigned To",
-        "assigned_to",
-        "assigned to",
-        "Owner",
-        "owner",
-        "OWNER",
-      ) || "Unassigned",
-    note1: getColumnValue(
-      row,
-      "Note 1",
-      "Note1",
-      "note_1",
-      "note 1",
-      "note1",
-      "NOTE_1",
-    ),
-    note2: getColumnValue(
-      row,
-      "Note 2",
-      "Note2",
-      "note_2",
-      "note 2",
-      "note2",
-      "NOTE_2",
-    ),
+    name,
+    email,
+    phone,
+    company,
+    street_address,
+    post_code,
+    lead_status,
+    electricity_bill,
+    status: "Not lifted" as LeadStatus,
+    assignedTo: "Unassigned",
+    note1: "",
+    note2: "",
   };
+
+  if (name && email) {
+    console.log("✓ Valid lead found:", { name, email, phone });
+  } else {
+    console.log("✗ Invalid lead (missing name or email):", parsed);
+  }
 
   return parsed;
 }
 
 /**
  * Parse Google Sheet salesperson row into Salesperson format
- * Expected columns: Name, Email, Phone, Department, Region
+ * Expected columns: Name, Email, Phone
  */
 export function parseSalespersonRow(row: GoogleSheetRow) {
   return {
     name: getColumnValue(row, "Name"),
     email: getColumnValue(row, "Email"),
     phone: getColumnValue(row, "Phone"),
-    department: getColumnValue(row, "Department"),
-    region: getColumnValue(row, "Region"),
   };
 }
 
@@ -208,12 +267,13 @@ function parseCSVLine(line: string): string[] {
         // End of quoted field
         inQuotes = false;
       } else {
-        // Quote in unquoted field
-        current += char;
+        // Quote in unquoted field - just skip it
+        continue;
       }
     } else if (char === "," && !inQuotes) {
       // Field separator (only when not in quotes)
-      result.push(current.trim());
+      const trimmed = current.trim().replace(/^"|"$/g, "");
+      result.push(trimmed);
       current = "";
     } else {
       current += char;
@@ -221,7 +281,8 @@ function parseCSVLine(line: string): string[] {
   }
 
   // Add the last field
-  result.push(current.trim());
+  const trimmed = current.trim().replace(/^"|"$/g, "");
+  result.push(trimmed);
 
   return result;
 }
@@ -273,7 +334,16 @@ export async function syncLeadsFromGoogleSheet(
 ) {
   try {
     const rows = await fetchGoogleSheet(spreadsheetId, sheetId);
+    console.log("Fetched", rows.length, "rows from Google Sheet");
+
     const leads = rows.map(parseLeadRow).filter((lead) => lead.name); // Only rows with names
+    console.log("Parsed", leads.length, "valid leads");
+
+    if (leads.length === 0) {
+      throw new Error("No valid leads found in Google Sheet");
+    }
+
+    console.log("First lead to sync:", leads[0]);
 
     // Send to backend for syncing to Supabase
     const response = await fetch("/api/sync-leads", {
@@ -287,11 +357,19 @@ export async function syncLeadsFromGoogleSheet(
       }),
     });
 
+    const responseData = await response.json();
+    console.log("Server response:", responseData);
+
     if (!response.ok) {
-      throw new Error("Failed to sync leads to database");
+      console.error("Server error response:", responseData);
+      throw new Error(
+        responseData.message ||
+          responseData.error ||
+          "Failed to sync leads to database",
+      );
     }
 
-    return await response.json();
+    return responseData;
   } catch (error) {
     console.error("Error syncing leads from Google Sheet:", error);
     throw error;
