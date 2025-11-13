@@ -98,7 +98,9 @@ export function parseLeadRow(row: GoogleSheetRow) {
     // Match street address
     if (
       !street_address &&
-      (keyLower.includes("street") || keyLower.includes("address"))
+      (keyLower.includes("street") ||
+        keyLower.includes("address") ||
+        keyLower === "street address")
     ) {
       street_address = valueTrimmed;
     }
@@ -109,7 +111,9 @@ export function parseLeadRow(row: GoogleSheetRow) {
       (keyLower.includes("post") ||
         keyLower.includes("zip") ||
         keyLower.includes("postal") ||
-        keyLower.includes("code"))
+        keyLower.includes("code") ||
+        keyLower === "post_code" ||
+        keyLower === "post code")
     ) {
       post_code = valueTrimmed;
     }
