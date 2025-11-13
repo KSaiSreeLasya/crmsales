@@ -56,6 +56,7 @@ export function parseLeadRow(row: GoogleSheetRow) {
     company: getColumnValue(
       row,
       "what_type_of_property_do_you_want_to_install_solar_on?",
+      "what type of property do you want to install solar on?",
       "Property Type",
       "property_type",
     ) || "N/A",
@@ -64,6 +65,7 @@ export function parseLeadRow(row: GoogleSheetRow) {
       "street address",
       "Street Address",
       "street_address",
+      "StreetAddress",
     ),
     post_code: getColumnValue(
       row,
@@ -71,16 +73,19 @@ export function parseLeadRow(row: GoogleSheetRow) {
       "Post Code",
       "postcode",
       "postal_code",
+      "PostCode",
     ),
     lead_status: getColumnValue(
       row,
       "lead_status",
       "Lead Status",
       "leadstatus",
+      "LeadStatus",
     ),
     electricity_bill: getColumnValue(
       row,
       "what_is_your_average_monthly_electricity_bill?",
+      "what is your average monthly electricity bill?",
       "Monthly Electricity Bill",
       "electricity_bill",
     ),
@@ -90,6 +95,7 @@ export function parseLeadRow(row: GoogleSheetRow) {
     note2: "",
   };
 
+  console.log("Parsed lead:", parsed);
   return parsed;
 }
 
