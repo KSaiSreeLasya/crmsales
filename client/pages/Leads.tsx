@@ -166,7 +166,18 @@ export default function Leads() {
   const syncFromGoogleSheet = async (showNotification = false) => {
     setIsSyncing(true);
     try {
-      const rows = await fetchGoogleSheet(SPREADSHEET_ID);
+      // Fetch from server endpoint (avoids CORS issues)
+      const fetchResponse = await fetch(
+        `/api/fetch-google-sheet?spreadsheetId=${SPREADSHEET_ID}&sheetId=0`,
+      );
+
+      if (!fetchResponse.ok) {
+        throw new Error("Failed to fetch from Google Sheet");
+      }
+
+      const fetchData = await fetchResponse.json();
+      const rows = fetchData.rows;
+
       console.log("Fetched rows from Google Sheet:", rows.length);
 
       if (rows.length === 0) {
@@ -178,7 +189,7 @@ export default function Leads() {
       }
 
       const leadsToSync = rows
-        .map((row) => {
+        .map((row: any) => {
           const parsed = parseLeadRow(row);
           return {
             name: parsed.name,
@@ -212,7 +223,7 @@ export default function Leads() {
       }
 
       // Sync to backend
-      const response = await fetch("/api/sync-leads", {
+      const syncResponse = await fetch("/api/sync-leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -221,7 +232,7 @@ export default function Leads() {
         }),
       });
 
-      if (!response.ok) {
+      if (!syncResponse.ok) {
         throw new Error("Failed to sync leads");
       }
 
