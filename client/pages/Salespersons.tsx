@@ -55,8 +55,6 @@ export default function Salespersons() {
     name: "",
     email: "",
     phone: "",
-    department: "",
-    region: "",
   });
 
   // Load salespersons from Supabase on component mount
@@ -74,14 +72,18 @@ export default function Salespersons() {
 
       if (error) {
         console.error("Error loading salespersons:", error);
-        toast.error("Failed to load salespersons");
+        if (error.message.includes("relation")) {
+          // Table doesn't exist yet
+          console.warn("Salespersons table not created yet");
+        } else {
+          toast.error("Failed to load salespersons");
+        }
         setSalespersons([]);
       } else {
         setSalespersons(data || []);
       }
     } catch (error) {
       console.error("Error:", error);
-      toast.error("Failed to load salespersons");
       setSalespersons([]);
     } finally {
       setIsLoading(false);
@@ -101,8 +103,6 @@ export default function Salespersons() {
         name: person.name,
         email: person.email,
         phone: person.phone,
-        department: person.department || "",
-        region: person.region || "",
       });
       setEditingId(person.id);
     } else {
@@ -110,8 +110,6 @@ export default function Salespersons() {
         name: "",
         email: "",
         phone: "",
-        department: "",
-        region: "",
       });
       setEditingId(null);
     }
@@ -132,8 +130,6 @@ export default function Salespersons() {
             name: formData.name,
             email: formData.email,
             phone: formData.phone,
-            department: formData.department || null,
-            region: formData.region || null,
           })
           .eq("id", editingId);
 
@@ -145,8 +141,6 @@ export default function Salespersons() {
             name: formData.name,
             email: formData.email,
             phone: formData.phone,
-            department: formData.department || null,
-            region: formData.region || null,
           },
         ]);
 
@@ -160,12 +154,14 @@ export default function Salespersons() {
         name: "",
         email: "",
         phone: "",
-        department: "",
-        region: "",
       });
     } catch (error) {
       console.error("Error saving salesperson:", error);
-      toast.error("Failed to save salesperson");
+      if (error instanceof Error && error.message.includes("relation")) {
+        toast.error("Database not set up. Please run SUPABASE_TABLES.sql first");
+      } else {
+        toast.error("Failed to save salesperson");
+      }
     }
   };
 
@@ -250,36 +246,6 @@ export default function Salespersons() {
                     }
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="department">Department</Label>
-                    <Input
-                      id="department"
-                      placeholder="Department"
-                      value={formData.department}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          department: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="region">Region</Label>
-                    <Input
-                      id="region"
-                      placeholder="Region"
-                      value={formData.region}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          region: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                </div>
                 <Button onClick={handleSave} className="w-full">
                   {editingId ? "Update" : "Add"} Salesperson
                 </Button>
@@ -317,15 +283,13 @@ export default function Salespersons() {
                     <TableHead className="font-bold">Name</TableHead>
                     <TableHead className="font-bold">Email</TableHead>
                     <TableHead className="font-bold">Phone</TableHead>
-                    <TableHead className="font-bold">Department</TableHead>
-                    <TableHead className="font-bold">Region</TableHead>
                     <TableHead className="font-bold">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredSalespersons.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="py-8 text-center">
+                      <TableCell colSpan={4} className="py-8 text-center">
                         <p className="text-muted-foreground">
                           No salespersons found
                         </p>
@@ -345,12 +309,6 @@ export default function Salespersons() {
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {person.phone}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {person.department || "-"}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {person.region || "-"}
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-2">
