@@ -1,12 +1,6 @@
 /**
  * API Route: POST /api/sync-leads
  * Syncs leads from Google Sheets to Supabase database
- * 
- * This endpoint handles the backend logic for:
- * - Receiving leads from Google Sheets sync
- * - Validating lead data
- * - Storing in Supabase
- * - Avoiding duplicates
  */
 
 import { RequestHandler } from "express";
@@ -17,7 +11,10 @@ interface SyncLeadRequest {
     email: string;
     phone: string;
     company: string;
-    status: string;
+    status?: string;
+    assignedTo?: string;
+    note1?: string;
+    note2?: string;
   }>;
   source: string;
 }
@@ -31,7 +28,7 @@ export const handleSyncLeads: RequestHandler = async (req, res) => {
       return;
     }
 
-    // Validate leads
+    // Validate leads - only require name, email, phone, company
     const validLeads = leads.filter(
       (lead) => lead.name && lead.email && lead.phone && lead.company
     );
@@ -50,7 +47,10 @@ export const handleSyncLeads: RequestHandler = async (req, res) => {
     //     email: lead.email,
     //     phone: lead.phone,
     //     company: lead.company,
-    //     status: lead.status || "new",
+    //     status: lead.status || "Not lifted",
+    //     assigned_to: lead.assignedTo || "",
+    //     note1: lead.note1 || "",
+    //     note2: lead.note2 || "",
     //     source: source || "api",
     //   })), {
     //     onConflict: "email" // Avoid duplicates by email

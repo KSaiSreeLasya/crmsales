@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import { handleDemo } from "./routes/demo";
 import { handleSyncLeads } from "./routes/sync-leads";
+import { handleSyncSalespersons } from "./routes/sync-salespersons";
 
 export function createServer() {
   const app = express();
@@ -22,6 +23,7 @@ export function createServer() {
 
   // CRM API routes
   app.post("/api/sync-leads", handleSyncLeads);
+  app.post("/api/sync-salespersons", handleSyncSalespersons);
 
   return app;
 }

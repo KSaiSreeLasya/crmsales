@@ -26,16 +26,27 @@ export const supabase = createClient(
 /**
  * Database Types for TypeScript support
  */
+export type LeadStatus =
+  | "Not lifted"
+  | "Not connected"
+  | "Voice Message"
+  | "Quotation sent"
+  | "Site visit"
+  | "Advance payment"
+  | "Lead finished"
+  | "Contacted";
+
 export interface Lead {
   id: string;
   name: string;
   email: string;
   phone: string;
   company: string;
-  status: "new" | "contacted" | "qualified" | "converted" | "lost";
-  assignedTo?: string;
+  status: LeadStatus;
+  assignedTo: string;
+  note1: string;
+  note2: string;
   source?: "google_sheet" | "manual" | "api";
-  notes?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -45,17 +56,10 @@ export interface Salesperson {
   name: string;
   email: string;
   phone: string;
-  department?: string;
+  department: string;
+  region: string;
   createdAt: string;
   updatedAt: string;
-}
-
-export interface LeadAssignment {
-  id: string;
-  leadId: string;
-  salespersonId: string;
-  assignedAt: string;
-  status: "active" | "completed" | "transferred";
 }
 
 /**
@@ -78,7 +82,9 @@ export async function getLeads() {
 /**
  * Helper function to add a new lead
  */
-export async function addLead(lead: Omit<Lead, "id" | "createdAt" | "updatedAt">) {
+export async function addLead(
+  lead: Omit<Lead, "id" | "createdAt" | "updatedAt">
+) {
   const { data, error } = await supabase
     .from("leads")
     .insert([
@@ -89,8 +95,9 @@ export async function addLead(lead: Omit<Lead, "id" | "createdAt" | "updatedAt">
         company: lead.company,
         status: lead.status,
         assigned_to: lead.assignedTo,
+        note1: lead.note1,
+        note2: lead.note2,
         source: lead.source || "manual",
-        notes: lead.notes,
       },
     ])
     .select()
@@ -107,10 +114,7 @@ export async function addLead(lead: Omit<Lead, "id" | "createdAt" | "updatedAt">
 /**
  * Helper function to update a lead
  */
-export async function updateLead(
-  leadId: string,
-  updates: Partial<Lead>
-) {
+export async function updateLead(leadId: string, updates: Partial<Lead>) {
   const { data, error } = await supabase
     .from("leads")
     .update({
@@ -120,7 +124,8 @@ export async function updateLead(
       company: updates.company,
       status: updates.status,
       assigned_to: updates.assignedTo,
-      notes: updates.notes,
+      note1: updates.note1,
+      note2: updates.note2,
     })
     .eq("id", leadId)
     .select()
@@ -132,6 +137,20 @@ export async function updateLead(
   }
 
   return data;
+}
+
+/**
+ * Helper function to delete a lead
+ */
+export async function deleteLead(leadId: string) {
+  const { error } = await supabase.from("leads").delete().eq("id", leadId);
+
+  if (error) {
+    console.error("Error deleting lead:", error);
+    return false;
+  }
+
+  return true;
 }
 
 /**
@@ -172,11 +191,54 @@ export async function addSalesperson(
 }
 
 /**
+ * Helper function to update a salesperson
+ */
+export async function updateSalesperson(
+  salespersonId: string,
+  updates: Partial<Salesperson>
+) {
+  const { data, error } = await supabase
+    .from("salespersons")
+    .update({
+      name: updates.name,
+      email: updates.email,
+      phone: updates.phone,
+      department: updates.department,
+      region: updates.region,
+    })
+    .eq("id", salespersonId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error updating salesperson:", error);
+    return null;
+  }
+
+  return data;
+}
+
+/**
+ * Helper function to delete a salesperson
+ */
+export async function deleteSalesperson(salespersonId: string) {
+  const { error } = await supabase
+    .from("salespersons")
+    .delete()
+    .eq("id", salespersonId);
+
+  if (error) {
+    console.error("Error deleting salesperson:", error);
+    return false;
+  }
+
+  return true;
+}
+
+/**
  * Helper function to subscribe to real-time lead updates
  */
-export function subscribeToLeadUpdates(
-  callback: (lead: Lead) => void
-) {
+export function subscribeToLeadUpdates(callback: (lead: Lead) => void) {
   const subscription = supabase
     .from("leads")
     .on("*", (payload) => {
