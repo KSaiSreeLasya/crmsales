@@ -163,14 +163,23 @@ export async function fetchGoogleSheet(
 ): Promise<GoogleSheetRow[]> {
   try {
     const url = getGoogleSheetsCsvUrl(spreadsheetId, sheetId || "0");
+    console.log("Fetching Google Sheet from:", url);
     const response = await fetch(url);
 
     if (!response.ok) {
+      console.error("Google Sheets fetch failed:", response.status, response.statusText);
       throw new Error(`Failed to fetch Google Sheet: ${response.statusText}`);
     }
 
     const csv = await response.text();
-    return parseCsv(csv);
+    console.log("Raw CSV data:", csv.substring(0, 500)); // First 500 chars
+    const rows = parseCsv(csv);
+    console.log("Parsed rows count:", rows.length);
+    if (rows.length > 0) {
+      console.log("First row keys:", Object.keys(rows[0]));
+      console.log("First row data:", rows[0]);
+    }
+    return rows;
   } catch (error) {
     console.error("Error fetching Google Sheet:", error);
     throw error;
