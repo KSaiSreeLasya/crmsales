@@ -46,6 +46,10 @@ export interface Lead {
   assignedTo: string;
   note1: string;
   note2: string;
+  street_address?: string;
+  post_code?: string;
+  lead_status?: string;
+  electricity_bill?: string;
   source?: "google_sheet" | "manual" | "api";
   createdAt: string;
   updatedAt: string;
