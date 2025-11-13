@@ -42,19 +42,25 @@ function getColumnValue(
  * Expected columns: Name/Full Name, Email, Company, Phone, Assigned to/Owner, Status, Note1/Note 1, Note2/Note 2
  */
 export function parseLeadRow(row: GoogleSheetRow) {
+  // Debug: log all row keys to help identify column names
+  const rowKeys = Object.keys(row);
+  console.log("Available columns in row:", rowKeys);
+
   const parsed = {
-    name: getColumnValue(row, "Full Name", "Name"),
-    email: getColumnValue(row, "Email"),
-    phone: getColumnValue(row, "Phone"),
-    company: getColumnValue(row, "Company") || "N/A",
-    status: (getColumnValue(row, "Status") || "Not lifted") as LeadStatus,
-    assignedTo: getColumnValue(row, "Assigned to", "Assigned To", "Owner") || "Unassigned",
-    note1: getColumnValue(row, "Note 1", "Note1", "Note 1"),
-    note2: getColumnValue(row, "Note 2", "Note2", "Note 2"),
+    name: getColumnValue(row, "Full Name", "full name", "Name"),
+    email: getColumnValue(row, "Email", "email"),
+    phone: getColumnValue(row, "Phone", "phone"),
+    company: getColumnValue(row, "Company", "company") || "N/A",
+    status: (getColumnValue(row, "Status", "status") || "Not lifted") as LeadStatus,
+    assignedTo: getColumnValue(row, "Assigned to", "Assigned To", "assigned_to", "assigned to", "Owner", "owner") || "Unassigned",
+    note1: getColumnValue(row, "Note 1", "Note1", "note_1", "note 1", "note1"),
+    note2: getColumnValue(row, "Note 2", "Note2", "note_2", "note 2", "note2"),
   };
 
+  console.log("Parsed lead:", parsed);
+
   if (!parsed.name || !parsed.email || !parsed.phone) {
-    console.warn("Row missing required fields:", { row, parsed });
+    console.warn("Row missing required fields (name, email, or phone):", { originalRow: row, parsedData: parsed });
   }
 
   return parsed;
