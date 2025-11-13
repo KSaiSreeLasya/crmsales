@@ -520,17 +520,17 @@ export default function Leads() {
             <Table>
               <TableHeader>
                 <TableRow className="border-b border-border">
-                  <TableHead>FULL NAME</TableHead>
-                  <TableHead>PHONE</TableHead>
-                  <TableHead>EMAIL</TableHead>
-                  <TableHead>STREET ADDRESS</TableHead>
-                  <TableHead>POST CODE</TableHead>
-                  <TableHead>LEAD STATUS</TableHead>
-                  <TableHead>NOTE 1</TableHead>
-                  <TableHead>NOTE 2</TableHead>
-                  <TableHead>STATUS</TableHead>
-                  <TableHead>OWNER</TableHead>
-                  <TableHead>ACTION</TableHead>
+                  <TableHead className="whitespace-nowrap">FULL NAME</TableHead>
+                  <TableHead className="whitespace-nowrap">PHONE</TableHead>
+                  <TableHead className="whitespace-nowrap">EMAIL</TableHead>
+                  <TableHead className="whitespace-nowrap">STREET ADDRESS</TableHead>
+                  <TableHead className="whitespace-nowrap">POST CODE</TableHead>
+                  <TableHead className="whitespace-nowrap">LEAD STATUS</TableHead>
+                  <TableHead className="whitespace-nowrap">NOTE 1</TableHead>
+                  <TableHead className="whitespace-nowrap">NOTE 2</TableHead>
+                  <TableHead className="whitespace-nowrap">STATUS</TableHead>
+                  <TableHead className="whitespace-nowrap">OWNER</TableHead>
+                  <TableHead className="whitespace-nowrap">ACTION</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -545,31 +545,31 @@ export default function Leads() {
                 ) : (
                   filteredLeads.map((lead) => (
                     <TableRow key={lead.id} className="border-b border-border">
-                      <TableCell className="font-medium text-foreground">
+                      <TableCell className="font-medium text-foreground whitespace-nowrap">
                         {lead.fullName}
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
+                      <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
                         {lead.phone}
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
+                      <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
                         {lead.email}
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-sm max-w-xs truncate">
+                      <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
                         {lead.streetAddress}
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
+                      <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
                         {lead.postCode}
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
+                      <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
                         {lead.leadStatus}
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-sm max-w-xs truncate">
+                      <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
                         {lead.note1}
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-sm max-w-xs truncate">
+                      <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
                         {lead.note2}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap">
                         <select
                           value={lead.status}
                           onChange={(e) => {
@@ -590,7 +590,7 @@ export default function Leads() {
                           ))}
                         </select>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap">
                         <select
                           value={lead.owner}
                           onChange={(e) => {
@@ -611,7 +611,7 @@ export default function Leads() {
                           <option value="David Lee">David Lee</option>
                         </select>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap">
                         <Button
                           variant="ghost"
                           size="sm"
