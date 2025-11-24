@@ -519,7 +519,24 @@ export default function Leads() {
               Manage and track all your sales leads
             </p>
           </div>
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap items-center">
+            <div className="flex gap-2 items-center">
+              <Label htmlFor="sheet-select" className="whitespace-nowrap">
+                Sheet:
+              </Label>
+              <Select value={selectedSheetId} onValueChange={setSelectedSheetId}>
+                <SelectTrigger id="sheet-select" className="w-32">
+                  <SelectValue placeholder="Select sheet" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableSheets.map((sheet) => (
+                    <SelectItem key={sheet.id} value={sheet.id}>
+                      {sheet.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <Button
               className="gap-2 bg-purple-600 hover:bg-purple-700"
               onClick={handleAutoAssign}
@@ -530,13 +547,13 @@ export default function Leads() {
             <Button
               variant="outline"
               className="gap-2"
-              onClick={() => syncFromGoogleSheet(true)}
+              onClick={() => syncFromGoogleSheetDynamic(selectedSheetId, true)}
               disabled={isSyncing}
             >
               <RefreshCw
                 className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`}
               />
-              {isSyncing ? "Syncing..." : "Sync Sheet"}
+              {isSyncing ? "Syncing..." : "Sync All Columns"}
             </Button>
             <Dialog open={openDialog} onOpenChange={setOpenDialog}>
               <DialogTrigger asChild>
