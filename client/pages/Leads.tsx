@@ -404,13 +404,13 @@ export default function Leads() {
       });
       clearTimeout(syncTimeoutId);
 
-      let syncData: any;
+      const statusOk = syncResponse.ok;
+      let syncData: any = null;
+      let responseText = "";
 
-      // Clone response to safely read it
+      // Read response body only once
       try {
-        const clonedResponse = syncResponse.clone();
-        const responseText = await clonedResponse.text();
-
+        responseText = await syncResponse.text();
         if (responseText) {
           try {
             syncData = JSON.parse(responseText);
@@ -421,12 +421,14 @@ export default function Leads() {
           }
         }
       } catch (textError) {
-        console.error("Failed to read response:", textError);
+        console.error("Failed to read response body:", textError);
+        syncData = { error: "Failed to read response" };
       }
 
-      // Check response status
-      if (!syncResponse.ok) {
+      // Check response status after reading body
+      if (!statusOk) {
         const errorMessage = syncData?.message || syncData?.error || syncData?.hint || "Failed to sync leads";
+        console.error("Sync API returned error:", errorMessage, "Status:", syncResponse.status);
         throw new Error(errorMessage);
       }
 
