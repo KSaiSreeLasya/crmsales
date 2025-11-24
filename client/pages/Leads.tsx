@@ -162,11 +162,12 @@ export default function Leads() {
       const { data, error } = await supabase
         .from("leads")
         .select("*")
+        .eq("sheet_id", selectedSheetId)
         .order("created_at", { ascending: false });
 
       if (error) {
         console.error("Error loading leads:", error);
-        if (!error.message.includes("relation")) {
+        if (!error.message.includes("relation") && !error.message.includes("sheet_id")) {
           toast.error("Failed to load leads");
         }
         setLeads([]);
