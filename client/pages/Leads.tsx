@@ -1096,7 +1096,7 @@ export default function Leads() {
                 <p className="text-muted-foreground">Loading leads...</p>
               </div>
             ) : (
-              <Table className="[&_th]:h-4 [&_th]:px-0 [&_td]:px-0.5 [&_td]:py-0.5 text-[10px] leading-tight">
+              <Table className="[&_th]:h-4 [&_th]:px-1 [&_td]:px-0.5 [&_td]:py-0.5 text-[9px] leading-tight">
                 <TableHeader>
                   <TableRow className="border-b border-border bg-gray-50">
                     <TableHead className="whitespace-nowrap font-bold text-[11px]" title="Type of Property">
