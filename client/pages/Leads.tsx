@@ -452,7 +452,10 @@ export default function Leads() {
       // Store date rows for display
       setDateRows(extractedDateRows);
 
+      console.log(`About to reload leads for sheet_id: ${sheetId}`);
       await loadLeads();
+      console.log("Leads reloaded after sync");
+
       if (showNotification) {
         const emptyRowsMsg =
           syncData.emptyRowsRemoved > 0
