@@ -215,7 +215,14 @@ export function getGoogleSheetsCsvUrl(
 }
 
 /**
- * Parse CSV content into rows
+ * Check if a string is a date in format YYYY-MM-DD
+ */
+function isDateRow(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value.trim());
+}
+
+/**
+ * Parse CSV content into rows, preserving date rows as separators
  */
 export function parseCsv(csv: string): GoogleSheetRow[] {
   const lines = csv.trim().split("\n");
@@ -282,7 +289,7 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
   console.log("Final headers after cleanup:", headers);
   console.log(`Data starts from line ${startIndex}`);
 
-  // Parse data rows
+  // Parse data rows and preserve date rows
   const rows: GoogleSheetRow[] = [];
   for (let i = startIndex; i < lines.length; i++) {
     const trimmedLine = lines[i].trim();
@@ -294,6 +301,19 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
 
     // Skip first value if first column was malformed
     const dataValues = skipFirstColumn ? values.slice(1) : values;
+
+    // Check if this is a date row (first non-empty value is a date)
+    const firstValue = dataValues.find(v => v && String(v).trim() !== "");
+    if (firstValue && isDateRow(String(firstValue))) {
+      // This is a date row - preserve it as a special row
+      const dateRow: GoogleSheetRow = {
+        "_isDateRow": true,
+        "_dateValue": String(firstValue).trim(),
+      };
+      rows.push(dateRow);
+      console.log("✓ Found date row:", String(firstValue).trim());
+      continue;
+    }
 
     const row: GoogleSheetRow = {};
 
@@ -309,7 +329,7 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
     ).length;
 
     // Only add row if it has at least one non-empty cell AND at least 2 fields populated
-    // This filters out date-only rows and sparse rows
+    // This filters out completely empty rows and sparse rows
     if (nonEmptyCount >= 2) {
       rows.push(row);
     }
