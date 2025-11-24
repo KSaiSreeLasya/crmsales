@@ -241,7 +241,10 @@ export default function Leads() {
         return;
       }
 
-      // Sync to backend
+      // Sync to backend with 60 second timeout
+      const syncController = new AbortController();
+      const syncTimeoutId = setTimeout(() => syncController.abort(), 60000);
+
       const syncResponse = await fetch("/api/sync-leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -249,7 +252,9 @@ export default function Leads() {
           leads: leadsToSync,
           source: "google_sheet",
         }),
+        signal: syncController.signal,
       });
+      clearTimeout(syncTimeoutId);
 
       if (!syncResponse.ok) {
         throw new Error("Failed to sync leads");
