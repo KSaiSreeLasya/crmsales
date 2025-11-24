@@ -24,8 +24,9 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       "Dynamic sync request received with leads:",
       leads.length,
       "from sheet:",
-      sheetId || "0",
+      sheetId,
     );
+    console.log("Sheet ID received:", sheetId, "Type:", typeof sheetId);
     if (leads.length > 0) {
       console.log("First lead sample:", leads[0]);
       console.log("Available columns:", Object.keys(leads[0]));
