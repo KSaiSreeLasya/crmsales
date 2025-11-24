@@ -72,6 +72,17 @@ interface Lead {
   updated_at?: string;
 }
 
+interface DateRowMarker {
+  _isDateRow: true;
+  _dateValue: string;
+}
+
+type DisplayRow = Lead | DateRowMarker;
+
+function isDateRow(row: any): row is DateRowMarker {
+  return row && row._isDateRow === true;
+}
+
 const STATUS_OPTIONS: LeadStatus[] = [
   "Not lifted",
   "Not connected",
