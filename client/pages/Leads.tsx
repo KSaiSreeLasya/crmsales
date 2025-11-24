@@ -349,7 +349,7 @@ export default function Leads() {
       // Extract date rows and regular rows
       const extractedDateRows: DateRowMarker[] = [];
       const dataRows = rows.filter((row: any) => {
-        if (row._isDateRow === true) {
+        if (row._isDateRow === "true" || row._isDateRow === true) {
           extractedDateRows.push(row as DateRowMarker);
           return false;
         }
