@@ -267,7 +267,9 @@ export default function Leads() {
       console.error("Error syncing from Google Sheet:", error);
       if (showNotification) {
         if (error instanceof Error && error.name === "AbortError") {
-          toast.error("Sync request timed out. Server may be busy. Try again later.");
+          toast.error(
+            "Sync request timed out. Server may be busy. Try again later.",
+          );
         } else {
           toast.error("Failed to sync from Google Sheet");
         }
@@ -359,10 +361,14 @@ export default function Leads() {
       console.error("Error syncing dynamically from Google Sheet:", error);
       if (showNotification) {
         if (error instanceof Error && error.name === "AbortError") {
-          toast.error("Sync request timed out. Server may be busy. Try again later.");
+          toast.error(
+            "Sync request timed out. Server may be busy. Try again later.",
+          );
         } else {
           toast.error(
-            error instanceof Error ? error.message : "Failed to sync from sheet",
+            error instanceof Error
+              ? error.message
+              : "Failed to sync from sheet",
           );
         }
       }
@@ -568,7 +574,10 @@ export default function Leads() {
               <Label htmlFor="sheet-select" className="whitespace-nowrap">
                 Sheet:
               </Label>
-              <Select value={selectedSheetId} onValueChange={setSelectedSheetId}>
+              <Select
+                value={selectedSheetId}
+                onValueChange={setSelectedSheetId}
+              >
                 <SelectTrigger id="sheet-select" className="w-32">
                   <SelectValue placeholder="Select sheet" />
                 </SelectTrigger>

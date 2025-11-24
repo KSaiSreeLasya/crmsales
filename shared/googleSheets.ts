@@ -177,9 +177,7 @@ export function parseRowDynamic(row: GoogleSheetRow): GoogleSheetRow {
   for (const [key, value] of Object.entries(row)) {
     const trimmedKey = key.trim();
     const trimmedValue =
-      value === undefined || value === null
-        ? ""
-        : String(value).trim();
+      value === undefined || value === null ? "" : String(value).trim();
     if (trimmedKey) {
       result[trimmedKey] = trimmedValue;
     }

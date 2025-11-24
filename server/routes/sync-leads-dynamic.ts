@@ -46,7 +46,10 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     });
 
     console.log("Valid leads after filtering:", validLeads.length);
-    console.log("Filtered out empty/sparse rows:", leads.length - validLeads.length);
+    console.log(
+      "Filtered out empty/sparse rows:",
+      leads.length - validLeads.length,
+    );
     if (validLeads.length > 0) {
       console.log("First valid lead:", validLeads[0]);
       console.log("Columns in first lead:", Object.keys(validLeads[0]));
@@ -54,7 +57,8 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
     if (validLeads.length === 0) {
       res.status(400).json({
-        error: "No valid leads found - all rows appear to be empty or contain only dates",
+        error:
+          "No valid leads found - all rows appear to be empty or contain only dates",
         totalRowsFetched: leads.length,
       });
       return;
@@ -136,7 +140,10 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
                 if (!updateError) {
                   updateCount++;
                 } else {
-                  console.warn(`Failed to update lead with email ${email}:`, updateError);
+                  console.warn(
+                    `Failed to update lead with email ${email}:`,
+                    updateError,
+                  );
                 }
               } else if (name) {
                 const { error: updateError } = await supabase
@@ -146,7 +153,10 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
                 if (!updateError) {
                   updateCount++;
                 } else {
-                  console.warn(`Failed to update lead with name ${name}:`, updateError);
+                  console.warn(
+                    `Failed to update lead with name ${name}:`,
+                    updateError,
+                  );
                 }
               }
             }
@@ -169,7 +179,10 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
             console.error("Error during update operation:", updateErr);
             res.status(500).json({
               error: "Failed to update duplicate leads",
-              message: updateErr instanceof Error ? updateErr.message : String(updateErr),
+              message:
+                updateErr instanceof Error
+                  ? updateErr.message
+                  : String(updateErr),
             });
             return;
           }

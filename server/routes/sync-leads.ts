@@ -162,7 +162,10 @@ export const handleSyncLeads: RequestHandler = async (req, res) => {
             console.error("Error during update operation:", updateErr);
             res.status(500).json({
               error: "Failed to update duplicate leads",
-              message: updateErr instanceof Error ? updateErr.message : String(updateErr),
+              message:
+                updateErr instanceof Error
+                  ? updateErr.message
+                  : String(updateErr),
             });
             return;
           }
