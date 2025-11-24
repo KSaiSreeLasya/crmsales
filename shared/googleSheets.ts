@@ -168,6 +168,24 @@ export function parseLeadRow(row: GoogleSheetRow) {
 }
 
 /**
+ * Parse Google Sheet row with all columns preserved (dynamic sync)
+ * Preserves exact column names from the sheet
+ */
+export function parseRowDynamic(row: GoogleSheetRow): GoogleSheetRow {
+  // Return all columns as-is, trimming values
+  const result: GoogleSheetRow = {};
+  for (const [key, value] of Object.entries(row)) {
+    const trimmedKey = key.trim();
+    const trimmedValue =
+      value === undefined || value === null ? "" : String(value).trim();
+    if (trimmedKey) {
+      result[trimmedKey] = trimmedValue;
+    }
+  }
+  return result;
+}
+
+/**
  * Parse Google Sheet salesperson row into Salesperson format
  */
 export function parseSalespersonRow(row: GoogleSheetRow) {
@@ -267,7 +285,10 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
   // Parse data rows
   const rows: GoogleSheetRow[] = [];
   for (let i = startIndex; i < lines.length; i++) {
-    if (lines[i].trim() === "") continue;
+    const trimmedLine = lines[i].trim();
+
+    // Skip completely empty rows
+    if (trimmedLine === "") continue;
 
     const values = parseCSVLine(lines[i]);
 
@@ -282,8 +303,14 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
       }
     });
 
-    // Only add row if it has at least one non-empty cell
-    if (Object.values(row).some((val) => val && String(val).trim())) {
+    // Count non-empty cells
+    const nonEmptyCount = Object.values(row).filter(
+      (val) => val && String(val).trim() !== "",
+    ).length;
+
+    // Only add row if it has at least one non-empty cell AND at least 2 fields populated
+    // This filters out date-only rows and sparse rows
+    if (nonEmptyCount >= 2) {
       rows.push(row);
     }
   }
@@ -292,6 +319,7 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
   if (rows.length > 0) {
     console.log("First data row:", rows[0]);
     console.log("First data row keys:", Object.keys(rows[0]));
+    console.log("Sample rows:", rows.slice(0, 3));
   }
 
   return rows;

@@ -114,13 +114,18 @@ export default function Leads() {
   });
 
   const [salespersons, setSalespersons] = useState<string[]>([]);
+  const [selectedSheetId, setSelectedSheetId] = useState("0");
+  const [availableSheets, setAvailableSheets] = useState<
+    Array<{ id: string; name: string }>
+  >([
+    { id: "0", name: "Hyderabad Leads" },
+    { id: "1892152973", name: "November" },
+  ]);
 
   // Load leads from Supabase on component mount
   useEffect(() => {
     loadLeads();
     loadSalespersons();
-    // Auto-sync from Google Sheets on page load
-    syncFromGoogleSheet();
   }, []);
 
   const loadLeads = async () => {
@@ -164,12 +169,24 @@ export default function Leads() {
   };
 
   const syncFromGoogleSheet = async (showNotification = false) => {
+    if (isSyncing) {
+      if (showNotification) {
+        toast.info("Sync already in progress...");
+      }
+      return;
+    }
+
     setIsSyncing(true);
     try {
-      // Fetch from server endpoint (avoids CORS issues)
+      // Fetch from server endpoint (avoids CORS issues) with 30 second timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
       const fetchResponse = await fetch(
         `/api/fetch-google-sheet?spreadsheetId=${SPREADSHEET_ID}&sheetId=0`,
+        { signal: controller.signal },
       );
+      clearTimeout(timeoutId);
 
       if (!fetchResponse.ok) {
         throw new Error("Failed to fetch from Google Sheet");
@@ -222,7 +239,10 @@ export default function Leads() {
         return;
       }
 
-      // Sync to backend
+      // Sync to backend with 60 second timeout
+      const syncController = new AbortController();
+      const syncTimeoutId = setTimeout(() => syncController.abort(), 60000);
+
       const syncResponse = await fetch("/api/sync-leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -230,7 +250,9 @@ export default function Leads() {
           leads: leadsToSync,
           source: "google_sheet",
         }),
+        signal: syncController.signal,
       });
+      clearTimeout(syncTimeoutId);
 
       if (!syncResponse.ok) {
         throw new Error("Failed to sync leads");
@@ -244,7 +266,111 @@ export default function Leads() {
     } catch (error) {
       console.error("Error syncing from Google Sheet:", error);
       if (showNotification) {
-        toast.error("Failed to sync from Google Sheet");
+        if (error instanceof Error && error.name === "AbortError") {
+          toast.error(
+            "Sync request timed out. Server may be busy. Try again later.",
+          );
+        } else {
+          toast.error("Failed to sync from Google Sheet");
+        }
+      }
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const syncFromGoogleSheetDynamic = async (
+    sheetId: string,
+    showNotification = false,
+  ) => {
+    if (isSyncing) {
+      if (showNotification) {
+        toast.info("Sync already in progress...");
+      }
+      return;
+    }
+
+    setIsSyncing(true);
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+      const fetchResponse = await fetch(
+        `/api/fetch-google-sheet?spreadsheetId=${SPREADSHEET_ID}&sheetId=${sheetId}`,
+        { signal: controller.signal },
+      );
+      clearTimeout(timeoutId);
+
+      if (!fetchResponse.ok) {
+        throw new Error("Failed to fetch from Google Sheet");
+      }
+
+      const fetchData = await fetchResponse.json();
+      const rows = fetchData.rows;
+
+      console.log(`Fetched ${rows.length} rows from sheet ${sheetId}`);
+
+      if (rows.length === 0) {
+        if (showNotification) {
+          toast.error("Selected sheet is empty");
+        }
+        setIsSyncing(false);
+        return;
+      }
+
+      // Sync all columns dynamically (no parsing, just pass raw data) with 60 second timeout
+      const syncController = new AbortController();
+      const syncTimeoutId = setTimeout(() => syncController.abort(), 60000);
+
+      const syncResponse = await fetch("/api/sync-leads-dynamic", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          leads: rows,
+          source: "google_sheet",
+          sheetId: sheetId,
+        }),
+        signal: syncController.signal,
+      });
+      clearTimeout(syncTimeoutId);
+
+      if (!syncResponse.ok) {
+        const error = await syncResponse.json();
+        throw new Error(error.message || "Failed to sync leads");
+      }
+
+      const syncData = await syncResponse.json();
+      console.log(
+        "Sync response:",
+        syncData.message,
+        "Columns:",
+        syncData.columnsIncluded,
+      );
+
+      await loadLeads();
+      if (showNotification) {
+        const emptyRowsMsg =
+          syncData.emptyRowsRemoved > 0
+            ? ` (${syncData.emptyRowsRemoved} empty rows removed)`
+            : "";
+        toast.success(
+          `Synced ${syncData.synced} leads${emptyRowsMsg} with all columns`,
+        );
+      }
+    } catch (error) {
+      console.error("Error syncing dynamically from Google Sheet:", error);
+      if (showNotification) {
+        if (error instanceof Error && error.name === "AbortError") {
+          toast.error(
+            "Sync request timed out. Server may be busy. Try again later.",
+          );
+        } else {
+          toast.error(
+            error instanceof Error
+              ? error.message
+              : "Failed to sync from sheet",
+          );
+        }
       }
     } finally {
       setIsSyncing(false);
@@ -443,7 +569,27 @@ export default function Leads() {
               Manage and track all your sales leads
             </p>
           </div>
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap items-center">
+            <div className="flex gap-2 items-center">
+              <Label htmlFor="sheet-select" className="whitespace-nowrap">
+                Sheet:
+              </Label>
+              <Select
+                value={selectedSheetId}
+                onValueChange={setSelectedSheetId}
+              >
+                <SelectTrigger id="sheet-select" className="w-32">
+                  <SelectValue placeholder="Select sheet" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableSheets.map((sheet) => (
+                    <SelectItem key={sheet.id} value={sheet.id}>
+                      {sheet.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <Button
               className="gap-2 bg-purple-600 hover:bg-purple-700"
               onClick={handleAutoAssign}
@@ -454,13 +600,13 @@ export default function Leads() {
             <Button
               variant="outline"
               className="gap-2"
-              onClick={() => syncFromGoogleSheet(true)}
+              onClick={() => syncFromGoogleSheetDynamic(selectedSheetId, true)}
               disabled={isSyncing}
             >
               <RefreshCw
                 className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`}
               />
-              {isSyncing ? "Syncing..." : "Sync Sheet"}
+              {isSyncing ? "Syncing..." : "Sync All Columns"}
             </Button>
             <Dialog open={openDialog} onOpenChange={setOpenDialog}>
               <DialogTrigger asChild>
@@ -706,46 +852,46 @@ export default function Leads() {
                 <p className="text-muted-foreground">Loading leads...</p>
               </div>
             ) : (
-              <Table>
+              <Table className="[&_th]:h-8 [&_th]:px-2 [&_td]:p-2">
                 <TableHeader>
                   <TableRow className="border-b border-border bg-gray-50">
-                    <TableHead className="whitespace-nowrap font-bold">
+                    <TableHead className="whitespace-nowrap font-bold text-xs">
+                      TYPE OF PROPERTY
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap font-bold text-xs">
+                      AVG MONTHLY BILL
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap font-bold text-xs">
                       FULL NAME
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold">
+                    <TableHead className="whitespace-nowrap font-bold text-xs">
+                      PHONE NO
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap font-bold text-xs">
                       EMAIL
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold">
-                      PHONE
+                    <TableHead className="whitespace-nowrap font-bold text-xs">
+                      ADDRESS
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold">
-                      PROPERTY TYPE
+                    <TableHead className="whitespace-nowrap font-bold text-xs">
+                      POSTAL CODE
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold">
-                      STREET ADDRESS
-                    </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold">
-                      POST CODE
-                    </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold">
-                      ELECTRICITY BILL
-                    </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold">
+                    <TableHead className="whitespace-nowrap font-bold text-xs">
                       LEAD STATUS
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold">
+                    <TableHead className="whitespace-nowrap font-bold text-xs">
                       NOTE 1
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold">
+                    <TableHead className="whitespace-nowrap font-bold text-xs">
                       NOTE 2
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold">
+                    <TableHead className="whitespace-nowrap font-bold text-xs">
                       STATUS
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold">
-                      OWNER
+                    <TableHead className="whitespace-nowrap font-bold text-xs">
+                      ASSIGNED TO
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold">
+                    <TableHead className="whitespace-nowrap font-bold text-xs">
                       ACTION
                     </TableHead>
                   </TableRow>
@@ -753,11 +899,11 @@ export default function Leads() {
                 <TableBody>
                   {filteredLeads.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={12} className="py-8 text-center">
+                      <TableCell colSpan={13} className="py-8 text-center">
                         <p className="text-muted-foreground">
                           No leads found.{" "}
                           {leads.length === 0 &&
-                            "Click 'Sync Sheet' to import leads from Google Sheet."}
+                            "Click 'Sync All Columns' to import leads from Google Sheet."}
                         </p>
                       </TableCell>
                     </TableRow>
@@ -767,31 +913,31 @@ export default function Leads() {
                         key={lead.id}
                         className="border-b border-border hover:bg-gray-50"
                       >
-                        <TableCell className="font-medium text-foreground whitespace-nowrap">
-                          {lead.name}
+                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                          {lead.company || "-"}
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
-                          {lead.email}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
-                          {lead.phone}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
-                          {lead.company}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
-                          {lead.street_address || "-"}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
-                          {lead.post_code || "-"}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
                           {lead.electricity_bill || "-"}
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                        <TableCell className="font-medium text-foreground whitespace-nowrap text-xs">
+                          {lead.name}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                          {lead.phone}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                          {lead.email}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                          {lead.street_address || "-"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                          {lead.post_code || "-"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
                           {lead.lead_status || "-"}
                         </TableCell>
-                        <TableCell className="text-sm whitespace-nowrap">
+                        <TableCell className="text-xs whitespace-nowrap">
                           {editingNote?.leadId === lead.id &&
                           editingNote.field === "note1" ? (
                             <Input
@@ -818,17 +964,17 @@ export default function Leads() {
                                   field: "note1",
                                 })
                               }
-                              className="cursor-pointer hover:bg-gray-100 p-1 rounded min-h-6"
+                              className="cursor-pointer hover:bg-gray-100 p-0.5 rounded min-h-6 text-xs"
                             >
                               {lead.note1 || (
-                                <span className="text-muted-foreground italic">
-                                  Add note...
+                                <span className="text-muted-foreground italic text-xs">
+                                  Add...
                                 </span>
                               )}
                             </div>
                           )}
                         </TableCell>
-                        <TableCell className="text-sm whitespace-nowrap">
+                        <TableCell className="text-xs whitespace-nowrap">
                           {editingNote?.leadId === lead.id &&
                           editingNote.field === "note2" ? (
                             <Input
@@ -855,11 +1001,11 @@ export default function Leads() {
                                   field: "note2",
                                 })
                               }
-                              className="cursor-pointer hover:bg-gray-100 p-1 rounded min-h-6"
+                              className="cursor-pointer hover:bg-gray-100 p-0.5 rounded min-h-6 text-xs"
                             >
                               {lead.note2 || (
-                                <span className="text-muted-foreground italic">
-                                  Add note...
+                                <span className="text-muted-foreground italic text-xs">
+                                  Add...
                                 </span>
                               )}
                             </div>
@@ -882,7 +1028,7 @@ export default function Leads() {
                                 toast.error("Failed to update status");
                               }
                             }}
-                            className="rounded border border-border bg-background px-2 py-1 text-sm"
+                            className="rounded border border-border bg-background px-1.5 py-0.5 text-xs"
                           >
                             {STATUS_OPTIONS.map((status) => (
                               <option key={status} value={status}>
@@ -906,7 +1052,7 @@ export default function Leads() {
                                 toast.error("Failed to update owner");
                               }
                             }}
-                            className="rounded border border-border bg-background px-2 py-1 text-sm"
+                            className="rounded border border-border bg-background px-1.5 py-0.5 text-xs"
                           >
                             <option value="Unassigned">Unassigned</option>
                             {salespersons.map((person) => (
@@ -921,9 +1067,9 @@ export default function Leads() {
                             variant="ghost"
                             size="sm"
                             onClick={() => setDeleteId(lead.id)}
-                            className="text-red-600 hover:text-red-700"
+                            className="text-red-600 hover:text-red-700 h-6 w-6 p-0"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-3 w-3" />
                           </Button>
                         </TableCell>
                       </TableRow>
