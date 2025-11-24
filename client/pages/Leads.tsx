@@ -979,11 +979,11 @@ export default function Leads() {
                       }
                       const lead = row as Lead;
                       return (
-                      <TableRow
+                        <TableRow
                           key={lead.id}
                           className="border-b border-border hover:bg-gray-50"
                         >
-                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                          <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
                           {lead.company || "-"}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
