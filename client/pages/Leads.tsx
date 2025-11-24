@@ -347,8 +347,12 @@ export default function Leads() {
 
       await loadLeads();
       if (showNotification) {
+        const emptyRowsMsg =
+          syncData.emptyRowsRemoved > 0
+            ? ` (${syncData.emptyRowsRemoved} empty rows removed)`
+            : "";
         toast.success(
-          `Synced ${syncData.synced} leads with all columns from sheet`,
+          `Synced ${syncData.synced} leads${emptyRowsMsg} with all columns`,
         );
       }
     } catch (error) {
