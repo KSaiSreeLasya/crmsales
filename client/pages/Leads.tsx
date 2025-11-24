@@ -762,16 +762,16 @@ export default function Leads() {
 
   return (
     <CRMLayout>
-      <div className="space-y-6 p-8">
+      <div className="space-y-3 p-4">
         {/* Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-3xl font-bold text-foreground">Leads</h2>
-            <p className="mt-1 text-muted-foreground">
+            <h2 className="text-2xl font-bold text-foreground">Leads</h2>
+            <p className="text-xs text-muted-foreground">
               Manage and track all your sales leads
             </p>
           </div>
-          <div className="flex gap-2 flex-wrap items-center">
+          <div className="flex gap-1 flex-wrap items-center text-sm">
             <div className="flex gap-2 items-center">
               <Label htmlFor="sheet-select" className="whitespace-nowrap">
                 Sheet:
