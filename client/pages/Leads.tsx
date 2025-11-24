@@ -72,6 +72,17 @@ interface Lead {
   updated_at?: string;
 }
 
+interface DateRowMarker {
+  _isDateRow: true;
+  _dateValue: string;
+}
+
+type DisplayRow = Lead | DateRowMarker;
+
+function isDateRow(row: any): row is DateRowMarker {
+  return row && (row._isDateRow === true || row._isDateRow === "true");
+}
+
 const STATUS_OPTIONS: LeadStatus[] = [
   "Not lifted",
   "Not connected",
@@ -87,6 +98,8 @@ const SPREADSHEET_ID = "1QY8_Q8-ybLKNVs4hynPZslZDwUfC-PIJrViJfL0-tpM";
 
 export default function Leads() {
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [dateRows, setDateRows] = useState<DateRowMarker[]>([]);
+  const [displayRows, setDisplayRows] = useState<DisplayRow[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [openDialog, setOpenDialog] = useState(false);
@@ -122,11 +135,26 @@ export default function Leads() {
     { id: "1892152973", name: "November" },
   ]);
 
-  // Load leads from Supabase on component mount
+  // Load leads from Supabase on component mount and when sheet changes
   useEffect(() => {
     loadLeads();
     loadSalespersons();
-  }, []);
+  }, [selectedSheetId]);
+
+  // Combine leads and date rows for display
+  useEffect(() => {
+    const combined: DisplayRow[] = [];
+
+    if (dateRows.length === 0) {
+      // No date rows, just use leads
+      setDisplayRows(leads);
+    } else {
+      // Need to interleave date rows with leads based on original order
+      // For now, we'll append date rows info to the display
+      // In a more sophisticated approach, we'd track the original row indices
+      setDisplayRows([...leads, ...dateRows]);
+    }
+  }, [leads, dateRows]);
 
   const loadLeads = async () => {
     setIsLoading(true);
@@ -134,19 +162,44 @@ export default function Leads() {
       const { data, error } = await supabase
         .from("leads")
         .select("*")
+        .eq("sheet_id", selectedSheetId)
         .order("created_at", { ascending: false });
 
       if (error) {
-        console.error("Error loading leads:", error);
-        if (!error.message.includes("relation")) {
+        const errorMsg = error.message || JSON.stringify(error);
+        console.error("Error loading leads with sheet_id filter:", errorMsg);
+
+        // If sheet_id column doesn't exist, fall back to loading all leads
+        if (errorMsg.includes("sheet_id") || errorMsg.includes("column")) {
+          console.log(
+            "Falling back to loading all leads (sheet_id column may not exist yet)",
+          );
+          const { data: fallbackData, error: fallbackError } = await supabase
+            .from("leads")
+            .select("*")
+            .order("created_at", { ascending: false });
+
+          if (fallbackError) {
+            console.error("Error in fallback load:", fallbackError.message);
+            toast.error("Failed to load leads");
+            setLeads([]);
+          } else {
+            setLeads(fallbackData || []);
+          }
+        } else if (!errorMsg.includes("relation")) {
           toast.error("Failed to load leads");
+          setLeads([]);
+        } else {
+          setLeads([]);
         }
-        setLeads([]);
       } else {
         setLeads(data || []);
       }
     } catch (error) {
-      console.error("Error:", error);
+      console.error(
+        "Error loading leads:",
+        error instanceof Error ? error.message : String(error),
+      );
       setLeads([]);
     } finally {
       setIsLoading(false);
@@ -318,6 +371,18 @@ export default function Leads() {
         return;
       }
 
+      // Extract date rows and regular rows
+      const extractedDateRows: DateRowMarker[] = [];
+      const dataRows = rows.filter((row: any) => {
+        if (row._isDateRow === "true" || row._isDateRow === true) {
+          extractedDateRows.push(row as DateRowMarker);
+          return false;
+        }
+        return true;
+      });
+
+      console.log(`Extracted ${extractedDateRows.length} date rows`);
+
       // Sync all columns dynamically (no parsing, just pass raw data) with 60 second timeout
       const syncController = new AbortController();
       const syncTimeoutId = setTimeout(() => syncController.abort(), 60000);
@@ -326,7 +391,7 @@ export default function Leads() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          leads: rows,
+          leads: dataRows,
           source: "google_sheet",
           sheetId: sheetId,
         }),
@@ -334,12 +399,23 @@ export default function Leads() {
       });
       clearTimeout(syncTimeoutId);
 
-      if (!syncResponse.ok) {
-        const error = await syncResponse.json();
-        throw new Error(error.message || "Failed to sync leads");
+      let syncData: any;
+
+      try {
+        const responseText = await syncResponse.text();
+        if (responseText) {
+          syncData = JSON.parse(responseText);
+        }
+      } catch (parseError) {
+        console.error("Failed to parse sync response:", parseError);
+        console.error("Response status:", syncResponse.status);
       }
 
-      const syncData = await syncResponse.json();
+      if (!syncResponse.ok) {
+        throw new Error(
+          syncData?.message || syncData?.error || "Failed to sync leads",
+        );
+      }
       console.log(
         "Sync response:",
         syncData.message,
@@ -347,14 +423,21 @@ export default function Leads() {
         syncData.columnsIncluded,
       );
 
+      // Store date rows for display
+      setDateRows(extractedDateRows);
+
       await loadLeads();
       if (showNotification) {
         const emptyRowsMsg =
           syncData.emptyRowsRemoved > 0
             ? ` (${syncData.emptyRowsRemoved} empty rows removed)`
             : "";
+        const dateRowsMsg =
+          extractedDateRows.length > 0
+            ? ` (${extractedDateRows.length} date separators)`
+            : "";
         toast.success(
-          `Synced ${syncData.synced} leads${emptyRowsMsg} with all columns`,
+          `Synced ${syncData.synced} leads${emptyRowsMsg}${dateRowsMsg} with all columns`,
         );
       }
     } catch (error) {
@@ -545,7 +628,13 @@ export default function Leads() {
     }
   };
 
-  const filteredLeads = leads.filter((lead) => {
+  const filteredLeads = displayRows.filter((row) => {
+    // Always show date rows
+    if (isDateRow(row)) {
+      return true;
+    }
+
+    const lead = row as Lead;
     const matchesSearch =
       lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -902,178 +991,199 @@ export default function Leads() {
                       <TableCell colSpan={13} className="py-8 text-center">
                         <p className="text-muted-foreground">
                           No leads found.{" "}
-                          {leads.length === 0 &&
+                          {displayRows.length === 0 &&
                             "Click 'Sync All Columns' to import leads from Google Sheet."}
                         </p>
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredLeads.map((lead) => (
-                      <TableRow
-                        key={lead.id}
-                        className="border-b border-border hover:bg-gray-50"
-                      >
-                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                          {lead.company || "-"}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                          {lead.electricity_bill || "-"}
-                        </TableCell>
-                        <TableCell className="font-medium text-foreground whitespace-nowrap text-xs">
-                          {lead.name}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                          {lead.phone}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                          {lead.email}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                          {lead.street_address || "-"}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                          {lead.post_code || "-"}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                          {lead.lead_status || "-"}
-                        </TableCell>
-                        <TableCell className="text-xs whitespace-nowrap">
-                          {editingNote?.leadId === lead.id &&
-                          editingNote.field === "note1" ? (
-                            <Input
-                              autoFocus
-                              value={lead.note1}
-                              onChange={(e) =>
-                                handleNoteUpdate(
-                                  lead.id,
-                                  "note1",
-                                  e.target.value,
-                                )
-                              }
-                              onBlur={() => setEditingNote(null)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") setEditingNote(null);
-                              }}
-                              className="text-xs"
-                            />
-                          ) : (
-                            <div
-                              onClick={() =>
-                                setEditingNote({
-                                  leadId: lead.id,
-                                  field: "note1",
-                                })
-                              }
-                              className="cursor-pointer hover:bg-gray-100 p-0.5 rounded min-h-6 text-xs"
+                    filteredLeads.map((row) => {
+                      if (isDateRow(row)) {
+                        return (
+                          <TableRow
+                            key={`date-${row._dateValue}`}
+                            className="border-b border-border bg-blue-50 hover:bg-blue-100"
+                          >
+                            <TableCell
+                              colSpan={13}
+                              className="py-3 text-center font-semibold text-blue-700"
                             >
-                              {lead.note1 || (
-                                <span className="text-muted-foreground italic text-xs">
-                                  Add...
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-xs whitespace-nowrap">
-                          {editingNote?.leadId === lead.id &&
-                          editingNote.field === "note2" ? (
-                            <Input
-                              autoFocus
-                              value={lead.note2}
-                              onChange={(e) =>
-                                handleNoteUpdate(
-                                  lead.id,
-                                  "note2",
-                                  e.target.value,
-                                )
-                              }
-                              onBlur={() => setEditingNote(null)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") setEditingNote(null);
-                              }}
-                              className="text-xs"
-                            />
-                          ) : (
-                            <div
-                              onClick={() =>
-                                setEditingNote({
-                                  leadId: lead.id,
-                                  field: "note2",
-                                })
-                              }
-                              className="cursor-pointer hover:bg-gray-100 p-0.5 rounded min-h-6 text-xs"
-                            >
-                              {lead.note2 || (
-                                <span className="text-muted-foreground italic text-xs">
-                                  Add...
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          <select
-                            value={lead.status}
-                            onChange={async (e) => {
-                              try {
-                                await supabase
-                                  .from("leads")
-                                  .update({
-                                    status: e.target.value as LeadStatus,
+                              📅 {row._dateValue}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      }
+                      const lead = row as Lead;
+                      return (
+                        <TableRow
+                          key={lead.id}
+                          className="border-b border-border hover:bg-gray-50"
+                        >
+                          <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                            {lead.company || "-"}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                            {lead.electricity_bill || "-"}
+                          </TableCell>
+                          <TableCell className="font-medium text-foreground whitespace-nowrap text-xs">
+                            {lead.name}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                            {lead.phone}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                            {lead.email}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                            {lead.street_address || "-"}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                            {lead.post_code || "-"}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                            {lead.lead_status || "-"}
+                          </TableCell>
+                          <TableCell className="text-xs whitespace-nowrap">
+                            {editingNote?.leadId === lead.id &&
+                            editingNote.field === "note1" ? (
+                              <Input
+                                autoFocus
+                                value={lead.note1}
+                                onChange={(e) =>
+                                  handleNoteUpdate(
+                                    lead.id,
+                                    "note1",
+                                    e.target.value,
+                                  )
+                                }
+                                onBlur={() => setEditingNote(null)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") setEditingNote(null);
+                                }}
+                                className="text-xs"
+                              />
+                            ) : (
+                              <div
+                                onClick={() =>
+                                  setEditingNote({
+                                    leadId: lead.id,
+                                    field: "note1",
                                   })
-                                  .eq("id", lead.id);
-                                await loadLeads();
-                              } catch (error) {
-                                console.error("Error updating status:", error);
-                                toast.error("Failed to update status");
-                              }
-                            }}
-                            className="rounded border border-border bg-background px-1.5 py-0.5 text-xs"
-                          >
-                            {STATUS_OPTIONS.map((status) => (
-                              <option key={status} value={status}>
-                                {status}
-                              </option>
-                            ))}
-                          </select>
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          <select
-                            value={lead.assigned_to || "Unassigned"}
-                            onChange={async (e) => {
-                              try {
-                                await supabase
-                                  .from("leads")
-                                  .update({ assigned_to: e.target.value })
-                                  .eq("id", lead.id);
-                                await loadLeads();
-                              } catch (error) {
-                                console.error("Error updating owner:", error);
-                                toast.error("Failed to update owner");
-                              }
-                            }}
-                            className="rounded border border-border bg-background px-1.5 py-0.5 text-xs"
-                          >
-                            <option value="Unassigned">Unassigned</option>
-                            {salespersons.map((person) => (
-                              <option key={person} value={person}>
-                                {person}
-                              </option>
-                            ))}
-                          </select>
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setDeleteId(lead.id)}
-                            className="text-red-600 hover:text-red-700 h-6 w-6 p-0"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
+                                }
+                                className="cursor-pointer hover:bg-gray-100 p-0.5 rounded min-h-6 text-xs"
+                              >
+                                {lead.note1 || (
+                                  <span className="text-muted-foreground italic text-xs">
+                                    Add...
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-xs whitespace-nowrap">
+                            {editingNote?.leadId === lead.id &&
+                            editingNote.field === "note2" ? (
+                              <Input
+                                autoFocus
+                                value={lead.note2}
+                                onChange={(e) =>
+                                  handleNoteUpdate(
+                                    lead.id,
+                                    "note2",
+                                    e.target.value,
+                                  )
+                                }
+                                onBlur={() => setEditingNote(null)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") setEditingNote(null);
+                                }}
+                                className="text-xs"
+                              />
+                            ) : (
+                              <div
+                                onClick={() =>
+                                  setEditingNote({
+                                    leadId: lead.id,
+                                    field: "note2",
+                                  })
+                                }
+                                className="cursor-pointer hover:bg-gray-100 p-0.5 rounded min-h-6 text-xs"
+                              >
+                                {lead.note2 || (
+                                  <span className="text-muted-foreground italic text-xs">
+                                    Add...
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            <select
+                              value={lead.status}
+                              onChange={async (e) => {
+                                try {
+                                  await supabase
+                                    .from("leads")
+                                    .update({
+                                      status: e.target.value as LeadStatus,
+                                    })
+                                    .eq("id", lead.id);
+                                  await loadLeads();
+                                } catch (error) {
+                                  console.error(
+                                    "Error updating status:",
+                                    error,
+                                  );
+                                  toast.error("Failed to update status");
+                                }
+                              }}
+                              className="rounded border border-border bg-background px-1.5 py-0.5 text-xs"
+                            >
+                              {STATUS_OPTIONS.map((status) => (
+                                <option key={status} value={status}>
+                                  {status}
+                                </option>
+                              ))}
+                            </select>
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            <select
+                              value={lead.assigned_to || "Unassigned"}
+                              onChange={async (e) => {
+                                try {
+                                  await supabase
+                                    .from("leads")
+                                    .update({ assigned_to: e.target.value })
+                                    .eq("id", lead.id);
+                                  await loadLeads();
+                                } catch (error) {
+                                  console.error("Error updating owner:", error);
+                                  toast.error("Failed to update owner");
+                                }
+                              }}
+                              className="rounded border border-border bg-background px-1.5 py-0.5 text-xs"
+                            >
+                              <option value="Unassigned">Unassigned</option>
+                              {salespersons.map((person) => (
+                                <option key={person} value={person}>
+                                  {person}
+                                </option>
+                              ))}
+                            </select>
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDeleteId(lead.id)}
+                              className="text-red-600 hover:text-red-700 h-6 w-6 p-0"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
                   )}
                 </TableBody>
               </Table>

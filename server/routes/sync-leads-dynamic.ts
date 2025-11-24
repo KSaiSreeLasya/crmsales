@@ -78,23 +78,79 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Prepare leads data - include all columns as-is
+    // Prepare leads data - normalize column names to match Supabase schema
     const leadsToSync = validLeads.map((lead) => {
+      // Map Google Sheet column names to Supabase column names
       const syncData: any = {
-        ...lead,
         source: source || "google_sheet",
+        sheet_id: sheetId || "0",
       };
 
-      // Ensure all values are properly formatted
-      for (const [key, value] of Object.entries(syncData)) {
-        if (value === undefined || value === null) {
-          syncData[key] = "";
-        } else if (typeof value === "number") {
-          syncData[key] = String(value);
-        } else {
-          syncData[key] = String(value).trim();
+      // Normalize column names and map to Supabase schema
+      for (const [key, value] of Object.entries(lead)) {
+        const normalizedKey = key
+          .toLowerCase()
+          .trim()
+          .replace(/\s+/g, "_")
+          .replace(/[?]/g, "");
+
+        // Map common column name variations
+        let dbColumn = normalizedKey;
+        if (normalizedKey.includes("full") && normalizedKey.includes("name")) {
+          dbColumn = "name";
+        } else if (normalizedKey.includes("email")) {
+          dbColumn = "email";
+        } else if (normalizedKey.includes("phone")) {
+          dbColumn = "phone";
+        } else if (normalizedKey.includes("company")) {
+          dbColumn = "company";
+        } else if (
+          normalizedKey.includes("street") ||
+          normalizedKey.includes("address")
+        ) {
+          dbColumn = "street_address";
+        } else if (
+          normalizedKey.includes("post") ||
+          normalizedKey.includes("postal") ||
+          normalizedKey.includes("zip")
+        ) {
+          dbColumn = "post_code";
+        } else if (
+          normalizedKey.includes("lead") &&
+          normalizedKey.includes("status")
+        ) {
+          dbColumn = "lead_status";
+        } else if (
+          normalizedKey.includes("electricity") ||
+          normalizedKey.includes("bill") ||
+          normalizedKey.includes("monthly")
+        ) {
+          dbColumn = "electricity_bill";
+        } else if (
+          normalizedKey.includes("property") ||
+          normalizedKey.includes("type")
+        ) {
+          dbColumn = "company"; // Store property type in company field
+        }
+
+        // Ensure all values are properly formatted
+        let formattedValue = "";
+        if (value !== undefined && value !== null) {
+          formattedValue = String(value).trim();
+        }
+
+        if (formattedValue) {
+          syncData[dbColumn] = formattedValue;
         }
       }
+
+      // Ensure required fields exist
+      if (!syncData.name) syncData.name = "";
+      if (!syncData.email) syncData.email = "";
+      if (!syncData.phone) syncData.phone = "";
+      if (!syncData.company) syncData.company = "";
+      if (!syncData.status) syncData.status = "Not lifted";
+      if (!syncData.assigned_to) syncData.assigned_to = "Unassigned";
 
       return syncData;
     });
