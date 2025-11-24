@@ -794,38 +794,38 @@ export default function Leads() {
             </div>
             <Button
               variant="outline"
-              className="gap-2"
+              className="gap-1 h-8 text-xs px-2"
               onClick={loadAvailableSheets}
               disabled={isLoadingSheets}
               title="Refresh available sheets from Google Sheet"
             >
               <RefreshCw
-                className={`h-4 w-4 ${isLoadingSheets ? "animate-spin" : ""}`}
+                className={`h-3.5 w-3.5 ${isLoadingSheets ? "animate-spin" : ""}`}
               />
-              {isLoadingSheets ? "Loading..." : "Refresh Sheets"}
+              {isLoadingSheets ? "Loading..." : "Refresh"}
             </Button>
             <Button
-              className="gap-2 bg-purple-600 hover:bg-purple-700"
+              className="gap-1 h-8 text-xs px-2 bg-purple-600 hover:bg-purple-700"
               onClick={handleAutoAssign}
             >
-              <Zap className="h-4 w-4" />
-              Auto-assign Unassigned
+              <Zap className="h-3.5 w-3.5" />
+              Auto-assign
             </Button>
             <Button
               variant="outline"
-              className="gap-2"
+              className="gap-1 h-8 text-xs px-2"
               onClick={() => syncFromGoogleSheetDynamic(selectedSheetId, true)}
               disabled={isSyncing}
             >
               <RefreshCw
-                className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`}
+                className={`h-3.5 w-3.5 ${isSyncing ? "animate-spin" : ""}`}
               />
-              {isSyncing ? "Syncing..." : "Sync All Columns"}
+              {isSyncing ? "Syncing..." : "Sync"}
             </Button>
             <Dialog open={openDialog} onOpenChange={setOpenDialog}>
               <DialogTrigger asChild>
-                <Button className="gap-2" onClick={() => handleOpenDialog()}>
-                  <Plus className="h-4 w-4" />
+                <Button className="gap-1 h-8 text-xs px-2" onClick={() => handleOpenDialog()}>
+                  <Plus className="h-3.5 w-3.5" />
                   New Lead
                 </Button>
               </DialogTrigger>
