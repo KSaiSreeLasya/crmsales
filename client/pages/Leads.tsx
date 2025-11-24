@@ -780,7 +780,7 @@ export default function Leads() {
                 value={selectedSheetId}
                 onValueChange={setSelectedSheetId}
               >
-                <SelectTrigger id="sheet-select" className="w-32">
+                <SelectTrigger id="sheet-select" className="w-28 h-8 text-xs">
                   <SelectValue placeholder="Select sheet" />
                 </SelectTrigger>
                 <SelectContent>
