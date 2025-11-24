@@ -37,7 +37,8 @@ export const handleFetchGoogleSheetsMetadata: RequestHandler = async (
           { id: "0", name: "Hyderabad Leads" },
           { id: "1892152973", name: "November" },
         ],
-        warning: "Using fallback sheets - set GOOGLE_SHEETS_API_KEY for auto-detection",
+        warning:
+          "Using fallback sheets - set GOOGLE_SHEETS_API_KEY for auto-detection",
       });
       return;
     }
@@ -59,12 +60,10 @@ export const handleFetchGoogleSheetsMetadata: RequestHandler = async (
     }
 
     const data = await response.json();
-    const sheets: SheetMetadata[] = (data.sheets || []).map(
-      (sheet: any) => ({
-        id: String(sheet.properties.sheetId),
-        name: sheet.properties.title,
-      }),
-    );
+    const sheets: SheetMetadata[] = (data.sheets || []).map((sheet: any) => ({
+      id: String(sheet.properties.sheetId),
+      name: sheet.properties.title,
+    }));
 
     console.log(`Successfully fetched ${sheets.length} sheets`);
     sheets.forEach((sheet) => {
