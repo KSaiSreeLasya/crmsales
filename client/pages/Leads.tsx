@@ -135,11 +135,11 @@ export default function Leads() {
     { id: "1892152973", name: "November" },
   ]);
 
-  // Load leads from Supabase on component mount
+  // Load leads from Supabase on component mount and when sheet changes
   useEffect(() => {
     loadLeads();
     loadSalespersons();
-  }, []);
+  }, [selectedSheetId]);
 
   // Combine leads and date rows for display
   useEffect(() => {
