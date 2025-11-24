@@ -17,7 +17,6 @@ interface CRMLayoutProps {
 
 export function CRMLayout({ children }: CRMLayoutProps) {
   const location = useLocation();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const navItems = [
     { label: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -27,37 +26,32 @@ export function CRMLayout({ children }: CRMLayoutProps) {
   ];
 
   return (
-    <div className="flex h-screen bg-background">
-      {/* Sidebar */}
-      <aside
-        className={cn(
-          "border-r border-border bg-card transition-all duration-300",
-          sidebarOpen ? "w-64" : "w-20",
-        )}
-      >
-        <div className="flex h-16 items-center justify-between border-b border-border px-4">
-          {sidebarOpen && (
-            <Link to="/" className="flex items-center gap-2 font-bold text-lg">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <Users className="h-5 w-5" />
-              </div>
-              <span className="text-foreground">SalesHub</span>
-            </Link>
-          )}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-          >
-            {sidebarOpen ? (
-              <X className="h-5 w-5" />
-            ) : (
-              <Menu className="h-5 w-5" />
-            )}
-          </Button>
+    <div className="flex flex-col h-screen bg-background">
+      {/* Header */}
+      <header className="border-b border-border bg-card shadow-sm">
+        <div className="flex h-20 items-center justify-between px-8">
+          <div className="flex items-center gap-4">
+            <img
+              src="https://cdn.builder.io/api/v1/image/assets%2Ffe77690ee7b847c09f597f304a115791%2F5ed4952b10dc4593b47df2356cc6b459?format=webp&width=100"
+              alt="Axiso Green Energy Logo"
+              className="h-12 w-12 object-contain"
+            />
+            <div className="flex flex-col">
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                Axiso Green Energy
+              </h1>
+              <p className="text-base font-bold text-foreground">Sales CRM</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-accent shadow-md"></div>
+          </div>
         </div>
+      </header>
 
-        <nav className="space-y-2 p-4">
+      {/* Top Navigation */}
+      <nav className="border-b border-border bg-card px-8 py-0">
+        <div className="flex items-center justify-center gap-8">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.href;
@@ -67,39 +61,24 @@ export function CRMLayout({ children }: CRMLayoutProps) {
                 key={item.href}
                 to={item.href}
                 className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                  "flex items-center gap-2 px-4 py-4 text-sm font-medium transition-all duration-200 border-b-2 border-transparent",
                   isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "text-foreground hover:bg-secondary",
+                    ? "border-primary text-primary"
+                    : "text-foreground hover:text-primary",
                 )}
               >
-                <Icon className="h-5 w-5 flex-shrink-0" />
-                {sidebarOpen && <span>{item.label}</span>}
+                <Icon className="h-5 w-5" />
+                <span>{item.label}</span>
               </Link>
             );
           })}
-        </nav>
-      </aside>
+        </div>
+      </nav>
 
-      {/* Main Content */}
-      <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Header */}
-        <header className="border-b border-border bg-card">
-          <div className="flex h-16 items-center justify-between px-8">
-            <h1 className="text-xl font-semibold text-foreground">
-              SalesHub CRM
-            </h1>
-            <div className="flex items-center gap-4">
-              <div className="h-8 w-8 rounded-full bg-primary"></div>
-            </div>
-          </div>
-        </header>
-
-        {/* Main Content Area */}
-        <main className="flex-1 overflow-auto bg-background">
-          <div className="h-full">{children}</div>
-        </main>
-      </div>
+      {/* Main Content Area */}
+      <main className="flex-1 overflow-auto bg-background">
+        <div className="h-full">{children}</div>
+      </main>
     </div>
   );
 }

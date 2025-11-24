@@ -124,18 +124,20 @@ export default function Index() {
     trend?: string;
     color: string;
   }) => (
-    <Card className="border border-border bg-card p-6">
+    <Card className="border border-border bg-card p-6 hover:shadow-lg transition-all duration-300">
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm font-medium text-muted-foreground">{label}</p>
-          <p className="mt-2 text-3xl font-bold text-foreground">{value}</p>
+          <p className="mt-2 text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            {value}
+          </p>
           {trend && (
             <p className="mt-2 flex items-center gap-1 text-xs text-success">
               <TrendingUp className="h-3 w-3" /> {trend}
             </p>
           )}
         </div>
-        <div className={`rounded-lg ${color} p-3`}>{Icon}</div>
+        <div className={`rounded-lg ${color} p-3 shadow-md`}>{Icon}</div>
       </div>
     </Card>
   );
@@ -145,7 +147,9 @@ export default function Index() {
       <div className="space-y-8 p-8">
         {/* Welcome Section */}
         <div>
-          <h2 className="text-3xl font-bold text-foreground">Welcome back!</h2>
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            Welcome back!
+          </h2>
           <p className="mt-2 text-muted-foreground">
             Here's what's happening with your sales today.
           </p>
@@ -157,33 +161,33 @@ export default function Index() {
             icon={<Users className="h-6 w-6 text-white" />}
             label="Total Leads"
             value={stats.totalLeads}
-            color="bg-blue-500"
+            color="bg-gradient-to-br from-blue-500 to-blue-600"
           />
           <StatCard
             icon={<Target className="h-6 w-6 text-white" />}
             label="Active Leads"
             value={stats.activeLeads}
-            color="bg-purple-500"
+            color="bg-gradient-to-br from-primary to-accent"
           />
           <StatCard
             icon={<TrendingUp className="h-6 w-6 text-white" />}
             label="Converted"
             value={stats.convertedLeads}
-            color="bg-green-500"
+            color="bg-gradient-to-br from-green-500 to-emerald-600"
           />
           <StatCard
             icon={<Users className="h-6 w-6 text-white" />}
             label="Team Members"
             value={stats.totalSalespersons}
-            color="bg-orange-500"
+            color="bg-gradient-to-br from-orange-500 to-red-600"
           />
         </div>
 
         {/* Metrics by Salesperson and Status */}
         <div className="grid gap-6 md:grid-cols-2">
           {/* Leads by Salesperson */}
-          <Card className="border border-border bg-card p-6">
-            <h3 className="text-lg font-semibold text-foreground">
+          <Card className="border border-border bg-card p-6 hover:shadow-lg transition-all duration-300">
+            <h3 className="text-lg font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
               Leads by Salesperson
             </h3>
             <div className="mt-6 space-y-4">
@@ -232,8 +236,8 @@ export default function Index() {
           </Card>
 
           {/* Leads by Status */}
-          <Card className="border border-border bg-card p-6">
-            <h3 className="text-lg font-semibold text-foreground">
+          <Card className="border border-border bg-card p-6 hover:shadow-lg transition-all duration-300">
+            <h3 className="text-lg font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
               Leads by Status
             </h3>
             <div className="mt-6 space-y-4">
@@ -285,7 +289,7 @@ export default function Index() {
 
         {/* Quick Actions */}
         <div className="grid gap-6 md:grid-cols-2">
-          <Card className="border border-border bg-card p-8">
+          <Card className="border border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5 p-8 hover:shadow-lg transition-all duration-300">
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="text-lg font-semibold text-foreground">
@@ -295,10 +299,10 @@ export default function Index() {
                   Add leads manually or sync from Google Sheets
                 </p>
               </div>
-              <Clock className="h-5 w-5 text-muted-foreground" />
+              <Clock className="h-5 w-5 text-primary" />
             </div>
             <Link to="/leads">
-              <Button className="mt-6 w-full gap-2">
+              <Button className="mt-6 w-full gap-2 bg-gradient-to-r from-primary to-accent hover:shadow-lg">
                 <Plus className="h-4 w-4" />
                 Manage Leads
                 <ArrowRight className="h-4 w-4" />
@@ -306,7 +310,7 @@ export default function Index() {
             </Link>
           </Card>
 
-          <Card className="border border-border bg-card p-8">
+          <Card className="border border-primary/30 bg-gradient-to-br from-secondary/50 to-primary/5 p-8 hover:shadow-lg transition-all duration-300">
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="text-lg font-semibold text-foreground">
@@ -316,10 +320,13 @@ export default function Index() {
                   Assign leads and manage your sales team
                 </p>
               </div>
-              <Users className="h-5 w-5 text-muted-foreground" />
+              <Users className="h-5 w-5 text-primary" />
             </div>
             <Link to="/salespersons">
-              <Button variant="outline" className="mt-6 w-full gap-2">
+              <Button
+                variant="outline"
+                className="mt-6 w-full gap-2 border-primary text-primary hover:bg-primary/10"
+              >
                 View Team
                 <ArrowRight className="h-4 w-4" />
               </Button>
@@ -328,8 +335,10 @@ export default function Index() {
         </div>
 
         {/* Recent Activity */}
-        <Card className="border border-border bg-card p-6">
-          <h3 className="text-lg font-semibold text-foreground">Quick Stats</h3>
+        <Card className="border border-border bg-card p-6 hover:shadow-lg transition-all duration-300">
+          <h3 className="text-lg font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            Quick Stats
+          </h3>
           <div className="mt-6 space-y-4">
             {isLoading ? (
               <p className="text-center text-muted-foreground">
