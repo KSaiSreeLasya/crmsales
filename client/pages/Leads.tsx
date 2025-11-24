@@ -80,7 +80,7 @@ interface DateRowMarker {
 type DisplayRow = Lead | DateRowMarker;
 
 function isDateRow(row: any): row is DateRowMarker {
-  return row && row._isDateRow === true;
+  return row && (row._isDateRow === true || row._isDateRow === "true");
 }
 
 const STATUS_OPTIONS: LeadStatus[] = [
