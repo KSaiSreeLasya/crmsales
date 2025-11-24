@@ -342,6 +342,12 @@ export default function Leads() {
             assigned_to: parsed.assignedTo || "Unassigned",
             note1: parsed.note1 || "",
             note2: parsed.note2 || "",
+            type_of_property: parsed.type_of_property || "",
+            avg_monthly_bill: parsed.avg_monthly_bill || "",
+            street_address: parsed.street_address || "",
+            post_code: parsed.post_code || "",
+            lead_status: parsed.lead_status || "",
+            electricity_bill: parsed.electricity_bill || "",
           };
         })
         .filter((lead) => {
@@ -756,17 +762,17 @@ export default function Leads() {
 
   return (
     <CRMLayout>
-      <div className="space-y-6 p-8">
+      <div className="space-y-3 p-4">
         {/* Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-3xl font-bold text-foreground">Leads</h2>
-            <p className="mt-1 text-muted-foreground">
+            <h2 className="text-2xl font-bold text-foreground">Leads</h2>
+            <p className="text-xs text-muted-foreground">
               Manage and track all your sales leads
             </p>
           </div>
-          <div className="flex gap-2 flex-wrap items-center">
-            <div className="flex gap-2 items-center">
+          <div className="flex gap-0.5 flex-wrap items-center text-xs">
+            <div className="flex gap-1 items-center">
               <Label htmlFor="sheet-select" className="whitespace-nowrap">
                 Sheet:
               </Label>
@@ -774,7 +780,7 @@ export default function Leads() {
                 value={selectedSheetId}
                 onValueChange={setSelectedSheetId}
               >
-                <SelectTrigger id="sheet-select" className="w-32">
+                <SelectTrigger id="sheet-select" className="w-28 h-8 text-xs">
                   <SelectValue placeholder="Select sheet" />
                 </SelectTrigger>
                 <SelectContent>
@@ -788,38 +794,41 @@ export default function Leads() {
             </div>
             <Button
               variant="outline"
-              className="gap-2"
+              className="gap-1 h-8 text-xs px-2"
               onClick={loadAvailableSheets}
               disabled={isLoadingSheets}
               title="Refresh available sheets from Google Sheet"
             >
               <RefreshCw
-                className={`h-4 w-4 ${isLoadingSheets ? "animate-spin" : ""}`}
+                className={`h-3.5 w-3.5 ${isLoadingSheets ? "animate-spin" : ""}`}
               />
-              {isLoadingSheets ? "Loading..." : "Refresh Sheets"}
+              {isLoadingSheets ? "Loading..." : "Refresh"}
             </Button>
             <Button
-              className="gap-2 bg-purple-600 hover:bg-purple-700"
+              className="gap-1 h-8 text-xs px-2 bg-purple-600 hover:bg-purple-700"
               onClick={handleAutoAssign}
             >
-              <Zap className="h-4 w-4" />
-              Auto-assign Unassigned
+              <Zap className="h-3.5 w-3.5" />
+              Auto-assign
             </Button>
             <Button
               variant="outline"
-              className="gap-2"
+              className="gap-1 h-8 text-xs px-2"
               onClick={() => syncFromGoogleSheetDynamic(selectedSheetId, true)}
               disabled={isSyncing}
             >
               <RefreshCw
-                className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`}
+                className={`h-3.5 w-3.5 ${isSyncing ? "animate-spin" : ""}`}
               />
-              {isSyncing ? "Syncing..." : "Sync All Columns"}
+              {isSyncing ? "Syncing..." : "Sync"}
             </Button>
             <Dialog open={openDialog} onOpenChange={setOpenDialog}>
               <DialogTrigger asChild>
-                <Button className="gap-2" onClick={() => handleOpenDialog()}>
-                  <Plus className="h-4 w-4" />
+                <Button
+                  className="gap-1 h-8 text-xs px-2"
+                  onClick={() => handleOpenDialog()}
+                >
+                  <Plus className="h-3.5 w-3.5" />
                   New Lead
                 </Button>
               </DialogTrigger>
@@ -1057,18 +1066,18 @@ export default function Leads() {
         </div>
 
         {/* Filters */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
-              placeholder="Search leads by name, email, phone, or company"
-              className="pl-10"
+              placeholder="Search by name, email, phone, company..."
+              className="pl-9 py-1.5 text-xs h-8"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
           <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="w-40 h-8 text-xs">
               <SelectValue placeholder="All statuses" />
             </SelectTrigger>
             <SelectContent>
@@ -1083,54 +1092,66 @@ export default function Leads() {
         </div>
 
         {/* Table */}
-        <Card className="border border-border bg-card">
+        <Card className="border border-border bg-card p-2">
           <div className="overflow-x-auto">
             {isLoading ? (
-              <div className="p-8 text-center">
+              <div className="p-4 text-center">
                 <p className="text-muted-foreground">Loading leads...</p>
               </div>
             ) : (
-              <Table className="[&_th]:h-8 [&_th]:px-2 [&_td]:p-2">
+              <Table className="[&_th]:h-4 [&_th]:px-1 [&_td]:px-0.5 [&_td]:py-0.5 text-[9px] leading-tight">
                 <TableHeader>
                   <TableRow className="border-b border-border bg-gray-50">
-                    <TableHead className="whitespace-nowrap font-bold text-xs">
-                      TYPE OF PROPERTY
+                    <TableHead
+                      className="whitespace-nowrap font-bold text-[11px]"
+                      title="Type of Property"
+                    >
+                      TYPE
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-xs">
-                      AVG MONTHLY BILL
+                    <TableHead
+                      className="whitespace-nowrap font-bold text-[11px]"
+                      title="Average Monthly Bill"
+                    >
+                      AVG
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-xs">
-                      FULL NAME
+                    <TableHead className="whitespace-nowrap font-bold text-[11px]">
+                      NAME
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-xs">
-                      PHONE NO
+                    <TableHead className="whitespace-nowrap font-bold text-[11px]">
+                      PHONE
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-xs">
+                    <TableHead className="whitespace-nowrap font-bold text-[11px]">
                       EMAIL
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-xs">
-                      ADDRESS
+                    <TableHead className="whitespace-nowrap font-bold text-[11px]">
+                      ADDR
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-xs">
-                      POSTAL CODE
+                    <TableHead
+                      className="whitespace-nowrap font-bold text-[11px]"
+                      title="Postal Code"
+                    >
+                      ZIP
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-xs">
-                      LEAD STATUS
+                    <TableHead
+                      className="whitespace-nowrap font-bold text-[11px]"
+                      title="Lead Status"
+                    >
+                      L.STS
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-xs">
-                      NOTE 1
+                    <TableHead className="whitespace-nowrap font-bold text-[11px]">
+                      NOTE1
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-xs">
-                      NOTE 2
+                    <TableHead className="whitespace-nowrap font-bold text-[11px]">
+                      NOTE2
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-xs">
+                    <TableHead className="whitespace-nowrap font-bold text-[11px]">
                       STATUS
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-xs">
-                      ASSIGNED TO
+                    <TableHead className="whitespace-nowrap font-bold text-[11px]">
+                      ASSIGN
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-xs">
-                      ACTION
+                    <TableHead className="whitespace-nowrap font-bold text-[11px]">
+                      ACT
                     </TableHead>
                   </TableRow>
                 </TableHeader>
@@ -1180,10 +1201,10 @@ export default function Leads() {
                           <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
                             {lead.phone}
                           </TableCell>
-                          <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                          <TableCell className="text-muted-foreground truncate max-w-[120px]">
                             {lead.email}
                           </TableCell>
-                          <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                          <TableCell className="text-muted-foreground truncate max-w-[100px]">
                             {lead.street_address || "-"}
                           </TableCell>
                           <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
