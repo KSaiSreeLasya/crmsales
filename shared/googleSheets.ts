@@ -287,7 +287,10 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
   // Parse data rows
   const rows: GoogleSheetRow[] = [];
   for (let i = startIndex; i < lines.length; i++) {
-    if (lines[i].trim() === "") continue;
+    const trimmedLine = lines[i].trim();
+
+    // Skip completely empty rows
+    if (trimmedLine === "") continue;
 
     const values = parseCSVLine(lines[i]);
 
@@ -302,8 +305,14 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
       }
     });
 
-    // Only add row if it has at least one non-empty cell
-    if (Object.values(row).some((val) => val && String(val).trim())) {
+    // Count non-empty cells
+    const nonEmptyCount = Object.values(row).filter(
+      (val) => val && String(val).trim() !== "",
+    ).length;
+
+    // Only add row if it has at least one non-empty cell AND at least 2 fields populated
+    // This filters out date-only rows and sparse rows
+    if (nonEmptyCount >= 2) {
       rows.push(row);
     }
   }
@@ -312,6 +321,7 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
   if (rows.length > 0) {
     console.log("First data row:", rows[0]);
     console.log("First data row keys:", Object.keys(rows[0]));
+    console.log("Sample rows:", rows.slice(0, 3));
   }
 
   return rows;
