@@ -19,6 +19,8 @@ interface SyncLeadRequest {
     post_code?: string;
     lead_status?: string;
     electricity_bill?: string;
+    type_of_property?: string;
+    avg_monthly_bill?: string;
     status?: string;
     assignedTo?: string;
     note1?: string;
