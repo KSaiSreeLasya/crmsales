@@ -139,6 +139,12 @@ export default function Leads() {
     { id: "0", name: "Hyderabad Leads" },
     { id: "1892152973", name: "November" },
   ]);
+  const [isLoadingSheets, setIsLoadingSheets] = useState(false);
+
+  // Load available sheets from Google Sheets on component mount
+  useEffect(() => {
+    loadAvailableSheets();
+  }, []);
 
   // Load leads from Supabase on component mount and when sheet changes
   useEffect(() => {
