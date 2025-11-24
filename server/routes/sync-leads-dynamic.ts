@@ -37,13 +37,43 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       return;
     }
 
-    // For dynamic sync, validate that rows have meaningful data (at least 2+ fields with content)
+    // For dynamic sync, validate that rows have meaningful data and required fields
     const validLeads = leads.filter((lead) => {
+      // Get email and name-like fields to check
+      const normalizedKeys = Object.keys(lead).map((k) =>
+        k.toLowerCase().trim().replace(/\s+/g, "_"),
+      );
+
+      // Check for email field
+      let emailValue = "";
+      let nameValue = "";
+
+      for (const [key, value] of Object.entries(lead)) {
+        const normalizedKey = key.toLowerCase().trim().replace(/\s+/g, "_");
+        const strValue = String(value || "").trim();
+
+        if (normalizedKey.includes("email") && strValue) {
+          emailValue = strValue;
+        }
+        if (
+          (normalizedKey.includes("full") || normalizedKey.includes("name")) &&
+          strValue &&
+          !normalizedKey.includes("email")
+        ) {
+          nameValue = strValue;
+        }
+      }
+
+      // Must have both email and name to be valid
+      const hasEmail = emailValue.length > 0 && emailValue !== "N/A";
+      const hasName = nameValue.length > 0;
+
       const nonEmptyFields = Object.values(lead).filter(
         (v) => v !== undefined && v !== null && String(v).trim() !== "",
       ).length;
-      // Must have at least 2 non-empty fields to be a valid lead (not just a date row)
-      return nonEmptyFields >= 2;
+
+      // Must have at least 2 non-empty fields AND valid email and name
+      return hasEmail && hasName && nonEmptyFields >= 2;
     });
 
     console.log("Valid leads after filtering:", validLeads.length);

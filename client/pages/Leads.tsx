@@ -139,6 +139,12 @@ export default function Leads() {
     { id: "0", name: "Hyderabad Leads" },
     { id: "1892152973", name: "November" },
   ]);
+  const [isLoadingSheets, setIsLoadingSheets] = useState(false);
+
+  // Load available sheets from Google Sheets on component mount
+  useEffect(() => {
+    loadAvailableSheets();
+  }, []);
 
   // Load leads from Supabase on component mount and when sheet changes
   useEffect(() => {
@@ -243,6 +249,47 @@ export default function Leads() {
       }
     } catch (error) {
       console.error("Error loading salespersons:", error);
+    }
+  };
+
+  const loadAvailableSheets = async () => {
+    setIsLoadingSheets(true);
+    try {
+      console.log("Fetching available sheets from Google Sheet...");
+
+      const response = await fetch(
+        `/api/fetch-google-sheets-metadata?spreadsheetId=${SPREADSHEET_ID}`,
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch sheet metadata");
+      }
+
+      const data = await response.json();
+
+      if (data.sheets && data.sheets.length > 0) {
+        console.log(`✓ Loaded ${data.sheets.length} sheets:`, data.sheets);
+        setAvailableSheets(data.sheets);
+
+        // If currently selected sheet is not in the list, select the first one
+        const sheetIds = data.sheets.map((s: any) => s.id);
+        if (!sheetIds.includes(selectedSheetId) && sheetIds.length > 0) {
+          console.log(
+            `Currently selected sheet ${selectedSheetId} not found, selecting ${sheetIds[0]}`,
+          );
+          setSelectedSheetId(sheetIds[0]);
+        }
+
+        if (data.warning) {
+          console.warn(data.warning);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading available sheets:", error);
+      // Keep using the default sheets if fetching fails
+      toast.error("Failed to load available sheets from Google Sheet");
+    } finally {
+      setIsLoadingSheets(false);
     }
   };
 
@@ -739,6 +786,18 @@ export default function Leads() {
                 </SelectContent>
               </Select>
             </div>
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={loadAvailableSheets}
+              disabled={isLoadingSheets}
+              title="Refresh available sheets from Google Sheet"
+            >
+              <RefreshCw
+                className={`h-4 w-4 ${isLoadingSheets ? "animate-spin" : ""}`}
+              />
+              {isLoadingSheets ? "Loading..." : "Refresh Sheets"}
+            </Button>
             <Button
               className="gap-2 bg-purple-600 hover:bg-purple-700"
               onClick={handleAutoAssign}
