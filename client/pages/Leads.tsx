@@ -955,17 +955,34 @@ export default function Leads() {
                       <TableCell colSpan={13} className="py-8 text-center">
                         <p className="text-muted-foreground">
                           No leads found.{" "}
-                          {leads.length === 0 &&
+                          {displayRows.length === 0 &&
                             "Click 'Sync All Columns' to import leads from Google Sheet."}
                         </p>
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredLeads.map((lead) => (
+                    filteredLeads.map((row) => {
+                      if (isDateRow(row)) {
+                        return (
+                          <TableRow
+                            key={`date-${row._dateValue}`}
+                            className="border-b border-border bg-blue-50 hover:bg-blue-100"
+                          >
+                            <TableCell
+                              colSpan={13}
+                              className="py-3 text-center font-semibold text-blue-700"
+                            >
+                              📅 {row._dateValue}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      }
+                      const lead = row as Lead;
+                      return (
                       <TableRow
-                        key={lead.id}
-                        className="border-b border-border hover:bg-gray-50"
-                      >
+                          key={lead.id}
+                          className="border-b border-border hover:bg-gray-50"
+                        >
                         <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
                           {lead.company || "-"}
                         </TableCell>
@@ -1126,7 +1143,8 @@ export default function Leads() {
                           </Button>
                         </TableCell>
                       </TableRow>
-                    ))
+                      );
+                    })
                   )}
                 </TableBody>
               </Table>
