@@ -149,7 +149,10 @@ export function parseLeadRow(row: GoogleSheetRow) {
     }
 
     // Match type of property variants
-    if (!type_of_property && (key.includes("property") || key.includes("type"))) {
+    if (
+      !type_of_property &&
+      (key.includes("property") || key.includes("type"))
+    ) {
       type_of_property = value;
     }
 

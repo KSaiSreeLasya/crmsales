@@ -156,8 +156,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           dbColumn = "avg_monthly_bill";
         } else if (
           normalizedKey.includes("electricity") ||
-          (normalizedKey.includes("bill") &&
-            !normalizedKey.includes("monthly"))
+          (normalizedKey.includes("bill") && !normalizedKey.includes("monthly"))
         ) {
           dbColumn = "electricity_bill";
         } else if (

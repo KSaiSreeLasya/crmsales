@@ -164,7 +164,9 @@ export default function Leads() {
   const loadLeads = async () => {
     setIsLoading(true);
     try {
-      console.log(`Loading leads for sheet_id: "${selectedSheetId}" (type: ${typeof selectedSheetId})`);
+      console.log(
+        `Loading leads for sheet_id: "${selectedSheetId}" (type: ${typeof selectedSheetId})`,
+      );
 
       const { data, error } = await supabase
         .from("leads")
@@ -204,10 +206,17 @@ export default function Leads() {
           setLeads([]);
         }
       } else {
-        console.log(`✓ Successfully loaded ${data?.length || 0} leads for sheet ${selectedSheetId}`);
+        console.log(
+          `✓ Successfully loaded ${data?.length || 0} leads for sheet ${selectedSheetId}`,
+        );
         if (data && data.length > 0) {
           console.log("Sample lead:", data[0]);
-          console.log("Sample lead sheet_id:", data[0].sheet_id, "type:", typeof data[0].sheet_id);
+          console.log(
+            "Sample lead sheet_id:",
+            data[0].sheet_id,
+            "type:",
+            typeof data[0].sheet_id,
+          );
         }
         setLeads(data || []);
       }
@@ -438,8 +447,17 @@ export default function Leads() {
 
       // Check response status after reading body
       if (!statusOk) {
-        const errorMessage = syncData?.message || syncData?.error || syncData?.hint || "Failed to sync leads";
-        console.error("Sync API returned error:", errorMessage, "Status:", syncResponse.status);
+        const errorMessage =
+          syncData?.message ||
+          syncData?.error ||
+          syncData?.hint ||
+          "Failed to sync leads";
+        console.error(
+          "Sync API returned error:",
+          errorMessage,
+          "Status:",
+          syncResponse.status,
+        );
         throw new Error(errorMessage);
       }
 
