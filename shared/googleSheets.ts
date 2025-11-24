@@ -69,7 +69,7 @@ export function parseLeadRow(row: GoogleSheetRow) {
   }
 
   // Debug: Log all available columns on first few rows
-  if (Object.values(columnMap).some(v => v)) {
+  if (Object.values(columnMap).some((v) => v)) {
     console.log("=== COLUMN MAPPING DEBUG ===");
     console.log("Raw keys:", allKeys);
     console.log("Normalized keys:", Object.keys(columnMap));
@@ -96,7 +96,10 @@ export function parseLeadRow(row: GoogleSheetRow) {
 
       for (const key in columnMap) {
         // Check if pattern appears in key or key appears in pattern
-        if (key.includes(normalizedPattern) || normalizedPattern.includes(key)) {
+        if (
+          key.includes(normalizedPattern) ||
+          normalizedPattern.includes(key)
+        ) {
           const value = columnMap[key];
           if (value) {
             return value;
@@ -126,11 +129,7 @@ export function parseLeadRow(row: GoogleSheetRow) {
     "current_bill",
   ]);
 
-  const name = findColumnValue([
-    "full_name",
-    "full name",
-    "name",
-  ]);
+  const name = findColumnValue(["full_name", "full name", "name"]);
 
   const phone = findColumnValue([
     "phone",
@@ -139,10 +138,7 @@ export function parseLeadRow(row: GoogleSheetRow) {
     "phone_number",
   ]);
 
-  const email = findColumnValue([
-    "email",
-    "email_address",
-  ]);
+  const email = findColumnValue(["email", "email_address"]);
 
   const street_address = findColumnValue([
     "street_address",
@@ -157,10 +153,7 @@ export function parseLeadRow(row: GoogleSheetRow) {
     "postcode",
   ]);
 
-  const lead_status = findColumnValue([
-    "lead_status",
-    "lead status",
-  ]);
+  const lead_status = findColumnValue(["lead_status", "lead status"]);
 
   const note1 = findColumnValue([
     "note_1",
