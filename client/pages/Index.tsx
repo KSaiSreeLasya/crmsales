@@ -128,7 +128,9 @@ export default function Index() {
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm font-medium text-muted-foreground">{label}</p>
-          <p className="mt-2 text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">{value}</p>
+          <p className="mt-2 text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            {value}
+          </p>
           {trend && (
             <p className="mt-2 flex items-center gap-1 text-xs text-success">
               <TrendingUp className="h-3 w-3" /> {trend}
@@ -145,7 +147,9 @@ export default function Index() {
       <div className="space-y-8 p-8">
         {/* Welcome Section */}
         <div>
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Welcome back!</h2>
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            Welcome back!
+          </h2>
           <p className="mt-2 text-muted-foreground">
             Here's what's happening with your sales today.
           </p>
@@ -319,7 +323,10 @@ export default function Index() {
               <Users className="h-5 w-5 text-primary" />
             </div>
             <Link to="/salespersons">
-              <Button variant="outline" className="mt-6 w-full gap-2 border-primary text-primary hover:bg-primary/10">
+              <Button
+                variant="outline"
+                className="mt-6 w-full gap-2 border-primary text-primary hover:bg-primary/10"
+              >
                 View Team
                 <ArrowRight className="h-4 w-4" />
               </Button>
@@ -329,7 +336,9 @@ export default function Index() {
 
         {/* Recent Activity */}
         <Card className="border border-border bg-card p-6 hover:shadow-lg transition-all duration-300">
-          <h3 className="text-lg font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Quick Stats</h3>
+          <h3 className="text-lg font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            Quick Stats
+          </h3>
           <div className="mt-6 space-y-4">
             {isLoading ? (
               <p className="text-center text-muted-foreground">

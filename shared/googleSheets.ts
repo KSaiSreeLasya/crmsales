@@ -83,19 +83,36 @@ export function parseLeadRow(row: GoogleSheetRow) {
     if (!value) continue;
 
     // Type of Property
-    if (!type_of_property && (normalizedKey.includes("type") && normalizedKey.includes("property"))) {
+    if (
+      !type_of_property &&
+      normalizedKey.includes("type") &&
+      normalizedKey.includes("property")
+    ) {
       type_of_property = value;
     }
     // Avg Monthly Bill
-    else if (!avg_monthly_bill && (normalizedKey.includes("avg") || (normalizedKey.includes("monthly") && normalizedKey.includes("bill")))) {
+    else if (
+      !avg_monthly_bill &&
+      (normalizedKey.includes("avg") ||
+        (normalizedKey.includes("monthly") && normalizedKey.includes("bill")))
+    ) {
       avg_monthly_bill = value;
     }
     // Full Name
-    else if (!name && (normalizedKey.includes("full") || (normalizedKey.includes("name") && !normalizedKey.includes("username")))) {
+    else if (
+      !name &&
+      (normalizedKey.includes("full") ||
+        (normalizedKey.includes("name") && !normalizedKey.includes("username")))
+    ) {
       name = value;
     }
     // Phone
-    else if (!phone && (normalizedKey.includes("phone") || normalizedKey.includes("telephone") || normalizedKey.includes("mobile"))) {
+    else if (
+      !phone &&
+      (normalizedKey.includes("phone") ||
+        normalizedKey.includes("telephone") ||
+        normalizedKey.includes("mobile"))
+    ) {
       phone = value;
     }
     // Email
@@ -103,15 +120,28 @@ export function parseLeadRow(row: GoogleSheetRow) {
       email = value;
     }
     // Street Address
-    else if (!street_address && (normalizedKey.includes("street") || (normalizedKey.includes("address") && !normalizedKey.includes("email")))) {
+    else if (
+      !street_address &&
+      (normalizedKey.includes("street") ||
+        (normalizedKey.includes("address") && !normalizedKey.includes("email")))
+    ) {
       street_address = value;
     }
     // Postal Code
-    else if (!post_code && (normalizedKey.includes("post") || normalizedKey.includes("zip") || normalizedKey.includes("postal"))) {
+    else if (
+      !post_code &&
+      (normalizedKey.includes("post") ||
+        normalizedKey.includes("zip") ||
+        normalizedKey.includes("postal"))
+    ) {
       post_code = value;
     }
     // Lead Status
-    else if (!lead_status && normalizedKey.includes("lead") && normalizedKey.includes("status")) {
+    else if (
+      !lead_status &&
+      normalizedKey.includes("lead") &&
+      normalizedKey.includes("status")
+    ) {
       lead_status = value;
     }
     // Electricity Bill
@@ -119,10 +149,19 @@ export function parseLeadRow(row: GoogleSheetRow) {
       electricity_bill = value;
     }
     // Note fields
-    else if (!note1 && (normalizedKey === "note 1" || normalizedKey === "note1" || normalizedKey === "note_1")) {
+    else if (
+      !note1 &&
+      (normalizedKey === "note 1" ||
+        normalizedKey === "note1" ||
+        normalizedKey === "note_1")
+    ) {
       note1 = value;
-    }
-    else if (!note2 && (normalizedKey === "note 2" || normalizedKey === "note2" || normalizedKey === "note_2")) {
+    } else if (
+      !note2 &&
+      (normalizedKey === "note 2" ||
+        normalizedKey === "note2" ||
+        normalizedKey === "note_2")
+    ) {
       note2 = value;
     }
   }
@@ -145,7 +184,13 @@ export function parseLeadRow(row: GoogleSheetRow) {
   };
 
   if (name && email) {
-    console.log("✓ Valid lead found:", { name, email, phone, type_of_property, avg_monthly_bill });
+    console.log("✓ Valid lead found:", {
+      name,
+      email,
+      phone,
+      type_of_property,
+      avg_monthly_bill,
+    });
   } else {
     console.log("✗ Invalid lead (missing name or email):");
     console.log(
@@ -270,7 +315,9 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
     const firstHeader = headers[0];
     // If first column header is very long or contains question marks, it's likely a form-style header
     if ((firstHeader && firstHeader.length > 50) || firstHeader.includes("?")) {
-      console.log("First column appears malformed (possibly form-style), will skip it");
+      console.log(
+        "First column appears malformed (possibly form-style), will skip it",
+      );
       skipFirstColumn = true;
       // Remove the first malformed header
       headers = headers.slice(1);
