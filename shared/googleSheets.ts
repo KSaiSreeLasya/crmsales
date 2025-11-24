@@ -307,7 +307,7 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
     if (firstValue && isDateRow(String(firstValue))) {
       // This is a date row - preserve it as a special row
       const dateRow: GoogleSheetRow = {
-        "_isDateRow": true,
+        "_isDateRow": "true",
         "_dateValue": String(firstValue).trim(),
       };
       rows.push(dateRow);
