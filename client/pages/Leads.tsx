@@ -164,7 +164,7 @@ export default function Leads() {
   const loadLeads = async () => {
     setIsLoading(true);
     try {
-      console.log(`Loading leads for sheet_id: ${selectedSheetId}`);
+      console.log(`Loading leads for sheet_id: "${selectedSheetId}" (type: ${typeof selectedSheetId})`);
 
       const { data, error } = await supabase
         .from("leads")
@@ -175,6 +175,7 @@ export default function Leads() {
       if (error) {
         const errorMsg = error.message || JSON.stringify(error);
         console.error("Error loading leads with sheet_id filter:", errorMsg);
+        console.error("Full error:", error);
 
         // Only fall back if sheet_id column truly doesn't exist
         if (
@@ -203,7 +204,11 @@ export default function Leads() {
           setLeads([]);
         }
       } else {
-        console.log(`Loaded ${data?.length || 0} leads for sheet ${selectedSheetId}`);
+        console.log(`✓ Successfully loaded ${data?.length || 0} leads for sheet ${selectedSheetId}`);
+        if (data && data.length > 0) {
+          console.log("Sample lead:", data[0]);
+          console.log("Sample lead sheet_id:", data[0].sheet_id, "type:", typeof data[0].sheet_id);
+        }
         setLeads(data || []);
       }
     } catch (error) {
