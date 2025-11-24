@@ -1099,44 +1099,44 @@ export default function Leads() {
               <Table className="[&_th]:h-5 [&_th]:px-0.5 [&_td]:px-0.5 [&_td]:py-0.5 text-[11px]">
                 <TableHeader>
                   <TableRow className="border-b border-border bg-gray-50">
-                    <TableHead className="whitespace-nowrap font-bold text-xs">
-                      TYPE OF PROPERTY
+                    <TableHead className="whitespace-nowrap font-bold text-[11px]" title="Type of Property">
+                      TYPE
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-xs">
-                      AVG MONTHLY BILL
+                    <TableHead className="whitespace-nowrap font-bold text-[11px]" title="Average Monthly Bill">
+                      AVG
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-xs">
-                      FULL NAME
+                    <TableHead className="whitespace-nowrap font-bold text-[11px]">
+                      NAME
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-xs">
-                      PHONE NO
+                    <TableHead className="whitespace-nowrap font-bold text-[11px]">
+                      PHONE
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-xs">
+                    <TableHead className="whitespace-nowrap font-bold text-[11px]">
                       EMAIL
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-xs">
-                      ADDRESS
+                    <TableHead className="whitespace-nowrap font-bold text-[11px]">
+                      ADDR
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-xs">
-                      POSTAL CODE
+                    <TableHead className="whitespace-nowrap font-bold text-[11px]" title="Postal Code">
+                      ZIP
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-xs">
-                      LEAD STATUS
+                    <TableHead className="whitespace-nowrap font-bold text-[11px]" title="Lead Status">
+                      L.STS
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-xs">
-                      NOTE 1
+                    <TableHead className="whitespace-nowrap font-bold text-[11px]">
+                      NOTE1
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-xs">
-                      NOTE 2
+                    <TableHead className="whitespace-nowrap font-bold text-[11px]">
+                      NOTE2
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-xs">
+                    <TableHead className="whitespace-nowrap font-bold text-[11px]">
                       STATUS
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-xs">
-                      ASSIGNED TO
+                    <TableHead className="whitespace-nowrap font-bold text-[11px]">
+                      ASSIGN
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-xs">
-                      ACTION
+                    <TableHead className="whitespace-nowrap font-bold text-[11px]">
+                      ACT
                     </TableHead>
                   </TableRow>
                 </TableHeader>
