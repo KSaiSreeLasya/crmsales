@@ -203,6 +203,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     console.log("Attempting to insert leads to Supabase...");
     console.log("Total leads to sync:", leadsToSync.length);
     console.log("Sample lead:", leadsToSync[0]);
+    console.log("Sample lead sheet_id:", leadsToSync[0].sheet_id);
     console.log("Columns:", Object.keys(leadsToSync[0]));
 
     try {
