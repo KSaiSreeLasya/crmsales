@@ -36,15 +36,17 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       return;
     }
 
-    // For dynamic sync, we only need at least one field
+    // For dynamic sync, validate that rows have meaningful data (at least 2+ fields with content)
     const validLeads = leads.filter((lead) => {
-      const hasData = Object.values(lead).some(
+      const nonEmptyFields = Object.values(lead).filter(
         (v) => v !== undefined && v !== null && String(v).trim() !== "",
-      );
-      return hasData;
+      ).length;
+      // Must have at least 2 non-empty fields to be a valid lead (not just a date row)
+      return nonEmptyFields >= 2;
     });
 
     console.log("Valid leads after filtering:", validLeads.length);
+    console.log("Filtered out empty/sparse rows:", leads.length - validLeads.length);
     if (validLeads.length > 0) {
       console.log("First valid lead:", validLeads[0]);
       console.log("Columns in first lead:", Object.keys(validLeads[0]));
@@ -52,7 +54,8 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
     if (validLeads.length === 0) {
       res.status(400).json({
-        error: "No valid leads found - all rows appear to be empty",
+        error: "No valid leads found - all rows appear to be empty or contain only dates",
+        totalRowsFetched: leads.length,
       });
       return;
     }
