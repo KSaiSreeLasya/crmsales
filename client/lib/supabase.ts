@@ -50,6 +50,9 @@ export interface Lead {
   post_code?: string;
   lead_status?: string;
   electricity_bill?: string;
+  type_of_property?: string;
+  avg_monthly_bill?: string;
+  sheet_id?: string;
   source?: "google_sheet" | "manual" | "api";
   createdAt: string;
   updatedAt: string;
@@ -101,6 +104,9 @@ export async function addLead(
         assigned_to: lead.assignedTo,
         note1: lead.note1,
         note2: lead.note2,
+        type_of_property: lead.type_of_property || null,
+        avg_monthly_bill: lead.avg_monthly_bill || null,
+        sheet_id: lead.sheet_id || "0",
         source: lead.source || "manual",
       },
     ])
@@ -130,6 +136,9 @@ export async function updateLead(leadId: string, updates: Partial<Lead>) {
       assigned_to: updates.assignedTo,
       note1: updates.note1,
       note2: updates.note2,
+      type_of_property: updates.type_of_property,
+      avg_monthly_bill: updates.avg_monthly_bill,
+      sheet_id: updates.sheet_id,
     })
     .eq("id", leadId)
     .select()
