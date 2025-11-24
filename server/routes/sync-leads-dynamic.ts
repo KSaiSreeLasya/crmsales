@@ -83,6 +83,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       const syncData: any = {
         ...lead,
         source: source || "google_sheet",
+        sheet_id: sheetId || "0",
       };
 
       // Ensure all values are properly formatted
