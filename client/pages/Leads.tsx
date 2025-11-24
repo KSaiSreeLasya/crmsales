@@ -900,20 +900,20 @@ export default function Leads() {
                         key={lead.id}
                         className="border-b border-border hover:bg-gray-50"
                       >
-                        <TableCell className="font-medium text-foreground whitespace-nowrap text-xs">
-                          {lead.name}
+                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                          {lead.company || "-"}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                          {lead.email}
+                          {lead.electricity_bill || "-"}
+                        </TableCell>
+                        <TableCell className="font-medium text-foreground whitespace-nowrap text-xs">
+                          {lead.name}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
                           {lead.phone}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                          {lead.company}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                          {lead.electricity_bill || "-"}
+                          {lead.email}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
                           {lead.street_address || "-"}
