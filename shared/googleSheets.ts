@@ -279,11 +279,12 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
   let headers = parseCSVLine(lines[0]);
   let startIndex = 1;
 
-  console.log("Raw CSV first 3 lines:");
-  for (let i = 0; i < Math.min(3, lines.length); i++) {
-    console.log(`  Line ${i}: ${lines[i].substring(0, 100)}`);
+  console.log("Raw CSV first 5 lines:");
+  for (let i = 0; i < Math.min(5, lines.length); i++) {
+    console.log(`  Line ${i}: ${lines[i].substring(0, 150)}`);
   }
-  console.log("Initial headers:", headers);
+  console.log("Initial headers from line 0:", headers);
+  console.log("Initial headers count:", headers.length);
 
   // If headers look like data (contain underscores or short values), look for real headers
   const headerLooksLikeData = headers.some((h) =>
