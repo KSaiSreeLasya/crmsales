@@ -67,6 +67,9 @@ interface Lead {
   post_code?: string;
   lead_status?: string;
   electricity_bill?: string;
+  type_of_property?: string;
+  avg_monthly_bill?: string;
+  sheet_id?: string;
   source?: string;
   created_at?: string;
   updated_at?: string;
@@ -120,6 +123,8 @@ export default function Leads() {
     post_code: "",
     lead_status: "",
     electricity_bill: "",
+    type_of_property: "",
+    avg_monthly_bill: "",
     note1: "",
     note2: "",
     status: "Not lifted" as LeadStatus,
@@ -159,6 +164,10 @@ export default function Leads() {
   const loadLeads = async () => {
     setIsLoading(true);
     try {
+      console.log(
+        `Loading leads for sheet_id: "${selectedSheetId}" (type: ${typeof selectedSheetId})`,
+      );
+
       const { data, error } = await supabase
         .from("leads")
         .select("*")
@@ -168,9 +177,13 @@ export default function Leads() {
       if (error) {
         const errorMsg = error.message || JSON.stringify(error);
         console.error("Error loading leads with sheet_id filter:", errorMsg);
+        console.error("Full error:", error);
 
-        // If sheet_id column doesn't exist, fall back to loading all leads
-        if (errorMsg.includes("sheet_id") || errorMsg.includes("column")) {
+        // Only fall back if sheet_id column truly doesn't exist
+        if (
+          errorMsg.includes("sheet_id") &&
+          (errorMsg.includes("column") || errorMsg.includes("does not exist"))
+        ) {
           console.log(
             "Falling back to loading all leads (sheet_id column may not exist yet)",
           );
@@ -184,15 +197,27 @@ export default function Leads() {
             toast.error("Failed to load leads");
             setLeads([]);
           } else {
+            console.log(`Loaded ${fallbackData?.length || 0} leads (fallback)`);
             setLeads(fallbackData || []);
           }
-        } else if (!errorMsg.includes("relation")) {
-          toast.error("Failed to load leads");
-          setLeads([]);
         } else {
+          console.error("Cannot filter by sheet_id:", errorMsg);
+          toast.error("Failed to load leads for selected sheet");
           setLeads([]);
         }
       } else {
+        console.log(
+          `✓ Successfully loaded ${data?.length || 0} leads for sheet ${selectedSheetId}`,
+        );
+        if (data && data.length > 0) {
+          console.log("Sample lead:", data[0]);
+          console.log(
+            "Sample lead sheet_id:",
+            data[0].sheet_id,
+            "type:",
+            typeof data[0].sheet_id,
+          );
+        }
         setLeads(data || []);
       }
     } catch (error) {
@@ -399,23 +424,47 @@ export default function Leads() {
       });
       clearTimeout(syncTimeoutId);
 
-      let syncData: any;
+      const statusOk = syncResponse.ok;
+      let syncData: any = null;
+      let responseText = "";
 
+      // Read response body only once
       try {
-        const responseText = await syncResponse.text();
+        responseText = await syncResponse.text();
         if (responseText) {
-          syncData = JSON.parse(responseText);
+          try {
+            syncData = JSON.parse(responseText);
+          } catch (jsonError) {
+            console.error("Failed to parse JSON:", jsonError);
+            console.error("Response text was:", responseText);
+            syncData = { error: "Invalid JSON response from server" };
+          }
         }
-      } catch (parseError) {
-        console.error("Failed to parse sync response:", parseError);
-        console.error("Response status:", syncResponse.status);
+      } catch (textError) {
+        console.error("Failed to read response body:", textError);
+        syncData = { error: "Failed to read response" };
       }
 
-      if (!syncResponse.ok) {
-        throw new Error(
-          syncData?.message || syncData?.error || "Failed to sync leads",
+      // Check response status after reading body
+      if (!statusOk) {
+        const errorMessage =
+          syncData?.message ||
+          syncData?.error ||
+          syncData?.hint ||
+          "Failed to sync leads";
+        console.error(
+          "Sync API returned error:",
+          errorMessage,
+          "Status:",
+          syncResponse.status,
         );
+        throw new Error(errorMessage);
       }
+
+      if (!syncData) {
+        throw new Error("No response data received from sync");
+      }
+
       console.log(
         "Sync response:",
         syncData.message,
@@ -426,7 +475,10 @@ export default function Leads() {
       // Store date rows for display
       setDateRows(extractedDateRows);
 
+      console.log(`About to reload leads for sheet_id: ${sheetId}`);
       await loadLeads();
+      console.log("Leads reloaded after sync");
+
       if (showNotification) {
         const emptyRowsMsg =
           syncData.emptyRowsRemoved > 0
@@ -513,6 +565,8 @@ export default function Leads() {
             post_code: formData.post_code || null,
             lead_status: formData.lead_status || null,
             electricity_bill: formData.electricity_bill || null,
+            type_of_property: formData.type_of_property || null,
+            avg_monthly_bill: formData.avg_monthly_bill || null,
             note1: formData.note1,
             note2: formData.note2,
             status: formData.status,
@@ -533,6 +587,8 @@ export default function Leads() {
             post_code: formData.post_code || null,
             lead_status: formData.lead_status || null,
             electricity_bill: formData.electricity_bill || null,
+            type_of_property: formData.type_of_property || null,
+            avg_monthly_bill: formData.avg_monthly_bill || null,
             note1: formData.note1,
             note2: formData.note2,
             status: formData.status || "Not lifted",
@@ -564,6 +620,8 @@ export default function Leads() {
       post_code: "",
       lead_status: "",
       electricity_bill: "",
+      type_of_property: "",
+      avg_monthly_bill: "",
       note1: "",
       note2: "",
       status: "Not lifted",
@@ -583,6 +641,8 @@ export default function Leads() {
         post_code: lead.post_code || "",
         lead_status: lead.lead_status || "",
         electricity_bill: (lead as any).electricity_bill || "",
+        type_of_property: lead.type_of_property || "",
+        avg_monthly_bill: lead.avg_monthly_bill || "",
         note1: lead.note1,
         note2: lead.note2,
         status: lead.status,
@@ -811,6 +871,36 @@ export default function Leads() {
                   </div>
 
                   <div>
+                    <Label htmlFor="typeOfProperty">Type of Property</Label>
+                    <Input
+                      id="typeOfProperty"
+                      placeholder="Type of Property"
+                      value={formData.type_of_property}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          type_of_property: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="avgMonthlyBill">Average Monthly Bill</Label>
+                    <Input
+                      id="avgMonthlyBill"
+                      placeholder="Average Monthly Bill"
+                      value={formData.avg_monthly_bill}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          avg_monthly_bill: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+
+                  <div>
                     <Label htmlFor="electricityBill">
                       Monthly Electricity Bill
                     </Label>
@@ -988,7 +1078,7 @@ export default function Leads() {
                 <TableBody>
                   {filteredLeads.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={13} className="py-8 text-center">
+                      <TableCell colSpan={14} className="py-8 text-center">
                         <p className="text-muted-foreground">
                           No leads found.{" "}
                           {displayRows.length === 0 &&
@@ -1005,7 +1095,7 @@ export default function Leads() {
                             className="border-b border-border bg-blue-50 hover:bg-blue-100"
                           >
                             <TableCell
-                              colSpan={13}
+                              colSpan={14}
                               className="py-3 text-center font-semibold text-blue-700"
                             >
                               📅 {row._dateValue}
@@ -1020,10 +1110,10 @@ export default function Leads() {
                           className="border-b border-border hover:bg-gray-50"
                         >
                           <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                            {lead.company || "-"}
+                            {lead.type_of_property || "-"}
                           </TableCell>
                           <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                            {lead.electricity_bill || "-"}
+                            {lead.avg_monthly_bill || "-"}
                           </TableCell>
                           <TableCell className="font-medium text-foreground whitespace-nowrap text-xs">
                             {lead.name}

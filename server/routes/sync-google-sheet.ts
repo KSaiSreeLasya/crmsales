@@ -87,6 +87,8 @@ export const handleSyncGoogleSheet: RequestHandler = async (req, res) => {
         post_code: lead.post_code || null,
         lead_status: lead.lead_status || null,
         electricity_bill: lead.electricity_bill || null,
+        type_of_property: (lead as any).type_of_property || null,
+        avg_monthly_bill: (lead as any).avg_monthly_bill || null,
         source: "google_sheet",
       }));
 

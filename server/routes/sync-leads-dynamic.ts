@@ -24,8 +24,9 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       "Dynamic sync request received with leads:",
       leads.length,
       "from sheet:",
-      sheetId || "0",
+      sheetId,
     );
+    console.log("Sheet ID received:", sheetId, "Type:", typeof sheetId);
     if (leads.length > 0) {
       console.log("First lead sample:", leads[0]);
       console.log("Available columns:", Object.keys(leads[0]));
@@ -78,6 +79,29 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Define allowed columns in Supabase schema
+    const allowedColumns = new Set([
+      "id",
+      "name",
+      "email",
+      "phone",
+      "company",
+      "status",
+      "assigned_to",
+      "note1",
+      "note2",
+      "street_address",
+      "post_code",
+      "lead_status",
+      "electricity_bill",
+      "type_of_property",
+      "avg_monthly_bill",
+      "sheet_id",
+      "source",
+      "created_at",
+      "updated_at",
+    ]);
+
     // Prepare leads data - normalize column names to match Supabase schema
     const leadsToSync = validLeads.map((lead) => {
       // Map Google Sheet column names to Supabase column names
@@ -121,16 +145,36 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         ) {
           dbColumn = "lead_status";
         } else if (
-          normalizedKey.includes("electricity") ||
-          normalizedKey.includes("bill") ||
+          normalizedKey.includes("type") &&
+          normalizedKey.includes("property")
+        ) {
+          dbColumn = "type_of_property";
+        } else if (
+          normalizedKey.includes("avg") &&
           normalizedKey.includes("monthly")
+        ) {
+          dbColumn = "avg_monthly_bill";
+        } else if (
+          normalizedKey.includes("electricity") ||
+          (normalizedKey.includes("bill") && !normalizedKey.includes("monthly"))
         ) {
           dbColumn = "electricity_bill";
         } else if (
-          normalizedKey.includes("property") ||
-          normalizedKey.includes("type")
+          normalizedKey.includes("note") &&
+          normalizedKey.includes("1")
         ) {
-          dbColumn = "company"; // Store property type in company field
+          dbColumn = "note1";
+        } else if (
+          normalizedKey.includes("note") &&
+          normalizedKey.includes("2")
+        ) {
+          dbColumn = "note2";
+        }
+
+        // Only add column if it exists in Supabase schema
+        if (!allowedColumns.has(dbColumn)) {
+          console.log(`Skipping unknown column: ${key} -> ${dbColumn}`);
+          continue;
         }
 
         // Ensure all values are properly formatted
@@ -158,6 +202,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     console.log("Attempting to insert leads to Supabase...");
     console.log("Total leads to sync:", leadsToSync.length);
     console.log("Sample lead:", leadsToSync[0]);
+    console.log("Sample lead sheet_id:", leadsToSync[0].sheet_id);
     console.log("Columns:", Object.keys(leadsToSync[0]));
 
     try {

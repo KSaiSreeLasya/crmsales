@@ -53,6 +53,8 @@ export function parseLeadRow(row: GoogleSheetRow) {
   let post_code = "";
   let lead_status = "";
   let electricity_bill = "";
+  let type_of_property = "";
+  let avg_monthly_bill = "";
   let note1 = "";
   let note2 = "";
 
@@ -83,6 +85,14 @@ export function parseLeadRow(row: GoogleSheetRow) {
     electricity_bill = normalizedRow["electricity bill"];
   if (normalizedRow["electricity_bill"])
     electricity_bill = normalizedRow["electricity_bill"];
+  if (normalizedRow["type of property"])
+    type_of_property = normalizedRow["type of property"];
+  if (normalizedRow["type_of_property"])
+    type_of_property = normalizedRow["type_of_property"];
+  if (normalizedRow["avg monthly bill"])
+    avg_monthly_bill = normalizedRow["avg monthly bill"];
+  if (normalizedRow["avg_monthly_bill"])
+    avg_monthly_bill = normalizedRow["avg_monthly_bill"];
 
   // Fallback: intelligent matching for any remaining empty fields
   for (const [key, value] of Object.entries(normalizedRow)) {
@@ -137,6 +147,22 @@ export function parseLeadRow(row: GoogleSheetRow) {
     ) {
       electricity_bill = value;
     }
+
+    // Match type of property variants
+    if (
+      !type_of_property &&
+      (key.includes("property") || key.includes("type"))
+    ) {
+      type_of_property = value;
+    }
+
+    // Match average monthly bill variants
+    if (
+      !avg_monthly_bill &&
+      (key.includes("avg") || (key.includes("monthly") && key.includes("bill")))
+    ) {
+      avg_monthly_bill = value;
+    }
   }
 
   const parsed = {
@@ -148,6 +174,8 @@ export function parseLeadRow(row: GoogleSheetRow) {
     post_code,
     lead_status,
     electricity_bill,
+    type_of_property,
+    avg_monthly_bill,
     status: "Not lifted",
     assignedTo: "Unassigned",
     note1: note1 || "",
