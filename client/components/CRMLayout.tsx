@@ -38,10 +38,12 @@ export function CRMLayout({ children }: CRMLayoutProps) {
         <div className="flex h-16 items-center justify-between border-b border-border px-4">
           {sidebarOpen && (
             <Link to="/" className="flex items-center gap-2 font-bold text-lg">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <Users className="h-5 w-5" />
-              </div>
-              <span className="text-foreground">SalesHub</span>
+              <img
+                src="https://cdn.builder.io/api/v1/image/assets%2Ffe77690ee7b847c09f597f304a115791%2F5ed4952b10dc4593b47df2356cc6b459?format=webp&width=100"
+                alt="Axiso Green Logo"
+                className="h-8 w-8 object-contain"
+              />
+              <span className="text-foreground">Axiso Green</span>
             </Link>
           )}
           <Button
@@ -86,9 +88,19 @@ export function CRMLayout({ children }: CRMLayoutProps) {
         {/* Header */}
         <header className="border-b border-border bg-card">
           <div className="flex h-16 items-center justify-between px-8">
-            <h1 className="text-xl font-semibold text-foreground">
-              SalesHub CRM
-            </h1>
+            <div className="flex items-center gap-3">
+              <img
+                src="https://cdn.builder.io/api/v1/image/assets%2Ffe77690ee7b847c09f597f304a115791%2F5ed4952b10dc4593b47df2356cc6b459?format=webp&width=100"
+                alt="Axiso Green Energy Logo"
+                className="h-8 w-8 object-contain"
+              />
+              <div className="flex flex-col">
+                <h1 className="text-xl font-semibold text-foreground">
+                  Axiso Green Energy
+                </h1>
+                <p className="text-xs text-muted-foreground">Sales CRM</p>
+              </div>
+            </div>
             <div className="flex items-center gap-4">
               <div className="h-8 w-8 rounded-full bg-primary"></div>
             </div>
