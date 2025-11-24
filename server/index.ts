@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import { handleDemo } from "./routes/demo";
 import { handleSyncLeads } from "./routes/sync-leads";
+import { handleSyncLeadsDynamic } from "./routes/sync-leads-dynamic";
 import { handleSyncSalespersons } from "./routes/sync-salespersons";
 import { handleFetchGoogleSheet } from "./routes/fetch-google-sheet";
 import { handleSyncGoogleSheet } from "./routes/sync-google-sheet";
