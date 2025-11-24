@@ -771,8 +771,8 @@ export default function Leads() {
               Manage and track all your sales leads
             </p>
           </div>
-          <div className="flex gap-1 flex-wrap items-center text-sm">
-            <div className="flex gap-2 items-center">
+          <div className="flex gap-0.5 flex-wrap items-center text-xs">
+            <div className="flex gap-1 items-center">
               <Label htmlFor="sheet-select" className="whitespace-nowrap">
                 Sheet:
               </Label>
