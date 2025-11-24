@@ -121,16 +121,21 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         ) {
           dbColumn = "lead_status";
         } else if (
-          normalizedKey.includes("electricity") ||
-          normalizedKey.includes("bill") ||
+          normalizedKey.includes("type") &&
+          normalizedKey.includes("property")
+        ) {
+          dbColumn = "type_of_property";
+        } else if (
+          normalizedKey.includes("avg") &&
           normalizedKey.includes("monthly")
         ) {
-          dbColumn = "electricity_bill";
+          dbColumn = "avg_monthly_bill";
         } else if (
-          normalizedKey.includes("property") ||
-          normalizedKey.includes("type")
+          normalizedKey.includes("electricity") ||
+          (normalizedKey.includes("bill") &&
+            !normalizedKey.includes("monthly"))
         ) {
-          dbColumn = "company"; // Store property type in company field
+          dbColumn = "electricity_bill";
         }
 
         // Ensure all values are properly formatted
