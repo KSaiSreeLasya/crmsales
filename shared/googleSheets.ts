@@ -168,6 +168,26 @@ export function parseLeadRow(row: GoogleSheetRow) {
 }
 
 /**
+ * Parse Google Sheet row with all columns preserved (dynamic sync)
+ * Preserves exact column names from the sheet
+ */
+export function parseRowDynamic(row: GoogleSheetRow): GoogleSheetRow {
+  // Return all columns as-is, trimming values
+  const result: GoogleSheetRow = {};
+  for (const [key, value] of Object.entries(row)) {
+    const trimmedKey = key.trim();
+    const trimmedValue =
+      value === undefined || value === null
+        ? ""
+        : String(value).trim();
+    if (trimmedKey) {
+      result[trimmedKey] = trimmedValue;
+    }
+  }
+  return result;
+}
+
+/**
  * Parse Google Sheet salesperson row into Salesperson format
  */
 export function parseSalespersonRow(row: GoogleSheetRow) {
