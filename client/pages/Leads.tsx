@@ -164,6 +164,8 @@ export default function Leads() {
   const loadLeads = async () => {
     setIsLoading(true);
     try {
+      console.log(`Loading leads for sheet_id: ${selectedSheetId}`);
+
       const { data, error } = await supabase
         .from("leads")
         .select("*")
@@ -174,8 +176,11 @@ export default function Leads() {
         const errorMsg = error.message || JSON.stringify(error);
         console.error("Error loading leads with sheet_id filter:", errorMsg);
 
-        // If sheet_id column doesn't exist, fall back to loading all leads
-        if (errorMsg.includes("sheet_id") || errorMsg.includes("column")) {
+        // Only fall back if sheet_id column truly doesn't exist
+        if (
+          errorMsg.includes("sheet_id") &&
+          (errorMsg.includes("column") || errorMsg.includes("does not exist"))
+        ) {
           console.log(
             "Falling back to loading all leads (sheet_id column may not exist yet)",
           );
@@ -189,15 +194,16 @@ export default function Leads() {
             toast.error("Failed to load leads");
             setLeads([]);
           } else {
+            console.log(`Loaded ${fallbackData?.length || 0} leads (fallback)`);
             setLeads(fallbackData || []);
           }
-        } else if (!errorMsg.includes("relation")) {
-          toast.error("Failed to load leads");
-          setLeads([]);
         } else {
+          console.error("Cannot filter by sheet_id:", errorMsg);
+          toast.error("Failed to load leads for selected sheet");
           setLeads([]);
         }
       } else {
+        console.log(`Loaded ${data?.length || 0} leads for sheet ${selectedSheetId}`);
         setLeads(data || []);
       }
     } catch (error) {
