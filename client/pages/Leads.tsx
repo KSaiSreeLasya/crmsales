@@ -378,14 +378,19 @@ export default function Leads() {
       let syncData: any;
 
       try {
-        syncData = await syncResponse.json();
+        const responseText = await syncResponse.text();
+        if (responseText) {
+          syncData = JSON.parse(responseText);
+        }
       } catch (parseError) {
         console.error("Failed to parse sync response:", parseError);
-        throw new Error("Invalid response from server");
+        console.error("Response status:", syncResponse.status);
       }
 
       if (!syncResponse.ok) {
-        throw new Error(syncData.message || "Failed to sync leads");
+        throw new Error(
+          syncData?.message || syncData?.error || "Failed to sync leads"
+        );
       }
       console.log(
         "Sync response:",
