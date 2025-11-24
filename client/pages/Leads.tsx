@@ -331,6 +331,18 @@ export default function Leads() {
         return;
       }
 
+      // Extract date rows and regular rows
+      const extractedDateRows: DateRowMarker[] = [];
+      const dataRows = rows.filter((row: any) => {
+        if (row._isDateRow === true) {
+          extractedDateRows.push(row as DateRowMarker);
+          return false;
+        }
+        return true;
+      });
+
+      console.log(`Extracted ${extractedDateRows.length} date rows`);
+
       // Sync all columns dynamically (no parsing, just pass raw data) with 60 second timeout
       const syncController = new AbortController();
       const syncTimeoutId = setTimeout(() => syncController.abort(), 60000);
@@ -339,7 +351,7 @@ export default function Leads() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          leads: rows,
+          leads: dataRows,
           source: "google_sheet",
           sheetId: sheetId,
         }),
@@ -360,14 +372,21 @@ export default function Leads() {
         syncData.columnsIncluded,
       );
 
+      // Store date rows for display
+      setDateRows(extractedDateRows);
+
       await loadLeads();
       if (showNotification) {
         const emptyRowsMsg =
           syncData.emptyRowsRemoved > 0
             ? ` (${syncData.emptyRowsRemoved} empty rows removed)`
             : "";
+        const dateRowsMsg =
+          extractedDateRows.length > 0
+            ? ` (${extractedDateRows.length} date separators)`
+            : "";
         toast.success(
-          `Synced ${syncData.synced} leads${emptyRowsMsg} with all columns`,
+          `Synced ${syncData.synced} leads${emptyRowsMsg}${dateRowsMsg} with all columns`,
         );
       }
     } catch (error) {
