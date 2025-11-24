@@ -67,6 +67,9 @@ interface Lead {
   post_code?: string;
   lead_status?: string;
   electricity_bill?: string;
+  type_of_property?: string;
+  avg_monthly_bill?: string;
+  sheet_id?: string;
   source?: string;
   created_at?: string;
   updated_at?: string;
@@ -120,6 +123,8 @@ export default function Leads() {
     post_code: "",
     lead_status: "",
     electricity_bill: "",
+    type_of_property: "",
+    avg_monthly_bill: "",
     note1: "",
     note2: "",
     status: "Not lifted" as LeadStatus,
@@ -513,6 +518,8 @@ export default function Leads() {
             post_code: formData.post_code || null,
             lead_status: formData.lead_status || null,
             electricity_bill: formData.electricity_bill || null,
+            type_of_property: formData.type_of_property || null,
+            avg_monthly_bill: formData.avg_monthly_bill || null,
             note1: formData.note1,
             note2: formData.note2,
             status: formData.status,
@@ -533,6 +540,8 @@ export default function Leads() {
             post_code: formData.post_code || null,
             lead_status: formData.lead_status || null,
             electricity_bill: formData.electricity_bill || null,
+            type_of_property: formData.type_of_property || null,
+            avg_monthly_bill: formData.avg_monthly_bill || null,
             note1: formData.note1,
             note2: formData.note2,
             status: formData.status || "Not lifted",
@@ -564,6 +573,8 @@ export default function Leads() {
       post_code: "",
       lead_status: "",
       electricity_bill: "",
+      type_of_property: "",
+      avg_monthly_bill: "",
       note1: "",
       note2: "",
       status: "Not lifted",
@@ -583,6 +594,8 @@ export default function Leads() {
         post_code: lead.post_code || "",
         lead_status: lead.lead_status || "",
         electricity_bill: (lead as any).electricity_bill || "",
+        type_of_property: lead.type_of_property || "",
+        avg_monthly_bill: lead.avg_monthly_bill || "",
         note1: lead.note1,
         note2: lead.note2,
         status: lead.status,
