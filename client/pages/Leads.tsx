@@ -252,6 +252,47 @@ export default function Leads() {
     }
   };
 
+  const loadAvailableSheets = async () => {
+    setIsLoadingSheets(true);
+    try {
+      console.log("Fetching available sheets from Google Sheet...");
+
+      const response = await fetch(
+        `/api/fetch-google-sheets-metadata?spreadsheetId=${SPREADSHEET_ID}`,
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch sheet metadata");
+      }
+
+      const data = await response.json();
+
+      if (data.sheets && data.sheets.length > 0) {
+        console.log(`✓ Loaded ${data.sheets.length} sheets:`, data.sheets);
+        setAvailableSheets(data.sheets);
+
+        // If currently selected sheet is not in the list, select the first one
+        const sheetIds = data.sheets.map((s: any) => s.id);
+        if (!sheetIds.includes(selectedSheetId) && sheetIds.length > 0) {
+          console.log(
+            `Currently selected sheet ${selectedSheetId} not found, selecting ${sheetIds[0]}`,
+          );
+          setSelectedSheetId(sheetIds[0]);
+        }
+
+        if (data.warning) {
+          console.warn(data.warning);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading available sheets:", error);
+      // Keep using the default sheets if fetching fails
+      toast.error("Failed to load available sheets from Google Sheet");
+    } finally {
+      setIsLoadingSheets(false);
+    }
+  };
+
   const syncFromGoogleSheet = async (showNotification = false) => {
     if (isSyncing) {
       if (showNotification) {
