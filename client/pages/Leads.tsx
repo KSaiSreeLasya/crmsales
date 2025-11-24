@@ -824,7 +824,10 @@ export default function Leads() {
             </Button>
             <Dialog open={openDialog} onOpenChange={setOpenDialog}>
               <DialogTrigger asChild>
-                <Button className="gap-1 h-8 text-xs px-2" onClick={() => handleOpenDialog()}>
+                <Button
+                  className="gap-1 h-8 text-xs px-2"
+                  onClick={() => handleOpenDialog()}
+                >
                   <Plus className="h-3.5 w-3.5" />
                   New Lead
                 </Button>
@@ -1099,10 +1102,16 @@ export default function Leads() {
               <Table className="[&_th]:h-4 [&_th]:px-1 [&_td]:px-0.5 [&_td]:py-0.5 text-[9px] leading-tight">
                 <TableHeader>
                   <TableRow className="border-b border-border bg-gray-50">
-                    <TableHead className="whitespace-nowrap font-bold text-[11px]" title="Type of Property">
+                    <TableHead
+                      className="whitespace-nowrap font-bold text-[11px]"
+                      title="Type of Property"
+                    >
                       TYPE
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-[11px]" title="Average Monthly Bill">
+                    <TableHead
+                      className="whitespace-nowrap font-bold text-[11px]"
+                      title="Average Monthly Bill"
+                    >
                       AVG
                     </TableHead>
                     <TableHead className="whitespace-nowrap font-bold text-[11px]">
@@ -1117,10 +1126,16 @@ export default function Leads() {
                     <TableHead className="whitespace-nowrap font-bold text-[11px]">
                       ADDR
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-[11px]" title="Postal Code">
+                    <TableHead
+                      className="whitespace-nowrap font-bold text-[11px]"
+                      title="Postal Code"
+                    >
                       ZIP
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-[11px]" title="Lead Status">
+                    <TableHead
+                      className="whitespace-nowrap font-bold text-[11px]"
+                      title="Lead Status"
+                    >
                       L.STS
                     </TableHead>
                     <TableHead className="whitespace-nowrap font-bold text-[11px]">
