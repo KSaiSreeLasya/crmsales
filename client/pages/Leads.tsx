@@ -268,7 +268,11 @@ export default function Leads() {
     } catch (error) {
       console.error("Error syncing from Google Sheet:", error);
       if (showNotification) {
-        toast.error("Failed to sync from Google Sheet");
+        if (error instanceof Error && error.name === "AbortError") {
+          toast.error("Sync request timed out. Server may be busy. Try again later.");
+        } else {
+          toast.error("Failed to sync from Google Sheet");
+        }
       }
     } finally {
       setIsSyncing(false);
