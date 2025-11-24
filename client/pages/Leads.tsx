@@ -406,6 +406,7 @@ export default function Leads() {
 
       let syncData: any;
 
+      // Always try to parse response, but handle errors gracefully
       try {
         const responseText = await syncResponse.text();
         if (responseText) {
@@ -414,13 +415,19 @@ export default function Leads() {
       } catch (parseError) {
         console.error("Failed to parse sync response:", parseError);
         console.error("Response status:", syncResponse.status);
+        console.error("Response text:", syncResponse);
       }
 
+      // Check response status after attempting to parse
       if (!syncResponse.ok) {
-        throw new Error(
-          syncData?.message || syncData?.error || "Failed to sync leads",
-        );
+        const errorMessage = syncData?.message || syncData?.error || syncData?.hint || "Failed to sync leads";
+        throw new Error(errorMessage);
       }
+
+      if (!syncData) {
+        throw new Error("No response data received from sync");
+      }
+
       console.log(
         "Sync response:",
         syncData.message,
