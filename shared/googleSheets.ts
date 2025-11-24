@@ -43,6 +43,7 @@ function getColumnValue(
 /**
  * Parse Google Sheet lead row into Lead format
  * Handles exact column names from the sheet
+ * Expected column order: Type of Property, Avg Monthly Bill, Full Name, Phone, Email, Street Address, Postal Code
  */
 export function parseLeadRow(row: GoogleSheetRow) {
   let name = "";
@@ -58,110 +59,71 @@ export function parseLeadRow(row: GoogleSheetRow) {
   let note1 = "";
   let note2 = "";
 
+  // Convert row to array for positional access
+  const values = Object.values(row).map((v) => String(v || "").trim());
+  const keys = Object.keys(row);
+
   // Normalize all keys to lowercase for matching
   const normalizedRow: { [key: string]: string } = {};
+  const normalizedKeys: { [key: string]: string } = {};
+
   for (const [key, value] of Object.entries(row)) {
     const normalizedKey = key.toLowerCase().trim();
-    normalizedRow[normalizedKey] = String(value || "").trim();
+    const trimmedValue = String(value || "").trim();
+    normalizedRow[normalizedKey] = trimmedValue;
+    normalizedKeys[normalizedKey] = key;
   }
 
-  // Direct exact matches first (most reliable)
-  if (normalizedRow["full name"]) name = normalizedRow["full name"];
-  if (normalizedRow["email"]) email = normalizedRow["email"];
-  if (normalizedRow["phone"]) phone = normalizedRow["phone"];
-  if (normalizedRow["street address"])
-    street_address = normalizedRow["street address"];
-  if (normalizedRow["street_address"])
-    street_address = normalizedRow["street_address"];
-  if (normalizedRow["post code"]) post_code = normalizedRow["post code"];
-  if (normalizedRow["post_code"]) post_code = normalizedRow["post_code"];
-  if (normalizedRow["lead status"]) lead_status = normalizedRow["lead status"];
-  if (normalizedRow["lead_status"]) lead_status = normalizedRow["lead_status"];
-  if (normalizedRow["note1"]) note1 = normalizedRow["note1"];
-  if (normalizedRow["note 1"]) note1 = normalizedRow["note 1"];
-  if (normalizedRow["note2"]) note2 = normalizedRow["note2"];
-  if (normalizedRow["note 2"]) note2 = normalizedRow["note 2"];
-  if (normalizedRow["electricity bill"])
-    electricity_bill = normalizedRow["electricity bill"];
-  if (normalizedRow["electricity_bill"])
-    electricity_bill = normalizedRow["electricity_bill"];
-  if (normalizedRow["type of property"])
-    type_of_property = normalizedRow["type of property"];
-  if (normalizedRow["type_of_property"])
-    type_of_property = normalizedRow["type_of_property"];
-  if (normalizedRow["avg monthly bill"])
-    avg_monthly_bill = normalizedRow["avg monthly bill"];
-  if (normalizedRow["avg_monthly_bill"])
-    avg_monthly_bill = normalizedRow["avg_monthly_bill"];
+  // Strategy 1: Try to match by exact column names (case-insensitive)
+  const keysList = Object.keys(normalizedRow);
 
-  // Fallback: intelligent matching for any remaining empty fields
-  for (const [key, value] of Object.entries(normalizedRow)) {
+  // Map columns based on header patterns
+  for (const normalizedKey of keysList) {
+    const value = normalizedRow[normalizedKey];
     if (!value) continue;
 
-    // Skip header-like keys
-    if (key === "" || key.includes("?")) continue;
-
-    // Match full name variants
-    if (!name && (key.includes("full") || key.includes("name"))) {
-      name = value;
-    }
-
-    // Match email variants
-    if (!email && key.includes("email")) {
-      email = value;
-    }
-
-    // Match phone variants
-    if (!phone && (key.includes("phone") || key.includes("telephone"))) {
-      phone = value;
-    }
-
-    // Match street address variants
-    if (
-      !street_address &&
-      (key.includes("street") || key.includes("address"))
-    ) {
-      street_address = value;
-    }
-
-    // Match post code variants
-    if (
-      !post_code &&
-      (key.includes("post") ||
-        key.includes("zip") ||
-        key.includes("postal") ||
-        (key.includes("code") && !key.includes("postcode")))
-    ) {
-      post_code = value;
-    }
-
-    // Match lead status variants
-    if (!lead_status && (key.includes("lead") || key.includes("status"))) {
-      lead_status = value;
-    }
-
-    // Match electricity bill variants
-    if (
-      !electricity_bill &&
-      (key.includes("electricity") || key.includes("bill"))
-    ) {
-      electricity_bill = value;
-    }
-
-    // Match type of property variants
-    if (
-      !type_of_property &&
-      (key.includes("property") || key.includes("type"))
-    ) {
+    // Type of Property
+    if (!type_of_property && (normalizedKey.includes("type") && normalizedKey.includes("property"))) {
       type_of_property = value;
     }
-
-    // Match average monthly bill variants
-    if (
-      !avg_monthly_bill &&
-      (key.includes("avg") || (key.includes("monthly") && key.includes("bill")))
-    ) {
+    // Avg Monthly Bill
+    else if (!avg_monthly_bill && (normalizedKey.includes("avg") || (normalizedKey.includes("monthly") && normalizedKey.includes("bill")))) {
       avg_monthly_bill = value;
+    }
+    // Full Name
+    else if (!name && (normalizedKey.includes("full") || (normalizedKey.includes("name") && !normalizedKey.includes("username")))) {
+      name = value;
+    }
+    // Phone
+    else if (!phone && (normalizedKey.includes("phone") || normalizedKey.includes("telephone") || normalizedKey.includes("mobile"))) {
+      phone = value;
+    }
+    // Email
+    else if (!email && normalizedKey.includes("email")) {
+      email = value;
+    }
+    // Street Address
+    else if (!street_address && (normalizedKey.includes("street") || (normalizedKey.includes("address") && !normalizedKey.includes("email")))) {
+      street_address = value;
+    }
+    // Postal Code
+    else if (!post_code && (normalizedKey.includes("post") || normalizedKey.includes("zip") || normalizedKey.includes("postal"))) {
+      post_code = value;
+    }
+    // Lead Status
+    else if (!lead_status && normalizedKey.includes("lead") && normalizedKey.includes("status")) {
+      lead_status = value;
+    }
+    // Electricity Bill
+    else if (!electricity_bill && normalizedKey.includes("electricity")) {
+      electricity_bill = value;
+    }
+    // Note fields
+    else if (!note1 && (normalizedKey === "note 1" || normalizedKey === "note1" || normalizedKey === "note_1")) {
+      note1 = value;
+    }
+    else if (!note2 && (normalizedKey === "note 2" || normalizedKey === "note2" || normalizedKey === "note_2")) {
+      note2 = value;
     }
   }
 
@@ -183,13 +145,14 @@ export function parseLeadRow(row: GoogleSheetRow) {
   };
 
   if (name && email) {
-    console.log("✓ Valid lead found:", { name, email, phone });
+    console.log("✓ Valid lead found:", { name, email, phone, type_of_property, avg_monthly_bill });
   } else {
     console.log("✗ Invalid lead (missing name or email):");
     console.log(
       "  Available fields:",
       Object.keys(normalizedRow).filter((k) => normalizedRow[k]),
     );
+    console.log("  Parsed values:", parsed);
   }
 
   return parsed;
