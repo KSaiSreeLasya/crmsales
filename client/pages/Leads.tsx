@@ -824,6 +824,36 @@ export default function Leads() {
                   </div>
 
                   <div>
+                    <Label htmlFor="typeOfProperty">Type of Property</Label>
+                    <Input
+                      id="typeOfProperty"
+                      placeholder="Type of Property"
+                      value={formData.type_of_property}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          type_of_property: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="avgMonthlyBill">Average Monthly Bill</Label>
+                    <Input
+                      id="avgMonthlyBill"
+                      placeholder="Average Monthly Bill"
+                      value={formData.avg_monthly_bill}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          avg_monthly_bill: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+
+                  <div>
                     <Label htmlFor="electricityBill">
                       Monthly Electricity Bill
                     </Label>
