@@ -167,17 +167,29 @@ export default function Leads() {
 
       if (error) {
         const errorMsg = error.message || JSON.stringify(error);
-        console.error("Error loading leads:", errorMsg);
+        console.error("Error loading leads with sheet_id filter:", errorMsg);
 
-        // Ignore sheet_id column not found error - it might not exist yet
-        if (
-          !errorMsg.includes("relation") &&
-          !errorMsg.includes("sheet_id") &&
-          !errorMsg.includes("column")
-        ) {
+        // If sheet_id column doesn't exist, fall back to loading all leads
+        if (errorMsg.includes("sheet_id") || errorMsg.includes("column")) {
+          console.log("Falling back to loading all leads (sheet_id column may not exist yet)");
+          const { data: fallbackData, error: fallbackError } = await supabase
+            .from("leads")
+            .select("*")
+            .order("created_at", { ascending: false });
+
+          if (fallbackError) {
+            console.error("Error in fallback load:", fallbackError.message);
+            toast.error("Failed to load leads");
+            setLeads([]);
+          } else {
+            setLeads(fallbackData || []);
+          }
+        } else if (!errorMsg.includes("relation")) {
           toast.error("Failed to load leads");
+          setLeads([]);
+        } else {
+          setLeads([]);
         }
-        setLeads([]);
       } else {
         setLeads(data || []);
       }
