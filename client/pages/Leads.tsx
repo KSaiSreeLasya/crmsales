@@ -141,6 +141,21 @@ export default function Leads() {
     loadSalespersons();
   }, []);
 
+  // Combine leads and date rows for display
+  useEffect(() => {
+    const combined: DisplayRow[] = [];
+
+    if (dateRows.length === 0) {
+      // No date rows, just use leads
+      setDisplayRows(leads);
+    } else {
+      // Need to interleave date rows with leads based on original order
+      // For now, we'll append date rows info to the display
+      // In a more sophisticated approach, we'd track the original row indices
+      setDisplayRows([...leads, ...dateRows]);
+    }
+  }, [leads, dateRows]);
+
   const loadLeads = async () => {
     setIsLoading(true);
     try {
