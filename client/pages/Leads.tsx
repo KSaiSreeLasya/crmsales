@@ -98,6 +98,8 @@ const SPREADSHEET_ID = "1QY8_Q8-ybLKNVs4hynPZslZDwUfC-PIJrViJfL0-tpM";
 
 export default function Leads() {
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [dateRows, setDateRows] = useState<DateRowMarker[]>([]);
+  const [displayRows, setDisplayRows] = useState<DisplayRow[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [openDialog, setOpenDialog] = useState(false);
