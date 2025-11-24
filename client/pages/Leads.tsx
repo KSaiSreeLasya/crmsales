@@ -842,43 +842,43 @@ export default function Leads() {
               <Table>
                 <TableHeader>
                   <TableRow className="border-b border-border bg-gray-50">
-                    <TableHead className="whitespace-nowrap font-bold">
+                    <TableHead className="whitespace-nowrap font-bold text-xs">
                       FULL NAME
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold">
+                    <TableHead className="whitespace-nowrap font-bold text-xs">
                       EMAIL
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold">
-                      PHONE
+                    <TableHead className="whitespace-nowrap font-bold text-xs">
+                      PHONE NO
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold">
-                      PROPERTY TYPE
+                    <TableHead className="whitespace-nowrap font-bold text-xs">
+                      TYPE OF PROPERTY
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold">
-                      STREET ADDRESS
+                    <TableHead className="whitespace-nowrap font-bold text-xs">
+                      AVG MONTHLY BILL
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold">
-                      POST CODE
+                    <TableHead className="whitespace-nowrap font-bold text-xs">
+                      ADDRESS
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold">
-                      ELECTRICITY BILL
+                    <TableHead className="whitespace-nowrap font-bold text-xs">
+                      POSTAL CODE
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold">
+                    <TableHead className="whitespace-nowrap font-bold text-xs">
                       LEAD STATUS
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold">
+                    <TableHead className="whitespace-nowrap font-bold text-xs">
                       NOTE 1
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold">
+                    <TableHead className="whitespace-nowrap font-bold text-xs">
                       NOTE 2
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold">
+                    <TableHead className="whitespace-nowrap font-bold text-xs">
                       STATUS
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold">
-                      OWNER
+                    <TableHead className="whitespace-nowrap font-bold text-xs">
+                      ASSIGNED TO
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold">
+                    <TableHead className="whitespace-nowrap font-bold text-xs">
                       ACTION
                     </TableHead>
                   </TableRow>
@@ -886,11 +886,11 @@ export default function Leads() {
                 <TableBody>
                   {filteredLeads.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={12} className="py-8 text-center">
+                      <TableCell colSpan={13} className="py-8 text-center">
                         <p className="text-muted-foreground">
                           No leads found.{" "}
                           {leads.length === 0 &&
-                            "Click 'Sync Sheet' to import leads from Google Sheet."}
+                            "Click 'Sync All Columns' to import leads from Google Sheet."}
                         </p>
                       </TableCell>
                     </TableRow>
@@ -900,31 +900,31 @@ export default function Leads() {
                         key={lead.id}
                         className="border-b border-border hover:bg-gray-50"
                       >
-                        <TableCell className="font-medium text-foreground whitespace-nowrap">
+                        <TableCell className="font-medium text-foreground whitespace-nowrap text-xs">
                           {lead.name}
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
                           {lead.email}
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
                           {lead.phone}
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
                           {lead.company}
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
-                          {lead.street_address || "-"}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
-                          {lead.post_code || "-"}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
                           {lead.electricity_bill || "-"}
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                          {lead.street_address || "-"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                          {lead.post_code || "-"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
                           {lead.lead_status || "-"}
                         </TableCell>
-                        <TableCell className="text-sm whitespace-nowrap">
+                        <TableCell className="text-xs whitespace-nowrap">
                           {editingNote?.leadId === lead.id &&
                           editingNote.field === "note1" ? (
                             <Input
@@ -951,17 +951,17 @@ export default function Leads() {
                                   field: "note1",
                                 })
                               }
-                              className="cursor-pointer hover:bg-gray-100 p-1 rounded min-h-6"
+                              className="cursor-pointer hover:bg-gray-100 p-0.5 rounded min-h-6 text-xs"
                             >
                               {lead.note1 || (
-                                <span className="text-muted-foreground italic">
-                                  Add note...
+                                <span className="text-muted-foreground italic text-xs">
+                                  Add...
                                 </span>
                               )}
                             </div>
                           )}
                         </TableCell>
-                        <TableCell className="text-sm whitespace-nowrap">
+                        <TableCell className="text-xs whitespace-nowrap">
                           {editingNote?.leadId === lead.id &&
                           editingNote.field === "note2" ? (
                             <Input
@@ -988,11 +988,11 @@ export default function Leads() {
                                   field: "note2",
                                 })
                               }
-                              className="cursor-pointer hover:bg-gray-100 p-1 rounded min-h-6"
+                              className="cursor-pointer hover:bg-gray-100 p-0.5 rounded min-h-6 text-xs"
                             >
                               {lead.note2 || (
-                                <span className="text-muted-foreground italic">
-                                  Add note...
+                                <span className="text-muted-foreground italic text-xs">
+                                  Add...
                                 </span>
                               )}
                             </div>
@@ -1015,7 +1015,7 @@ export default function Leads() {
                                 toast.error("Failed to update status");
                               }
                             }}
-                            className="rounded border border-border bg-background px-2 py-1 text-sm"
+                            className="rounded border border-border bg-background px-1.5 py-0.5 text-xs"
                           >
                             {STATUS_OPTIONS.map((status) => (
                               <option key={status} value={status}>
@@ -1039,7 +1039,7 @@ export default function Leads() {
                                 toast.error("Failed to update owner");
                               }
                             }}
-                            className="rounded border border-border bg-background px-2 py-1 text-sm"
+                            className="rounded border border-border bg-background px-1.5 py-0.5 text-xs"
                           >
                             <option value="Unassigned">Unassigned</option>
                             {salespersons.map((person) => (
