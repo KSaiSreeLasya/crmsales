@@ -592,7 +592,13 @@ export default function Leads() {
     }
   };
 
-  const filteredLeads = leads.filter((lead) => {
+  const filteredLeads = displayRows.filter((row) => {
+    // Always show date rows
+    if (isDateRow(row)) {
+      return true;
+    }
+
+    const lead = row as Lead;
     const matchesSearch =
       lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
