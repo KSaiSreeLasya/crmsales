@@ -1063,18 +1063,18 @@ export default function Leads() {
         </div>
 
         {/* Filters */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
-              placeholder="Search leads by name, email, phone, or company"
-              className="pl-10"
+              placeholder="Search by name, email, phone, company..."
+              className="pl-9 py-1.5 text-xs h-8"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
           <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="w-40 h-8 text-xs">
               <SelectValue placeholder="All statuses" />
             </SelectTrigger>
             <SelectContent>
