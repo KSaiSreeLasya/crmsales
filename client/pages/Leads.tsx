@@ -787,6 +787,18 @@ export default function Leads() {
               </Select>
             </div>
             <Button
+              variant="outline"
+              className="gap-2"
+              onClick={loadAvailableSheets}
+              disabled={isLoadingSheets}
+              title="Refresh available sheets from Google Sheet"
+            >
+              <RefreshCw
+                className={`h-4 w-4 ${isLoadingSheets ? "animate-spin" : ""}`}
+              />
+              {isLoadingSheets ? "Loading..." : "Refresh Sheets"}
+            </Button>
+            <Button
               className="gap-2 bg-purple-600 hover:bg-purple-700"
               onClick={handleAutoAssign}
             >
