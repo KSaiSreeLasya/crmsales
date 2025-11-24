@@ -118,34 +118,56 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
             "Duplicate key detected, attempting to update existing records...",
           );
 
-          let updateCount = 0;
-          for (const lead of leadsToSync) {
-            // Find a unique identifier to match on (email or name)
-            const email = lead.email || lead.Email || lead.EMAIL;
-            const name = lead.name || lead.Name || lead.NAME;
+          try {
+            let updateCount = 0;
+            for (const lead of leadsToSync) {
+              // Find a unique identifier to match on (email or name)
+              const email = lead.email || lead.Email || lead.EMAIL;
+              const name = lead.name || lead.Name || lead.NAME;
 
-            if (email) {
-              const { error: updateError } = await supabase
-                .from("leads")
-                .update(lead)
-                .eq("email", email);
-              if (!updateError) updateCount++;
-            } else if (name) {
-              const { error: updateError } = await supabase
-                .from("leads")
-                .update(lead)
-                .eq("name", name);
-              if (!updateError) updateCount++;
+              if (email) {
+                const { error: updateError } = await supabase
+                  .from("leads")
+                  .update(lead)
+                  .eq("email", email);
+                if (!updateError) {
+                  updateCount++;
+                } else {
+                  console.warn(`Failed to update lead with email ${email}:`, updateError);
+                }
+              } else if (name) {
+                const { error: updateError } = await supabase
+                  .from("leads")
+                  .update(lead)
+                  .eq("name", name);
+                if (!updateError) {
+                  updateCount++;
+                } else {
+                  console.warn(`Failed to update lead with name ${name}:`, updateError);
+                }
+              }
             }
-          }
 
-          res.json({
-            success: true,
-            message: `Successfully updated ${updateCount} existing leads`,
-            synced: updateCount,
-            source: source,
-          });
-          return;
+            console.log(
+              `Updated ${updateCount} out of ${leadsToSync.length} leads`,
+            );
+
+            res.json({
+              success: true,
+              message: `Successfully updated ${updateCount} existing leads with all columns`,
+              synced: updateCount,
+              source: source,
+              columnsIncluded: Object.keys(leadsToSync[0]),
+            });
+            return;
+          } catch (updateErr) {
+            console.error("Error during update operation:", updateErr);
+            res.status(500).json({
+              error: "Failed to update duplicate leads",
+              message: updateErr instanceof Error ? updateErr.message : String(updateErr),
+            });
+            return;
+          }
         }
 
         // For other errors, return details
