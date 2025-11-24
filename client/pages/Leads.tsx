@@ -258,6 +258,75 @@ export default function Leads() {
     }
   };
 
+  const syncFromGoogleSheetDynamic = async (
+    sheetId: string,
+    showNotification = false,
+  ) => {
+    setIsSyncing(true);
+    try {
+      const fetchResponse = await fetch(
+        `/api/fetch-google-sheet?spreadsheetId=${SPREADSHEET_ID}&sheetId=${sheetId}`,
+      );
+
+      if (!fetchResponse.ok) {
+        throw new Error("Failed to fetch from Google Sheet");
+      }
+
+      const fetchData = await fetchResponse.json();
+      const rows = fetchData.rows;
+
+      console.log(`Fetched ${rows.length} rows from sheet ${sheetId}`);
+
+      if (rows.length === 0) {
+        if (showNotification) {
+          toast.error("Selected sheet is empty");
+        }
+        setIsSyncing(false);
+        return;
+      }
+
+      // Sync all columns dynamically (no parsing, just pass raw data)
+      const syncResponse = await fetch("/api/sync-leads-dynamic", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          leads: rows,
+          source: "google_sheet",
+          sheetId: sheetId,
+        }),
+      });
+
+      if (!syncResponse.ok) {
+        const error = await syncResponse.json();
+        throw new Error(error.message || "Failed to sync leads");
+      }
+
+      const syncData = await syncResponse.json();
+      console.log(
+        "Sync response:",
+        syncData.message,
+        "Columns:",
+        syncData.columnsIncluded,
+      );
+
+      await loadLeads();
+      if (showNotification) {
+        toast.success(
+          `Synced ${syncData.synced} leads with all columns from sheet`,
+        );
+      }
+    } catch (error) {
+      console.error("Error syncing dynamically from Google Sheet:", error);
+      if (showNotification) {
+        toast.error(
+          error instanceof Error ? error.message : "Failed to sync from sheet",
+        );
+      }
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const handleAutoAssign = async () => {
     if (salespersons.length === 0) {
       toast.error("No salespersons available for assignment");
