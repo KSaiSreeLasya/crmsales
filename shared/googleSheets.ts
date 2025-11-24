@@ -43,7 +43,7 @@ function getColumnValue(
 /**
  * Parse Google Sheet lead row into Lead format
  * Handles exact column names from the sheet
- * Expected column order: Type of Property, Avg Monthly Bill, Full Name, Phone, Email, Street Address, Postal Code
+ * Expected columns: Type of Property, Avg Monthly Bill, Full Name, Phone, Email, Address, Postal Code, Lead Status, Note 1, Note 2
  */
 export function parseLeadRow(row: GoogleSheetRow) {
   let name = "";
@@ -59,112 +59,122 @@ export function parseLeadRow(row: GoogleSheetRow) {
   let note1 = "";
   let note2 = "";
 
-  // Convert row to array for positional access
-  const values = Object.values(row).map((v) => String(v || "").trim());
-  const keys = Object.keys(row);
-
-  // Normalize all keys to lowercase for matching
-  const normalizedRow: { [key: string]: string } = {};
-  const normalizedKeys: { [key: string]: string } = {};
+  // Create a map of normalized keys to original values for matching
+  const columnMap: { [normalizedKey: string]: string } = {};
 
   for (const [key, value] of Object.entries(row)) {
-    const normalizedKey = key.toLowerCase().trim();
+    const normalizedKey = key
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, "_")
+      .replace(/^["']|["']$/g, "");
     const trimmedValue = String(value || "").trim();
-    normalizedRow[normalizedKey] = trimmedValue;
-    normalizedKeys[normalizedKey] = key;
+    columnMap[normalizedKey] = trimmedValue;
   }
 
-  // Strategy 1: Try to match by exact column names (case-insensitive)
-  const keysList = Object.keys(normalizedRow);
+  // Helper function to find a column value by patterns
+  const findColumnValue = (patterns: string[]): string => {
+    for (const pattern of patterns) {
+      const normalizedPattern = pattern
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, "_");
+      if (columnMap[normalizedPattern] && columnMap[normalizedPattern]) {
+        return columnMap[normalizedPattern];
+      }
 
-  // Map columns based on header patterns
-  for (const normalizedKey of keysList) {
-    const value = normalizedRow[normalizedKey];
-    if (!value) continue;
+      // Also try partial matching for flexible columns
+      for (const key in columnMap) {
+        if (
+          key.includes(normalizedPattern) ||
+          normalizedPattern.includes(key)
+        ) {
+          const value = columnMap[key];
+          if (value) {
+            return value;
+          }
+        }
+      }
+    }
+    return "";
+  };
 
-    // Type of Property
-    if (
-      !type_of_property &&
-      normalizedKey.includes("type") &&
-      normalizedKey.includes("property")
-    ) {
-      type_of_property = value;
-    }
-    // Avg Monthly Bill
-    else if (
-      !avg_monthly_bill &&
-      (normalizedKey.includes("avg") ||
-        (normalizedKey.includes("monthly") && normalizedKey.includes("bill")))
-    ) {
-      avg_monthly_bill = value;
-    }
-    // Full Name
-    else if (
-      !name &&
-      (normalizedKey.includes("full") ||
-        (normalizedKey.includes("name") && !normalizedKey.includes("username")))
-    ) {
-      name = value;
-    }
-    // Phone
-    else if (
-      !phone &&
-      (normalizedKey.includes("phone") ||
-        normalizedKey.includes("telephone") ||
-        normalizedKey.includes("mobile"))
-    ) {
-      phone = value;
-    }
-    // Email
-    else if (!email && normalizedKey.includes("email")) {
-      email = value;
-    }
-    // Street Address
-    else if (
-      !street_address &&
-      (normalizedKey.includes("street") ||
-        (normalizedKey.includes("address") && !normalizedKey.includes("email")))
-    ) {
-      street_address = value;
-    }
-    // Postal Code
-    else if (
-      !post_code &&
-      (normalizedKey.includes("post") ||
-        normalizedKey.includes("zip") ||
-        normalizedKey.includes("postal"))
-    ) {
-      post_code = value;
-    }
-    // Lead Status
-    else if (
-      !lead_status &&
-      normalizedKey.includes("lead") &&
-      normalizedKey.includes("status")
-    ) {
-      lead_status = value;
-    }
-    // Electricity Bill
-    else if (!electricity_bill && normalizedKey.includes("electricity")) {
-      electricity_bill = value;
-    }
-    // Note fields
-    else if (
-      !note1 &&
-      (normalizedKey === "note 1" ||
-        normalizedKey === "note1" ||
-        normalizedKey === "note_1")
-    ) {
-      note1 = value;
-    } else if (
-      !note2 &&
-      (normalizedKey === "note 2" ||
-        normalizedKey === "note2" ||
-        normalizedKey === "note_2")
-    ) {
-      note2 = value;
-    }
-  }
+  // Parse each column with multiple possible names
+  type_of_property = findColumnValue([
+    "type_of_property",
+    "type of property",
+    "property_type",
+  ]);
+
+  avg_monthly_bill = findColumnValue([
+    "avg_monthly_bill",
+    "avg monthly bill",
+    "monthly_bill",
+    "average_monthly_bill",
+  ]);
+
+  name = findColumnValue([
+    "full_name",
+    "full name",
+    "name",
+    "full_name",
+  ]);
+
+  phone = findColumnValue([
+    "phone",
+    "phone_no",
+    "phone no",
+    "phone_number",
+    "telephone",
+    "mobile",
+  ]);
+
+  email = findColumnValue([
+    "email",
+    "email_address",
+  ]);
+
+  street_address = findColumnValue([
+    "street_address",
+    "street address",
+    "address",
+    "street",
+  ]);
+
+  post_code = findColumnValue([
+    "postal_code",
+    "postal code",
+    "post_code",
+    "postcode",
+    "zip_code",
+    "zip",
+  ]);
+
+  lead_status = findColumnValue([
+    "lead_status",
+    "lead status",
+    "status",
+  ]);
+
+  electricity_bill = findColumnValue([
+    "electricity_bill",
+    "electricity bill",
+    "electric_bill",
+  ]);
+
+  note1 = findColumnValue([
+    "note_1",
+    "note 1",
+    "note1",
+    "notes_1",
+  ]);
+
+  note2 = findColumnValue([
+    "note_2",
+    "note 2",
+    "note2",
+    "notes_2",
+  ]);
 
   const parsed = {
     name,
@@ -195,7 +205,7 @@ export function parseLeadRow(row: GoogleSheetRow) {
     console.log("✗ Invalid lead (missing name or email):");
     console.log(
       "  Available fields:",
-      Object.keys(normalizedRow).filter((k) => normalizedRow[k]),
+      Object.keys(columnMap).filter((k) => columnMap[k]),
     );
     console.log("  Parsed values:", parsed);
   }
