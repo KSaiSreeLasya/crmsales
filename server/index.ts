@@ -30,6 +30,7 @@ export function createServer() {
 
   // CRM API routes
   app.post("/api/sync-leads", handleSyncLeads);
+  app.post("/api/sync-leads-dynamic", handleSyncLeadsDynamic);
   app.post("/api/sync-salespersons", handleSyncSalespersons);
 
   return app;
