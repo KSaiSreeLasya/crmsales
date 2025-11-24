@@ -1054,9 +1054,9 @@ export default function Leads() {
                             variant="ghost"
                             size="sm"
                             onClick={() => setDeleteId(lead.id)}
-                            className="text-red-600 hover:text-red-700"
+                            className="text-red-600 hover:text-red-700 h-6 w-6 p-0"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-3 w-3" />
                           </Button>
                         </TableCell>
                       </TableRow>
