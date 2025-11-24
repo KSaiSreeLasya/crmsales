@@ -130,17 +130,42 @@ export const handleSyncLeads: RequestHandler = async (req, res) => {
             "Duplicate key detected, attempting to update existing records...",
           );
 
-          for (const lead of leadsToSync) {
-            await supabase.from("leads").update(lead).eq("email", lead.email);
-          }
+          try {
+            let updateCount = 0;
+            for (const lead of leadsToSync) {
+              const { error: updateError } = await supabase
+                .from("leads")
+                .update(lead)
+                .eq("email", lead.email);
+              if (!updateError) {
+                updateCount++;
+              } else {
+                console.warn(
+                  `Failed to update lead with email ${lead.email}:`,
+                  updateError,
+                );
+              }
+            }
 
-          res.json({
-            success: true,
-            message: `Successfully updated existing leads`,
-            synced: leadsToSync.length,
-            source: source,
-          });
-          return;
+            console.log(
+              `Updated ${updateCount} out of ${leadsToSync.length} leads`,
+            );
+
+            res.json({
+              success: true,
+              message: `Successfully updated ${updateCount} existing leads`,
+              synced: updateCount,
+              source: source,
+            });
+            return;
+          } catch (updateErr) {
+            console.error("Error during update operation:", updateErr);
+            res.status(500).json({
+              error: "Failed to update duplicate leads",
+              message: updateErr instanceof Error ? updateErr.message : String(updateErr),
+            });
+            return;
+          }
         }
 
         // For other errors, return details
