@@ -356,9 +356,13 @@ export default function Leads() {
     } catch (error) {
       console.error("Error syncing dynamically from Google Sheet:", error);
       if (showNotification) {
-        toast.error(
-          error instanceof Error ? error.message : "Failed to sync from sheet",
-        );
+        if (error instanceof Error && error.name === "AbortError") {
+          toast.error("Sync request timed out. Server may be busy. Try again later.");
+        } else {
+          toast.error(
+            error instanceof Error ? error.message : "Failed to sync from sheet",
+          );
+        }
       }
     } finally {
       setIsSyncing(false);
