@@ -88,7 +88,11 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
       // Normalize column names and map to Supabase schema
       for (const [key, value] of Object.entries(lead)) {
-        const normalizedKey = key.toLowerCase().trim().replace(/\s+/g, "_").replace(/[?]/g, "");
+        const normalizedKey = key
+          .toLowerCase()
+          .trim()
+          .replace(/\s+/g, "_")
+          .replace(/[?]/g, "");
 
         // Map common column name variations
         let dbColumn = normalizedKey;
@@ -100,15 +104,32 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           dbColumn = "phone";
         } else if (normalizedKey.includes("company")) {
           dbColumn = "company";
-        } else if (normalizedKey.includes("street") || normalizedKey.includes("address")) {
+        } else if (
+          normalizedKey.includes("street") ||
+          normalizedKey.includes("address")
+        ) {
           dbColumn = "street_address";
-        } else if (normalizedKey.includes("post") || normalizedKey.includes("postal") || normalizedKey.includes("zip")) {
+        } else if (
+          normalizedKey.includes("post") ||
+          normalizedKey.includes("postal") ||
+          normalizedKey.includes("zip")
+        ) {
           dbColumn = "post_code";
-        } else if (normalizedKey.includes("lead") && normalizedKey.includes("status")) {
+        } else if (
+          normalizedKey.includes("lead") &&
+          normalizedKey.includes("status")
+        ) {
           dbColumn = "lead_status";
-        } else if (normalizedKey.includes("electricity") || normalizedKey.includes("bill") || normalizedKey.includes("monthly")) {
+        } else if (
+          normalizedKey.includes("electricity") ||
+          normalizedKey.includes("bill") ||
+          normalizedKey.includes("monthly")
+        ) {
           dbColumn = "electricity_bill";
-        } else if (normalizedKey.includes("property") || normalizedKey.includes("type")) {
+        } else if (
+          normalizedKey.includes("property") ||
+          normalizedKey.includes("type")
+        ) {
           dbColumn = "company"; // Store property type in company field
         }
 

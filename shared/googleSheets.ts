@@ -303,12 +303,12 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
     const dataValues = skipFirstColumn ? values.slice(1) : values;
 
     // Check if this is a date row (first non-empty value is a date)
-    const firstValue = dataValues.find(v => v && String(v).trim() !== "");
+    const firstValue = dataValues.find((v) => v && String(v).trim() !== "");
     if (firstValue && isDateRow(String(firstValue))) {
       // This is a date row - preserve it as a special row
       const dateRow: GoogleSheetRow = {
-        "_isDateRow": "true",
-        "_dateValue": String(firstValue).trim(),
+        _isDateRow: "true",
+        _dateValue: String(firstValue).trim(),
       };
       rows.push(dateRow);
       console.log("✓ Found date row:", String(firstValue).trim());
