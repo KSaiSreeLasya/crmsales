@@ -843,19 +843,19 @@ export default function Leads() {
                 <TableHeader>
                   <TableRow className="border-b border-border bg-gray-50">
                     <TableHead className="whitespace-nowrap font-bold text-xs">
-                      FULL NAME
+                      TYPE OF PROPERTY
                     </TableHead>
                     <TableHead className="whitespace-nowrap font-bold text-xs">
-                      EMAIL
+                      AVG MONTHLY BILL
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap font-bold text-xs">
+                      FULL NAME
                     </TableHead>
                     <TableHead className="whitespace-nowrap font-bold text-xs">
                       PHONE NO
                     </TableHead>
                     <TableHead className="whitespace-nowrap font-bold text-xs">
-                      TYPE OF PROPERTY
-                    </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-xs">
-                      AVG MONTHLY BILL
+                      EMAIL
                     </TableHead>
                     <TableHead className="whitespace-nowrap font-bold text-xs">
                       ADDRESS
