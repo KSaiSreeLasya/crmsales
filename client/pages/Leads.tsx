@@ -279,11 +279,23 @@ export default function Leads() {
     sheetId: string,
     showNotification = false,
   ) => {
+    if (isSyncing) {
+      if (showNotification) {
+        toast.info("Sync already in progress...");
+      }
+      return;
+    }
+
     setIsSyncing(true);
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
       const fetchResponse = await fetch(
         `/api/fetch-google-sheet?spreadsheetId=${SPREADSHEET_ID}&sheetId=${sheetId}`,
+        { signal: controller.signal },
       );
+      clearTimeout(timeoutId);
 
       if (!fetchResponse.ok) {
         throw new Error("Failed to fetch from Google Sheet");
@@ -302,7 +314,10 @@ export default function Leads() {
         return;
       }
 
-      // Sync all columns dynamically (no parsing, just pass raw data)
+      // Sync all columns dynamically (no parsing, just pass raw data) with 60 second timeout
+      const syncController = new AbortController();
+      const syncTimeoutId = setTimeout(() => syncController.abort(), 60000);
+
       const syncResponse = await fetch("/api/sync-leads-dynamic", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -311,7 +326,9 @@ export default function Leads() {
           source: "google_sheet",
           sheetId: sheetId,
         }),
+        signal: syncController.signal,
       });
+      clearTimeout(syncTimeoutId);
 
       if (!syncResponse.ok) {
         const error = await syncResponse.json();
