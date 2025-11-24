@@ -126,8 +126,6 @@ export default function Leads() {
   useEffect(() => {
     loadLeads();
     loadSalespersons();
-    // Auto-sync from Google Sheets on page load
-    syncFromGoogleSheet();
   }, []);
 
   const loadLeads = async () => {
