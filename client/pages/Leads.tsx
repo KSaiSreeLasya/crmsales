@@ -1089,10 +1089,10 @@ export default function Leads() {
         </div>
 
         {/* Table */}
-        <Card className="border border-border bg-card">
+        <Card className="border border-border bg-card p-2">
           <div className="overflow-x-auto">
             {isLoading ? (
-              <div className="p-8 text-center">
+              <div className="p-4 text-center">
                 <p className="text-muted-foreground">Loading leads...</p>
               </div>
             ) : (
