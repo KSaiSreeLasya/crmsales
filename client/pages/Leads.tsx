@@ -114,6 +114,13 @@ export default function Leads() {
   });
 
   const [salespersons, setSalespersons] = useState<string[]>([]);
+  const [selectedSheetId, setSelectedSheetId] = useState("0");
+  const [availableSheets, setAvailableSheets] = useState<
+    Array<{ id: string; name: string }>
+  >([
+    { id: "0", name: "Sheet 1" },
+    { id: "1912476701", name: "November" },
+  ]);
 
   // Load leads from Supabase on component mount
   useEffect(() => {
