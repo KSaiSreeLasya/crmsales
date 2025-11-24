@@ -406,19 +406,25 @@ export default function Leads() {
 
       let syncData: any;
 
-      // Always try to parse response, but handle errors gracefully
+      // Clone response to safely read it
       try {
-        const responseText = await syncResponse.text();
+        const clonedResponse = syncResponse.clone();
+        const responseText = await clonedResponse.text();
+
         if (responseText) {
-          syncData = JSON.parse(responseText);
+          try {
+            syncData = JSON.parse(responseText);
+          } catch (jsonError) {
+            console.error("Failed to parse JSON:", jsonError);
+            console.error("Response text was:", responseText);
+            syncData = { error: "Invalid JSON response from server" };
+          }
         }
-      } catch (parseError) {
-        console.error("Failed to parse sync response:", parseError);
-        console.error("Response status:", syncResponse.status);
-        console.error("Response text:", syncResponse);
+      } catch (textError) {
+        console.error("Failed to read response:", textError);
       }
 
-      // Check response status after attempting to parse
+      // Check response status
       if (!syncResponse.ok) {
         const errorMessage = syncData?.message || syncData?.error || syncData?.hint || "Failed to sync leads";
         throw new Error(errorMessage);
