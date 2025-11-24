@@ -68,6 +68,14 @@ export function parseLeadRow(row: GoogleSheetRow) {
     columnMap[normalizedKey] = trimmedValue;
   }
 
+  // Debug: Log all available columns on first few rows
+  if (Object.values(columnMap).some(v => v)) {
+    console.log("=== COLUMN MAPPING DEBUG ===");
+    console.log("Raw keys:", allKeys);
+    console.log("Normalized keys:", Object.keys(columnMap));
+    console.log("Full column map:", columnMap);
+  }
+
   // Helper function to find a column value by searching for key patterns
   const findColumnValue = (patterns: string[]): string => {
     // Try exact matches first
