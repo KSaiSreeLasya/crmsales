@@ -342,6 +342,12 @@ export default function Leads() {
             assigned_to: parsed.assignedTo || "Unassigned",
             note1: parsed.note1 || "",
             note2: parsed.note2 || "",
+            type_of_property: parsed.type_of_property || "",
+            avg_monthly_bill: parsed.avg_monthly_bill || "",
+            street_address: parsed.street_address || "",
+            post_code: parsed.post_code || "",
+            lead_status: parsed.lead_status || "",
+            electricity_bill: parsed.electricity_bill || "",
           };
         })
         .filter((lead) => {
