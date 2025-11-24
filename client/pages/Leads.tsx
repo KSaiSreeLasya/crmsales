@@ -166,8 +166,15 @@ export default function Leads() {
         .order("created_at", { ascending: false });
 
       if (error) {
-        console.error("Error loading leads:", error);
-        if (!error.message.includes("relation") && !error.message.includes("sheet_id")) {
+        const errorMsg = error.message || JSON.stringify(error);
+        console.error("Error loading leads:", errorMsg);
+
+        // Ignore sheet_id column not found error - it might not exist yet
+        if (
+          !errorMsg.includes("relation") &&
+          !errorMsg.includes("sheet_id") &&
+          !errorMsg.includes("column")
+        ) {
           toast.error("Failed to load leads");
         }
         setLeads([]);
@@ -175,7 +182,7 @@ export default function Leads() {
         setLeads(data || []);
       }
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error loading leads:", error instanceof Error ? error.message : String(error));
       setLeads([]);
     } finally {
       setIsLoading(false);
