@@ -42,27 +42,23 @@ function getColumnValue(
 
 /**
  * Parse Google Sheet lead row into Lead format
- * Handles exact column names from the sheet
- * Expected columns: Type of Property, Avg Monthly Bill, Full Name, Phone, Email, Address, Postal Code, Lead Status, Note 1, Note 2
+ * Expected column order:
+ * A: Type of property
+ * B: Monthly electricity bill
+ * C: Full name
+ * D: Phone
+ * E: Email
+ * F: Street address
+ * G: Postal code
+ * H: Lead status
  */
 export function parseLeadRow(row: GoogleSheetRow) {
-  let name = "";
-  let email = "";
-  let phone = "";
-  let company = "N/A";
-  let street_address = "";
-  let post_code = "";
-  let lead_status = "";
-  let electricity_bill = "";
-  let type_of_property = "";
-  let avg_monthly_bill = "";
-  let note1 = "";
-  let note2 = "";
-
-  // Create a map of normalized keys to original values for matching
+  // Create a map of normalized keys to values for flexible matching
   const columnMap: { [normalizedKey: string]: string } = {};
+  const allKeys: string[] = [];
 
   for (const [key, value] of Object.entries(row)) {
+    allKeys.push(key);
     const normalizedKey = key
       .toLowerCase()
       .trim()
@@ -72,23 +68,27 @@ export function parseLeadRow(row: GoogleSheetRow) {
     columnMap[normalizedKey] = trimmedValue;
   }
 
-  // Helper function to find a column value by patterns
+  // Helper function to find a column value by searching for key patterns
   const findColumnValue = (patterns: string[]): string => {
+    // Try exact matches first
     for (const pattern of patterns) {
       const normalizedPattern = pattern
         .toLowerCase()
         .trim()
         .replace(/\s+/g, "_");
-      if (columnMap[normalizedPattern] && columnMap[normalizedPattern]) {
+
+      if (columnMap[normalizedPattern]) {
         return columnMap[normalizedPattern];
       }
+    }
 
-      // Also try partial matching for flexible columns
+    // Try partial/fuzzy matching
+    for (const pattern of patterns) {
+      const normalizedPattern = pattern.toLowerCase().trim();
+
       for (const key in columnMap) {
-        if (
-          key.includes(normalizedPattern) ||
-          normalizedPattern.includes(key)
-        ) {
+        // Check if pattern appears in key or key appears in pattern
+        if (key.includes(normalizedPattern) || normalizedPattern.includes(key)) {
           const value = columnMap[key];
           if (value) {
             return value;
@@ -96,98 +96,89 @@ export function parseLeadRow(row: GoogleSheetRow) {
         }
       }
     }
+
     return "";
   };
 
-  // Parse each column with multiple possible names
-  type_of_property = findColumnValue([
+  // Parse columns with flexible matching
+  const type_of_property = findColumnValue([
     "type_of_property",
     "type of property",
-    "property_type",
+    "what_type_of_property",
   ]);
 
-  avg_monthly_bill = findColumnValue([
-    "avg_monthly_bill",
-    "avg monthly bill",
+  const avg_monthly_bill = findColumnValue([
+    "monthly_electricity_bill",
+    "electricity_bill",
     "monthly_bill",
-    "average_monthly_bill",
+    "current_bill",
+    "what_is_your_current_electricity_bill",
   ]);
 
-  name = findColumnValue([
+  const name = findColumnValue([
     "full_name",
     "full name",
     "name",
-    "full_name",
   ]);
 
-  phone = findColumnValue([
+  const phone = findColumnValue([
     "phone",
     "phone_no",
     "phone no",
     "phone_number",
-    "telephone",
-    "mobile",
   ]);
 
-  email = findColumnValue([
+  const email = findColumnValue([
     "email",
     "email_address",
   ]);
 
-  street_address = findColumnValue([
+  const street_address = findColumnValue([
     "street_address",
     "street address",
     "address",
-    "street",
   ]);
 
-  post_code = findColumnValue([
+  const post_code = findColumnValue([
     "postal_code",
     "postal code",
     "post_code",
     "postcode",
-    "zip_code",
-    "zip",
   ]);
 
-  lead_status = findColumnValue([
+  const lead_status = findColumnValue([
     "lead_status",
     "lead status",
-    "status",
   ]);
 
-  electricity_bill = findColumnValue([
-    "electricity_bill",
-    "electricity bill",
-    "electric_bill",
-  ]);
-
-  note1 = findColumnValue([
+  const note1 = findColumnValue([
     "note_1",
     "note 1",
     "note1",
     "notes_1",
+    "feedback",
   ]);
 
-  note2 = findColumnValue([
+  const note2 = findColumnValue([
     "note_2",
     "note 2",
     "note2",
     "notes_2",
+    "notes",
   ]);
 
   const parsed = {
     name,
     email,
     phone,
-    company,
+    company: "N/A",
     street_address,
     post_code,
     lead_status,
-    electricity_bill,
+    electricity_bill: avg_monthly_bill,
     type_of_property,
     avg_monthly_bill,
-    status: "Not lifted",
+    status: "Not lifted" as const,
     assignedTo: "Unassigned",
     note1: note1 || "",
     note2: note2 || "",
@@ -203,11 +194,13 @@ export function parseLeadRow(row: GoogleSheetRow) {
     });
   } else {
     console.log("✗ Invalid lead (missing name or email):");
+    console.log("  Row keys:", allKeys);
     console.log(
-      "  Available fields:",
-      Object.keys(columnMap).filter((k) => columnMap[k]),
+      "  Available values:",
+      Object.keys(columnMap)
+        .filter((k) => columnMap[k])
+        .map((k) => `${k}=${columnMap[k]}`),
     );
-    console.log("  Parsed values:", parsed);
   }
 
   return parsed;
