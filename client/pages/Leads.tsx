@@ -1001,7 +1001,7 @@ export default function Leads() {
                 <TableBody>
                   {filteredLeads.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={13} className="py-8 text-center">
+                      <TableCell colSpan={14} className="py-8 text-center">
                         <p className="text-muted-foreground">
                           No leads found.{" "}
                           {displayRows.length === 0 &&
@@ -1018,7 +1018,7 @@ export default function Leads() {
                             className="border-b border-border bg-blue-50 hover:bg-blue-100"
                           >
                             <TableCell
-                              colSpan={13}
+                              colSpan={14}
                               className="py-3 text-center font-semibold text-blue-700"
                             >
                               📅 {row._dateValue}
@@ -1033,10 +1033,10 @@ export default function Leads() {
                           className="border-b border-border hover:bg-gray-50"
                         >
                           <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                            {lead.company || "-"}
+                            {lead.type_of_property || "-"}
                           </TableCell>
                           <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                            {lead.electricity_bill || "-"}
+                            {lead.avg_monthly_bill || "-"}
                           </TableCell>
                           <TableCell className="font-medium text-foreground whitespace-nowrap text-xs">
                             {lead.name}
