@@ -171,12 +171,24 @@ export default function Leads() {
   };
 
   const syncFromGoogleSheet = async (showNotification = false) => {
+    if (isSyncing) {
+      if (showNotification) {
+        toast.info("Sync already in progress...");
+      }
+      return;
+    }
+
     setIsSyncing(true);
     try {
-      // Fetch from server endpoint (avoids CORS issues)
+      // Fetch from server endpoint (avoids CORS issues) with 30 second timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
       const fetchResponse = await fetch(
         `/api/fetch-google-sheet?spreadsheetId=${SPREADSHEET_ID}&sheetId=0`,
+        { signal: controller.signal },
       );
+      clearTimeout(timeoutId);
 
       if (!fetchResponse.ok) {
         throw new Error("Failed to fetch from Google Sheet");
