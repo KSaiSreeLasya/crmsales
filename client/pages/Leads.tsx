@@ -1186,10 +1186,10 @@ export default function Leads() {
                           <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
                             {lead.phone}
                           </TableCell>
-                          <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                          <TableCell className="text-muted-foreground truncate max-w-[120px]">
                             {lead.email}
                           </TableCell>
-                          <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                          <TableCell className="text-muted-foreground truncate max-w-[100px]">
                             {lead.street_address || "-"}
                           </TableCell>
                           <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
