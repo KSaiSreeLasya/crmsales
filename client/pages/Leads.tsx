@@ -103,7 +103,9 @@ const STATUS_OPTIONS: LeadStatus[] = [
 const SPREADSHEET_ID = "1QY8_Q8-ybLKNVs4hynPZslZDwUfC-PIJrViJfL0-tpM";
 
 export default function Leads() {
+  const { user } = useAuth();
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [assignedLeads, setAssignedLeads] = useState<Lead[]>([]);
   const [dateRows, setDateRows] = useState<DateRowMarker[]>([]);
   const [displayRows, setDisplayRows] = useState<DisplayRow[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -113,6 +115,9 @@ export default function Leads() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"all" | "assigned">(
+    user?.role === "salesperson" ? "assigned" : "all",
+  );
   const [editingNote, setEditingNote] = useState<{
     leadId: string;
     field: "note1" | "note2";
