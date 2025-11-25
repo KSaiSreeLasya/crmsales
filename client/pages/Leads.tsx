@@ -731,7 +731,10 @@ export default function Leads() {
     try {
       const { error } = await supabase
         .from("leads")
-        .update({ [field]: value })
+        .update({
+          [field]: value,
+          updated_at: new Date().toISOString(),
+        })
         .eq("id", leadId);
 
       if (error) throw error;
