@@ -1,15 +1,8 @@
 import { Link, useLocation } from "react-router-dom";
-import { cn } from "@/lib/utils";
+import { LogOut, LayoutDashboard, Users, UserCheck, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  LayoutDashboard,
-  Users,
-  UserCheck,
-  Settings,
-  Menu,
-  X,
-} from "lucide-react";
-import { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { toast } from "sonner";
 
 interface CRMLayoutProps {
   children: React.ReactNode;
@@ -17,67 +10,101 @@ interface CRMLayoutProps {
 
 export function CRMLayout({ children }: CRMLayoutProps) {
   const location = useLocation();
+  const { user, logout } = useAuth();
 
   const navItems = [
     { label: "Dashboard", href: "/", icon: LayoutDashboard },
     { label: "Leads", href: "/leads", icon: Users },
-    { label: "Salespersons", href: "/salespersons", icon: UserCheck },
+    // Only show Salespersons management to admin
+    ...(user?.role === "admin"
+      ? [{ label: "Salespersons", href: "/salespersons", icon: UserCheck }]
+      : []),
     { label: "Settings", href: "/settings", icon: Settings },
   ];
 
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast.success("Logged out successfully");
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast.error("Failed to logout");
+    }
+  };
+
   return (
-    <div className="flex flex-col h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card shadow-sm">
-        <div className="flex h-20 items-center justify-between px-8">
-          <div className="flex items-center gap-4">
-            <img
-              src="https://cdn.builder.io/api/v1/image/assets%2Ffe77690ee7b847c09f597f304a115791%2F5ed4952b10dc4593b47df2356cc6b459?format=webp&width=100"
-              alt="Axiso Green Energy Logo"
-              className="h-12 w-12 object-contain"
-            />
-            <div className="flex flex-col">
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+    <div className="flex h-screen bg-background">
+      {/* Sidebar */}
+      <aside className="w-64 border-r border-border bg-card">
+        <div className="h-full flex flex-col">
+          {/* Logo */}
+          <div className="p-6 border-b border-border">
+            <h1 className="text-2xl font-bold text-primary">Axiso Green</h1>
+            <p className="text-xs text-muted-foreground mt-1">Sales CRM</p>
+          </div>
+
+          {/* Navigation */}
+          <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = location.pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${
+                    isActive
+                      ? "bg-primary text-primary-foreground"
+                      : "text-foreground hover:bg-accent"
+                  }`}
+                >
+                  <Icon className="h-5 w-5" />
+                  <span className="text-sm font-medium">{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* User Info and Logout */}
+          <div className="p-4 border-t border-border space-y-2">
+            <div className="px-4 py-2 bg-accent rounded-lg">
+              <p className="text-xs text-muted-foreground">Logged in as:</p>
+              <p className="text-sm font-semibold text-foreground">{user?.name}</p>
+              <p className="text-xs text-muted-foreground capitalize">
+                {user?.role}
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full justify-start gap-2"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-4 w-4" />
+              Logout
+            </Button>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col overflow-hidden">
+        {/* Header */}
+        <header className="border-b border-border bg-card">
+          <div className="h-16 px-6 flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">
                 Axiso Green Energy
-              </h1>
-              <p className="text-base font-bold text-foreground">Sales CRM</p>
+              </h2>
+              <p className="text-sm text-muted-foreground">Sales Management</p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-accent shadow-md"></div>
-          </div>
+        </header>
+
+        {/* Content Area */}
+        <div className="flex-1 overflow-auto">
+          {children}
         </div>
-      </header>
-
-      {/* Top Navigation */}
-      <nav className="border-b border-border bg-card px-8 py-0">
-        <div className="flex items-center justify-center gap-8">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.href;
-
-            return (
-              <Link
-                key={item.href}
-                to={item.href}
-                className={cn(
-                  "flex items-center gap-2 px-4 py-4 text-sm font-medium transition-all duration-200 border-b-2 border-transparent",
-                  isActive
-                    ? "border-primary text-primary"
-                    : "text-foreground hover:text-primary",
-                )}
-              >
-                <Icon className="h-5 w-5" />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
-
-      {/* Main Content Area */}
-      <main className="flex-1 overflow-auto bg-background">
-        <div className="h-full">{children}</div>
       </main>
     </div>
   );
