@@ -231,6 +231,9 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       if (!syncData.created_at) syncData.created_at = now;
       if (!syncData.updated_at) syncData.updated_at = now;
 
+      // Set sheet_id so leads are associated with correct sheet
+      syncData.sheet_id = sheetId || "0";
+
       return syncData;
     });
 
