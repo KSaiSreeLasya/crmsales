@@ -754,8 +754,16 @@ export default function Leads() {
       const today = new Date();
 
       // Use UTC dates to avoid timezone issues
-      const dateUTC = new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
-      const todayUTC = new Date(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
+      const dateUTC = new Date(
+        date.getUTCFullYear(),
+        date.getUTCMonth(),
+        date.getUTCDate(),
+      );
+      const todayUTC = new Date(
+        today.getUTCFullYear(),
+        today.getUTCMonth(),
+        today.getUTCDate(),
+      );
 
       return dateUTC.getTime() === todayUTC.getTime();
     } catch (e) {
