@@ -178,7 +178,8 @@ export default function Leads() {
         .from("leads")
         .select("*")
         .eq("sheet_id", selectedSheetId)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false });
 
       if (error) {
         const errorMsg = error.message || JSON.stringify(error);
@@ -196,7 +197,8 @@ export default function Leads() {
           const { data: fallbackData, error: fallbackError } = await supabase
             .from("leads")
             .select("*")
-            .order("created_at", { ascending: false });
+            .order("created_at", { ascending: false })
+            .order("id", { ascending: false });
 
           if (fallbackError) {
             console.error("Error in fallback load:", fallbackError.message);
@@ -624,6 +626,7 @@ export default function Leads() {
             note2: formData.note2,
             status: formData.status,
             assigned_to: formData.assigned_to || "Unassigned",
+            updated_at: new Date().toISOString(),
           })
           .eq("id", editingId);
 
@@ -729,7 +732,10 @@ export default function Leads() {
     try {
       const { error } = await supabase
         .from("leads")
-        .update({ [field]: value })
+        .update({
+          [field]: value,
+          updated_at: new Date().toISOString(),
+        })
         .eq("id", leadId);
 
       if (error) throw error;
@@ -739,6 +745,54 @@ export default function Leads() {
       console.error("Error updating note:", error);
       toast.error("Failed to update note");
     }
+  };
+
+  const isToday = (dateString?: string) => {
+    if (!dateString) return false;
+    try {
+      const date = new Date(dateString);
+      const today = new Date();
+
+      // Use UTC dates to avoid timezone issues
+      const dateUTC = new Date(
+        date.getUTCFullYear(),
+        date.getUTCMonth(),
+        date.getUTCDate(),
+      );
+      const todayUTC = new Date(
+        today.getUTCFullYear(),
+        today.getUTCMonth(),
+        today.getUTCDate(),
+      );
+
+      return dateUTC.getTime() === todayUTC.getTime();
+    } catch (e) {
+      return false;
+    }
+  };
+
+  const isZipcodeInRange = (zipcode?: string) => {
+    if (!zipcode) return false;
+    const zip = parseInt(zipcode, 10);
+    return zip >= 500000 && zip <= 509999;
+  };
+
+  const getRowHighlightClass = (lead: Lead) => {
+    const createdToday = isToday(lead.created_at);
+    const updatedToday = isToday(lead.updated_at);
+    const isTargetZipcode = isZipcodeInRange(lead.post_code);
+
+    // Priority: zipcode range (blue) > updated today (green) > created today (yellow) > default
+    if (isTargetZipcode) {
+      return "bg-blue-50 hover:bg-blue-100";
+    }
+    if (updatedToday) {
+      return "bg-green-50 hover:bg-green-100";
+    }
+    if (createdToday) {
+      return "bg-yellow-50 hover:bg-yellow-100";
+    }
+    return "hover:bg-gray-50";
   };
 
   const filteredLeads = displayRows.filter((row) => {
@@ -1187,7 +1241,7 @@ export default function Leads() {
                       return (
                         <TableRow
                           key={lead.id}
-                          className="border-b border-border hover:bg-gray-50"
+                          className={`border-b border-border ${getRowHighlightClass(lead)}`}
                         >
                           <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
                             {lead.type_of_property || "-"}
@@ -1296,6 +1350,7 @@ export default function Leads() {
                                     .from("leads")
                                     .update({
                                       status: e.target.value as LeadStatus,
+                                      updated_at: new Date().toISOString(),
                                     })
                                     .eq("id", lead.id);
                                   await loadLeads();
@@ -1323,7 +1378,10 @@ export default function Leads() {
                                 try {
                                   await supabase
                                     .from("leads")
-                                    .update({ assigned_to: e.target.value })
+                                    .update({
+                                      assigned_to: e.target.value,
+                                      updated_at: new Date().toISOString(),
+                                    })
                                     .eq("id", lead.id);
                                   await loadLeads();
                                 } catch (error) {

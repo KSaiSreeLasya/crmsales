@@ -39,22 +39,13 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
     // For dynamic sync, validate that rows have meaningful data and required fields
     const validLeads = leads.filter((lead) => {
-      // Get email and name-like fields to check
-      const normalizedKeys = Object.keys(lead).map((k) =>
-        k.toLowerCase().trim().replace(/\s+/g, "_"),
-      );
-
-      // Check for email field
-      let emailValue = "";
       let nameValue = "";
+      let phoneValue = "";
 
       for (const [key, value] of Object.entries(lead)) {
         const normalizedKey = key.toLowerCase().trim().replace(/\s+/g, "_");
         const strValue = String(value || "").trim();
 
-        if (normalizedKey.includes("email") && strValue) {
-          emailValue = strValue;
-        }
         if (
           (normalizedKey.includes("full") || normalizedKey.includes("name")) &&
           strValue &&
@@ -62,18 +53,26 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         ) {
           nameValue = strValue;
         }
+        if (
+          (normalizedKey.includes("phone") ||
+            normalizedKey.includes("phone_no") ||
+            normalizedKey.includes("contact")) &&
+          strValue
+        ) {
+          phoneValue = strValue;
+        }
       }
 
-      // Must have both email and name to be valid
-      const hasEmail = emailValue.length > 0 && emailValue !== "N/A";
+      // Must have both name and phone to be valid
       const hasName = nameValue.length > 0;
+      const hasPhone = phoneValue.length > 0;
 
       const nonEmptyFields = Object.values(lead).filter(
         (v) => v !== undefined && v !== null && String(v).trim() !== "",
       ).length;
 
-      // Must have at least 2 non-empty fields AND valid email and name
-      return hasEmail && hasName && nonEmptyFields >= 2;
+      // Must have at least 2 non-empty fields AND valid name and phone
+      return hasName && hasPhone && nonEmptyFields >= 2;
     });
 
     console.log("Valid leads after filtering:", validLeads.length);
@@ -226,6 +225,14 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       if (!syncData.status) syncData.status = "Not lifted";
       if (!syncData.assigned_to) syncData.assigned_to = "Unassigned";
 
+      // Set timestamps to ensure they're properly recorded
+      const now = new Date().toISOString();
+      if (!syncData.created_at) syncData.created_at = now;
+      if (!syncData.updated_at) syncData.updated_at = now;
+
+      // Set sheet_id so leads are associated with correct sheet
+      syncData.sheet_id = sheetId || "0";
+
       return syncData;
     });
 
@@ -263,10 +270,16 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
               const email = lead.email || lead.Email || lead.EMAIL;
               const name = lead.name || lead.Name || lead.NAME;
 
+              // Update timestamp when updating existing records
+              const updateData = {
+                ...lead,
+                updated_at: new Date().toISOString(),
+              };
+
               if (email) {
                 const { error: updateError } = await supabase
                   .from("leads")
-                  .update(lead)
+                  .update(updateData)
                   .eq("email", email);
                 if (!updateError) {
                   updateCount++;
@@ -279,7 +292,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
               } else if (name) {
                 const { error: updateError } = await supabase
                   .from("leads")
-                  .update(lead)
+                  .update(updateData)
                   .eq("name", name);
                 if (!updateError) {
                   updateCount++;
