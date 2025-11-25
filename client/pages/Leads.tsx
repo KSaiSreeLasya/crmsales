@@ -763,10 +763,21 @@ export default function Leads() {
     }
   };
 
+  const isZipcodeInRange = (zipcode?: string) => {
+    if (!zipcode) return false;
+    const zip = parseInt(zipcode, 10);
+    return zip >= 500000 && zip <= 509999;
+  };
+
   const getRowHighlightClass = (lead: Lead) => {
     const createdToday = isToday(lead.created_at);
     const updatedToday = isToday(lead.updated_at);
+    const isTargetZipcode = isZipcodeInRange(lead.post_code);
 
+    // Priority: zipcode range (blue) > updated today (green) > created today (yellow) > default
+    if (isTargetZipcode) {
+      return "bg-blue-50 hover:bg-blue-100";
+    }
     if (updatedToday) {
       return "bg-green-50 hover:bg-green-100";
     }
