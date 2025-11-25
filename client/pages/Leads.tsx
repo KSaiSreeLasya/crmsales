@@ -265,6 +265,17 @@ export default function Leads() {
     }
   };
 
+  const loadAssignedLeads = async () => {
+    if (!user?.name) return;
+
+    try {
+      const data = await getAssignedLeads(user.name);
+      setAssignedLeads(data);
+    } catch (error) {
+      console.error("Error loading assigned leads:", error);
+    }
+  };
+
   const loadAvailableSheets = async () => {
     setIsLoadingSheets(true);
     try {
