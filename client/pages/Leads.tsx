@@ -745,13 +745,18 @@ export default function Leads() {
 
   const isToday = (dateString?: string) => {
     if (!dateString) return false;
-    const date = new Date(dateString);
-    const today = new Date();
-    return (
-      date.getDate() === today.getDate() &&
-      date.getMonth() === today.getMonth() &&
-      date.getFullYear() === today.getFullYear()
-    );
+    try {
+      const date = new Date(dateString);
+      const today = new Date();
+
+      // Use UTC dates to avoid timezone issues
+      const dateUTC = new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+      const todayUTC = new Date(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
+
+      return dateUTC.getTime() === todayUTC.getTime();
+    } catch (e) {
+      return false;
+    }
   };
 
   const getRowHighlightClass = (lead: Lead) => {
