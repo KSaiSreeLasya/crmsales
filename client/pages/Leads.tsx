@@ -178,7 +178,8 @@ export default function Leads() {
         .from("leads")
         .select("*")
         .eq("sheet_id", selectedSheetId)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false });
 
       if (error) {
         const errorMsg = error.message || JSON.stringify(error);
@@ -196,7 +197,8 @@ export default function Leads() {
           const { data: fallbackData, error: fallbackError } = await supabase
             .from("leads")
             .select("*")
-            .order("created_at", { ascending: false });
+            .order("created_at", { ascending: false })
+            .order("id", { ascending: false });
 
           if (fallbackError) {
             console.error("Error in fallback load:", fallbackError.message);
