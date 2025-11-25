@@ -743,6 +743,30 @@ export default function Leads() {
     }
   };
 
+  const isToday = (dateString?: string) => {
+    if (!dateString) return false;
+    const date = new Date(dateString);
+    const today = new Date();
+    return (
+      date.getDate() === today.getDate() &&
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear()
+    );
+  };
+
+  const getRowHighlightClass = (lead: Lead) => {
+    const createdToday = isToday(lead.created_at);
+    const updatedToday = isToday(lead.updated_at);
+
+    if (updatedToday) {
+      return "bg-green-50 hover:bg-green-100";
+    }
+    if (createdToday) {
+      return "bg-yellow-50 hover:bg-yellow-100";
+    }
+    return "hover:bg-gray-50";
+  };
+
   const filteredLeads = displayRows.filter((row) => {
     // Always show date rows
     if (isDateRow(row)) {
@@ -1189,7 +1213,7 @@ export default function Leads() {
                       return (
                         <TableRow
                           key={lead.id}
-                          className="border-b border-border hover:bg-gray-50"
+                          className={`border-b border-border ${getRowHighlightClass(lead)}`}
                         >
                           <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
                             {lead.type_of_property || "-"}
