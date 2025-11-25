@@ -1358,7 +1358,10 @@ export default function Leads() {
                                 try {
                                   await supabase
                                     .from("leads")
-                                    .update({ assigned_to: e.target.value })
+                                    .update({
+                                      assigned_to: e.target.value,
+                                      updated_at: new Date().toISOString(),
+                                    })
                                     .eq("id", lead.id);
                                   await loadLeads();
                                 } catch (error) {
