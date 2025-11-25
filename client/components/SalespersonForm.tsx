@@ -26,7 +26,12 @@ export function SalespersonForm({ onSuccess }: SalespersonFormProps) {
 
     try {
       // Validate inputs
-      if (!formData.name || !formData.email || !formData.phone || !formData.password) {
+      if (
+        !formData.name ||
+        !formData.email ||
+        !formData.phone ||
+        !formData.password
+      ) {
         throw new Error("All fields are required");
       }
 
@@ -43,7 +48,7 @@ export function SalespersonForm({ onSuccess }: SalespersonFormProps) {
     } catch (error) {
       console.error("Error adding salesperson:", error);
       toast.error(
-        error instanceof Error ? error.message : "Failed to add salesperson"
+        error instanceof Error ? error.message : "Failed to add salesperson",
       );
     } finally {
       setIsLoading(false);
@@ -116,11 +121,7 @@ export function SalespersonForm({ onSuccess }: SalespersonFormProps) {
           </div>
         </div>
 
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={isLoading}
-        >
+        <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading ? "Adding..." : "Add Salesperson"}
         </Button>
       </form>

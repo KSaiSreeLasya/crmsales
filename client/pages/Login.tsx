@@ -24,7 +24,9 @@ export default function Login() {
     } catch (error) {
       console.error("Login error:", error);
       toast.error(
-        error instanceof Error ? error.message : "Failed to login. Please check your credentials."
+        error instanceof Error
+          ? error.message
+          : "Failed to login. Please check your credentials.",
       );
     } finally {
       setIsLoading(false);
@@ -69,11 +71,7 @@ export default function Login() {
               />
             </div>
 
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isLoading}
-            >
+            <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "Logging in..." : "Login"}
             </Button>
           </form>

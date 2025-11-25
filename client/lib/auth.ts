@@ -13,7 +13,7 @@ export interface AuthUser {
 export async function signUp(
   email: string,
   password: string,
-  userData: { name: string; phone: string; role: "admin" | "salesperson" }
+  userData: { name: string; phone: string; role: "admin" | "salesperson" },
 ) {
   try {
     // Create auth user

@@ -1,5 +1,11 @@
 import { Link, useLocation } from "react-router-dom";
-import { LogOut, LayoutDashboard, Users, UserCheck, Settings } from "lucide-react";
+import {
+  LogOut,
+  LayoutDashboard,
+  Users,
+  UserCheck,
+  Settings,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
@@ -69,7 +75,9 @@ export function CRMLayout({ children }: CRMLayoutProps) {
           <div className="p-4 border-t border-border space-y-2">
             <div className="px-4 py-2 bg-accent rounded-lg">
               <p className="text-xs text-muted-foreground">Logged in as:</p>
-              <p className="text-sm font-semibold text-foreground">{user?.name}</p>
+              <p className="text-sm font-semibold text-foreground">
+                {user?.name}
+              </p>
               <p className="text-xs text-muted-foreground capitalize">
                 {user?.role}
               </p>
@@ -102,9 +110,7 @@ export function CRMLayout({ children }: CRMLayoutProps) {
         </header>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-auto">
-          {children}
-        </div>
+        <div className="flex-1 overflow-auto">{children}</div>
       </main>
     </div>
   );

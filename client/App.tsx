@@ -42,14 +42,39 @@ function AppRoutes() {
   if (user) {
     return (
       <Routes>
+        <Route path="/login" element={<Navigate to="/" replace />} />
         <Route
-          path="/login"
-          element={<Navigate to="/" replace />}
+          path="/"
+          element={
+            <ProtectedRoute>
+              <Index />
+            </ProtectedRoute>
+          }
         />
-        <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-        <Route path="/leads" element={<ProtectedRoute><Leads /></ProtectedRoute>} />
-        <Route path="/salespersons" element={<ProtectedRoute><Salespersons /></ProtectedRoute>} />
-        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+        <Route
+          path="/leads"
+          element={
+            <ProtectedRoute>
+              <Leads />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/salespersons"
+          element={
+            <ProtectedRoute>
+              <Salespersons />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <Settings />
+            </ProtectedRoute>
+          }
+        />
         <Route path="*" element={<NotFound />} />
       </Routes>
     );
