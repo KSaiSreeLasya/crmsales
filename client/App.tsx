@@ -63,9 +63,9 @@ function AppRoutes() {
         <Route
           path="/salespersons"
           element={
-            <ProtectedRoute>
+            <AdminRoute>
               <Salespersons />
-            </ProtectedRoute>
+            </AdminRoute>
           }
         />
         <Route
