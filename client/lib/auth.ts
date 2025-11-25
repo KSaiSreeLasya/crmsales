@@ -185,10 +185,7 @@ export async function getAllUsers(): Promise<AuthUser[]> {
 /**
  * Update user (admin only)
  */
-export async function updateUser(
-  userId: string,
-  updates: Partial<AuthUser>,
-) {
+export async function updateUser(userId: string, updates: Partial<AuthUser>) {
   try {
     const { data, error } = await supabase
       .from("users")

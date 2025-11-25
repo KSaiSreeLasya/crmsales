@@ -85,8 +85,7 @@ export const handleCreateUser: RequestHandler = async (req, res) => {
   } catch (error) {
     console.error("Create user error:", error);
     return res.status(500).json({
-      message:
-        error instanceof Error ? error.message : "Internal server error",
+      message: error instanceof Error ? error.message : "Internal server error",
     });
   }
 };
@@ -137,8 +136,7 @@ export const handleDeleteUser: RequestHandler = async (req, res) => {
   } catch (error) {
     console.error("Delete user error:", error);
     return res.status(500).json({
-      message:
-        error instanceof Error ? error.message : "Internal server error",
+      message: error instanceof Error ? error.message : "Internal server error",
     });
   }
 };
@@ -174,8 +172,7 @@ export const handleUpdatePassword: RequestHandler = async (req, res) => {
   } catch (error) {
     console.error("Update password error:", error);
     return res.status(500).json({
-      message:
-        error instanceof Error ? error.message : "Internal server error",
+      message: error instanceof Error ? error.message : "Internal server error",
     });
   }
 };

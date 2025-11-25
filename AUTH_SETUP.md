@@ -5,6 +5,7 @@ This guide explains how to set up the authentication system with Supabase Auth a
 ## Overview
 
 The authentication system provides:
+
 - Email/password authentication via Supabase Auth
 - Role-based access control (Admin vs Salesperson)
 - Admin panel for user management
@@ -27,6 +28,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
 
 You can find these values in your Supabase project:
+
 1. Go to your Supabase dashboard
 2. Navigate to **Settings > API**
 3. Copy the **Project URL** and **anon/public key**
@@ -179,12 +181,14 @@ ON CONFLICT (email) DO NOTHING;
 ### Creating Users (Admin Only)
 
 Once logged in as admin, go to **Team Management** and:
+
 1. Click "Add User"
 2. Fill in Name, Email, Phone, Role
 3. Set an initial password
 4. Click "Create User"
 
 The system will:
+
 - Create a Supabase Auth account with the email/password
 - Create a user profile in the users table
 - The user can then login with their credentials
@@ -192,6 +196,7 @@ The system will:
 ### Viewing Assigned Leads (Salesperson)
 
 When a salesperson logs in:
+
 1. They can see **All Leads** tab with leads assigned to their name
 2. They can also see a **My Leads** tab showing only their assigned leads
 3. They can update the status of their assigned leads
@@ -238,6 +243,7 @@ Email: `admin@axisogreen.in`
 Password: `admin2024`
 
 After login, admin should:
+
 1. See Dashboard
 2. See Leads page with all leads
 3. See Team Management in sidebar
@@ -246,6 +252,7 @@ After login, admin should:
 ### Test Salesperson Login
 
 Create a new salesperson user via Team Management, then:
+
 1. Login with their credentials
 2. Should NOT see Team Management in sidebar
 3. Should see Leads page with "All Leads" and "My Leads" tabs
@@ -320,6 +327,7 @@ ALTER TABLE salespersons DISABLE ROW LEVEL SECURITY;
 ### Salesperson can see Team Management
 
 **Solution**: This shouldn't happen. Check that:
+
 1. User role is set to 'salesperson' (not 'admin')
 2. You're viewing the latest code (clear browser cache)
 3. Logout and login again
@@ -327,6 +335,7 @@ ALTER TABLE salespersons DISABLE ROW LEVEL SECURITY;
 ### Can't create users via Team Management
 
 **Solution**: Check that:
+
 1. You're logged in as an admin
 2. Server is running (check `/api/admin/create-user` endpoint)
 3. Check browser console for error messages
@@ -362,6 +371,7 @@ VITE_SUPABASE_ANON_KEY=<your-supabase-anon-key>
 ## Support
 
 For issues or questions, refer to the troubleshooting section above or check:
+
 - Supabase docs: https://supabase.com/docs
 - Browser console for error messages
 - Supabase dashboard logs
