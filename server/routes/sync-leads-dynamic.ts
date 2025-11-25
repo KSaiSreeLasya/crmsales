@@ -226,6 +226,11 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       if (!syncData.status) syncData.status = "Not lifted";
       if (!syncData.assigned_to) syncData.assigned_to = "Unassigned";
 
+      // Set timestamps to ensure they're properly recorded
+      const now = new Date().toISOString();
+      if (!syncData.created_at) syncData.created_at = now;
+      if (!syncData.updated_at) syncData.updated_at = now;
+
       return syncData;
     });
 
