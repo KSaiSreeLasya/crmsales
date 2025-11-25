@@ -37,7 +37,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Plus, Search, Edit2, Trash2, Key } from "lucide-react";
 import { useState, useEffect } from "react";
-import { toast } from "soner";
+import { toast } from "sonner";
 import { createUser, deleteUser, getAllUsers, updateUser } from "@/lib/auth";
 import { useAuth } from "@/context/AuthContext";
 import { Navigate } from "react-router-dom";
