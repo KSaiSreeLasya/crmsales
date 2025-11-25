@@ -268,10 +268,16 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
               const email = lead.email || lead.Email || lead.EMAIL;
               const name = lead.name || lead.Name || lead.NAME;
 
+              // Update timestamp when updating existing records
+              const updateData = {
+                ...lead,
+                updated_at: new Date().toISOString(),
+              };
+
               if (email) {
                 const { error: updateError } = await supabase
                   .from("leads")
-                  .update(lead)
+                  .update(updateData)
                   .eq("email", email);
                 if (!updateError) {
                   updateCount++;
@@ -284,7 +290,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
               } else if (name) {
                 const { error: updateError } = await supabase
                   .from("leads")
-                  .update(lead)
+                  .update(updateData)
                   .eq("name", name);
                 if (!updateError) {
                   updateCount++;
