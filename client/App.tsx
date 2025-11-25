@@ -8,6 +8,7 @@ import { ThemeProvider } from "next-themes";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { AdminRoute } from "./components/AdminRoute";
 import Index from "./pages/Index";
 import Leads from "./pages/Leads";
 import Salespersons from "./pages/Salespersons";
