@@ -158,7 +158,10 @@ export default function Leads() {
   useEffect(() => {
     loadLeads();
     loadSalespersons();
-  }, [selectedSheetId]);
+    if (user?.name && user?.role === "salesperson") {
+      loadAssignedLeads();
+    }
+  }, [selectedSheetId, user?.name, user?.role]);
 
   // Combine leads and date rows for display
   useEffect(() => {
