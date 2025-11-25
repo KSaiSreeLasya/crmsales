@@ -35,12 +35,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Search, Trash2, RefreshCw, Zap } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { parseLeadRow } from "@shared/googleSheets";
+import { useAuth } from "@/context/AuthContext";
+import { getAssignedLeads } from "@/lib/auth";
 
 type LeadStatus =
   | "New"
