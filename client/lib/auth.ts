@@ -74,12 +74,13 @@ export async function createUser(
       }),
     });
 
+    // Read response body once
+    const data = await response.json();
+
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to create user");
+      throw new Error(data.message || "Failed to create user");
     }
 
-    const data = await response.json();
     return data;
   } catch (error) {
     console.error("Create user error:", error);
