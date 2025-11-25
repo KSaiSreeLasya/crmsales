@@ -1141,34 +1141,50 @@ export default function Leads() {
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              placeholder="Search by name, email, phone, company..."
-              className="pl-9 py-1.5 text-xs h-8"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-40 h-8 text-xs">
-              <SelectValue placeholder="All statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              {STATUS_OPTIONS.map((status) => (
-                <SelectItem key={status} value={status}>
-                  {status}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {/* Tabs for All Leads and Assigned Leads */}
+        <Tabs
+          value={activeTab}
+          onValueChange={(value) => setActiveTab(value as "all" | "assigned")}
+          className="w-full"
+        >
+          <TabsList>
+            <TabsTrigger value="all">All Leads ({leads.length})</TabsTrigger>
+            {user?.role === "salesperson" && (
+              <TabsTrigger value="assigned">
+                My Leads ({assignedLeads.length})
+              </TabsTrigger>
+            )}
+          </TabsList>
 
-        {/* Table */}
-        <Card className="border border-border bg-card p-2">
+          <TabsContent value="all" className="space-y-3">
+            {/* Filters */}
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  placeholder="Search by name, email, phone, company..."
+                  className="pl-9 py-1.5 text-xs h-8"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="w-40 h-8 text-xs">
+                  <SelectValue placeholder="All statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
+                  {STATUS_OPTIONS.map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {status}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Table */}
+            <Card className="border border-border bg-card p-2">
           <div className="overflow-x-auto">
             {isLoading ? (
               <div className="p-4 text-center">
@@ -1438,8 +1454,83 @@ export default function Leads() {
                 </TableBody>
               </Table>
             )}
-          </div>
-        </Card>
+            </div>
+          </Card>
+          </TabsContent>
+
+          <TabsContent value="assigned" className="space-y-3">
+            {isLoading ? (
+              <Card className="border border-border bg-card p-8 text-center">
+                <p className="text-muted-foreground">Loading your assigned leads...</p>
+              </Card>
+            ) : assignedLeads.length === 0 ? (
+              <Card className="border border-border bg-card p-8 text-center">
+                <p className="text-muted-foreground">No leads assigned to you yet.</p>
+              </Card>
+            ) : (
+              <Card className="border border-border bg-card p-2">
+                <div className="overflow-x-auto">
+                  <Table className="[&_th]:h-4 [&_th]:px-1 [&_td]:px-0.5 [&_td]:py-0.5 text-[9px] leading-tight">
+                    <TableHeader>
+                      <TableRow className="border-b border-border bg-gray-50">
+                        <TableHead className="whitespace-nowrap font-bold text-[11px]">NAME</TableHead>
+                        <TableHead className="whitespace-nowrap font-bold text-[11px]">PHONE</TableHead>
+                        <TableHead className="whitespace-nowrap font-bold text-[11px]">EMAIL</TableHead>
+                        <TableHead className="whitespace-nowrap font-bold text-[11px]">STATUS</TableHead>
+                        <TableHead className="whitespace-nowrap font-bold text-[11px]">ADDR</TableHead>
+                        <TableHead className="whitespace-nowrap font-bold text-[11px]">ZIP</TableHead>
+                        <TableHead className="whitespace-nowrap font-bold text-[11px]">NOTES</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {assignedLeads.map((lead) => (
+                        <TableRow key={lead.id} className="border-b border-border hover:bg-gray-50">
+                          <TableCell className="font-medium text-foreground text-xs">{lead.name}</TableCell>
+                          <TableCell className="text-muted-foreground text-xs">{lead.phone}</TableCell>
+                          <TableCell className="text-muted-foreground text-xs truncate max-w-[100px]">{lead.email}</TableCell>
+                          <TableCell className="text-xs">
+                            <select
+                              value={lead.status}
+                              onChange={async (e) => {
+                                try {
+                                  await supabase
+                                    .from("leads")
+                                    .update({
+                                      status: e.target.value as LeadStatus,
+                                      updated_at: new Date().toISOString(),
+                                    })
+                                    .eq("id", lead.id);
+                                  await loadAssignedLeads();
+                                } catch (error) {
+                                  console.error("Error updating status:", error);
+                                  toast.error("Failed to update status");
+                                }
+                              }}
+                              className="rounded border border-border bg-background px-1.5 py-0.5 text-xs"
+                            >
+                              {STATUS_OPTIONS.map((status) => (
+                                <option key={status} value={status}>
+                                  {status}
+                                </option>
+                              ))}
+                            </select>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-xs">{lead.street_address || "-"}</TableCell>
+                          <TableCell className="text-muted-foreground text-xs">{lead.post_code || "-"}</TableCell>
+                          <TableCell className="text-xs">
+                            {lead.note1 && <div>• {lead.note1}</div>}
+                            {lead.note2 && <div>• {lead.note2}</div>}
+                            {!lead.note1 && !lead.note2 && <span className="text-muted-foreground">-</span>}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </Card>
+            )}
+          </TabsContent>
+        </Tabs>
 
         {/* Delete Confirmation Dialog */}
         <AlertDialog
