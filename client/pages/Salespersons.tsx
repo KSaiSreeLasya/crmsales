@@ -202,9 +202,10 @@ export default function Salespersons() {
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to update password");
+        throw new Error(data.message || "Failed to update password");
       }
 
       toast.success("Password updated successfully");
