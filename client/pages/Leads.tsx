@@ -1330,6 +1330,7 @@ export default function Leads() {
                                     .from("leads")
                                     .update({
                                       status: e.target.value as LeadStatus,
+                                      updated_at: new Date().toISOString(),
                                     })
                                     .eq("id", lead.id);
                                   await loadLeads();
