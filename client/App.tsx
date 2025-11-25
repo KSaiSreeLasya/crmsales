@@ -90,6 +90,14 @@ function AppRoutes() {
   );
 }
 
+function AppContent() {
+  return (
+    <BrowserRouter>
+      <AppRoutes />
+    </BrowserRouter>
+  );
+}
+
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
     <QueryClientProvider client={queryClient}>
@@ -97,9 +105,7 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter>
-            <AppRoutes />
-          </BrowserRouter>
+          <AppContent />
         </TooltipProvider>
       </AuthProvider>
     </QueryClientProvider>
