@@ -626,6 +626,7 @@ export default function Leads() {
             note2: formData.note2,
             status: formData.status,
             assigned_to: formData.assigned_to || "Unassigned",
+            updated_at: new Date().toISOString(),
           })
           .eq("id", editingId);
 
