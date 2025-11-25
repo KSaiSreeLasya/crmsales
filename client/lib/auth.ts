@@ -220,9 +220,10 @@ export async function deleteUser(userId: string) {
       body: JSON.stringify({ userId }),
     });
 
+    const data = await response.json();
+
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to delete user");
+      throw new Error(data.message || "Failed to delete user");
     }
 
     return true;
