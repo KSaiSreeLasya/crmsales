@@ -29,9 +29,9 @@ export const handleCreateUser: RequestHandler = async (req, res) => {
   try {
     const { email, password, name, phone, role } = req.body;
 
-    if (!email || !password || !name || !phone || !role) {
+    if (!email || !password || !name || !role) {
       return res.status(400).json({
-        message: "Missing required fields: email, password, name, phone, role",
+        message: "Missing required fields: email, password, name, role",
       });
     }
 
@@ -62,7 +62,6 @@ export const handleCreateUser: RequestHandler = async (req, res) => {
         id: authData.user.id,
         email,
         name,
-        phone,
         role,
       });
 
@@ -76,13 +75,13 @@ export const handleCreateUser: RequestHandler = async (req, res) => {
         });
       }
 
-      return res.json({
+      return res.status(201).json({
+        success: true,
         message: "User created successfully",
         user: {
           id: authData.user.id,
           email,
           name,
-          phone,
           role,
         },
       });
@@ -94,6 +93,7 @@ export const handleCreateUser: RequestHandler = async (req, res) => {
   } catch (error) {
     console.error("Create user error:", error);
     return res.status(500).json({
+      success: false,
       message: error instanceof Error ? error.message : "Internal server error",
     });
   }
