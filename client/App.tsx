@@ -63,6 +63,14 @@ function AppRoutes() {
           }
         />
         <Route
+          path="/kanban"
+          element={
+            <ProtectedRoute>
+              <KanbanBoard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/team"
           element={
             <ProtectedRoute>
