@@ -29,18 +29,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } = await supabase.auth.getSession();
 
         if (session?.user) {
-          const { data: profile } = await supabase
-            .from("users")
-            .select("*")
-            .eq("id", session.user.id)
-            .single();
+          try {
+            const response = await fetch(
+              `/api/user-profile?userId=${encodeURIComponent(session.user.id)}`,
+            );
+            const profileData = await response.json();
 
-          if (profile) {
+            if (response.ok && profileData.profile) {
+              setUser({
+                id: profileData.profile.id,
+                email: profileData.profile.email,
+                role: profileData.profile.role,
+                name: profileData.profile.name,
+              });
+            } else {
+              // Fallback to session user
+              setUser({
+                id: session.user.id,
+                email: session.user.email || "",
+                role: "salesperson",
+                name: session.user.user_metadata?.name || session.user.email || "",
+              });
+            }
+          } catch (error) {
+            console.error("Error fetching user profile:", error);
+            // Fallback to session user
             setUser({
-              id: profile.id,
-              email: profile.email,
-              role: profile.role,
-              name: profile.name,
+              id: session.user.id,
+              email: session.user.email || "",
+              role: "salesperson",
+              name: session.user.user_metadata?.name || session.user.email || "",
             });
           }
         }
