@@ -31,12 +31,24 @@ export const handleLogin: RequestHandler = async (req, res) => {
       return res.status(401).json({ error: "No user returned from auth" });
     }
 
+    // Fetch user profile to get role and other metadata
+    const { data: profileData, error: profileError } = await supabase
+      .from("users")
+      .select("*")
+      .eq("id", data.user.id)
+      .single();
+
+    const role = profileData?.role || "salesperson";
+    const name = profileData?.name || data.user.user_metadata?.name || data.user.email;
+
     res.json({
       success: true,
       user: {
         id: data.user.id,
         email: data.user.email,
-        name: data.user.user_metadata?.name || data.user.email,
+        name: name,
+        role: role,
+        phone: profileData?.phone,
       },
       session: {
         access_token: data.session?.access_token,
