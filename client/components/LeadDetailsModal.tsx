@@ -499,7 +499,8 @@ export function LeadDetailsModal({
         await loadActivityLogs();
       }
     } catch (error) {
-      console.error(`Error updating ${field}:`, error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error(`Error updating ${field}:`, errorMessage);
       toast.error(`Failed to update ${field}`);
     }
   };
