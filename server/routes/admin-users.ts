@@ -131,6 +131,13 @@ export const handleDeleteUser: RequestHandler = async (req, res) => {
       });
     }
 
+    // Get user info before deletion to check role
+    const { data: userData } = await supabase
+      .from("users")
+      .select("name, role")
+      .eq("id", userId)
+      .single();
+
     // Delete user profile from database
     const { error: profileError } = await supabase
       .from("users")
@@ -143,6 +150,19 @@ export const handleDeleteUser: RequestHandler = async (req, res) => {
         success: false,
         message: profileError.message || "Failed to delete user profile",
       });
+    }
+
+    // If user was a salesperson, also delete from salespersons table
+    if (userData?.role === "salesperson" && userData?.name) {
+      const { error: salespersonError } = await supabase
+        .from("salespersons")
+        .delete()
+        .eq("name", userData.name);
+
+      if (salespersonError) {
+        console.error("Salesperson deletion error:", salespersonError);
+        // Log but don't fail - user already deleted from users table
+      }
     }
 
     // Delete auth user
