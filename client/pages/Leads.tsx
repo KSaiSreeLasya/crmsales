@@ -1587,8 +1587,7 @@ export default function Leads() {
                                   }
                                   onBlur={() => setEditingNote(null)}
                                   onKeyDown={(e) => {
-                                    if (e.key === "Enter")
-                                      setEditingNote(null);
+                                    if (e.key === "Enter") setEditingNote(null);
                                   }}
                                   className="text-xs"
                                 />
@@ -1625,8 +1624,7 @@ export default function Leads() {
                                   }
                                   onBlur={() => setEditingNote(null)}
                                   onKeyDown={(e) => {
-                                    if (e.key === "Enter")
-                                      setEditingNote(null);
+                                    if (e.key === "Enter") setEditingNote(null);
                                   }}
                                   className="text-xs"
                                 />

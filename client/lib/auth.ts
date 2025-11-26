@@ -83,7 +83,9 @@ export async function createUser(
       } else {
         const text = await response.text();
         console.error("Server returned non-JSON response:", text);
-        throw new Error(`Server error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Server error: ${response.status} ${response.statusText}`,
+        );
       }
     } catch (e) {
       if (e instanceof Error && e.message.startsWith("Server error:")) {
@@ -265,7 +267,9 @@ export async function deleteUser(userId: string) {
       } else {
         const text = await response.text();
         console.error("Server returned non-JSON response:", text);
-        throw new Error(`Server error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Server error: ${response.status} ${response.statusText}`,
+        );
       }
     } catch (e) {
       if (e instanceof Error && e.message.startsWith("Server error:")) {
