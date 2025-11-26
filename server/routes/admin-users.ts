@@ -109,6 +109,7 @@ export const handleDeleteUser: RequestHandler = async (req, res) => {
 
     if (!userId) {
       return res.status(400).json({
+        success: false,
         message: "Missing required field: userId",
       });
     }
@@ -122,6 +123,7 @@ export const handleDeleteUser: RequestHandler = async (req, res) => {
     if (profileError) {
       console.error("Profile deletion error:", profileError);
       return res.status(400).json({
+        success: false,
         message: profileError.message || "Failed to delete user profile",
       });
     }
@@ -133,6 +135,7 @@ export const handleDeleteUser: RequestHandler = async (req, res) => {
       console.error("Auth deletion error:", authError);
       // Profile already deleted, but auth deletion failed
       return res.status(400).json({
+        success: false,
         message:
           authError.message ||
           "User profile deleted but auth account deletion failed",
@@ -140,11 +143,13 @@ export const handleDeleteUser: RequestHandler = async (req, res) => {
     }
 
     return res.json({
+      success: true,
       message: "User deleted successfully",
     });
   } catch (error) {
     console.error("Delete user error:", error);
     return res.status(500).json({
+      success: false,
       message: error instanceof Error ? error.message : "Internal server error",
     });
   }
