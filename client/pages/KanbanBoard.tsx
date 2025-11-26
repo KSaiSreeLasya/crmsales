@@ -381,6 +381,17 @@ function KanbanBoardContent({
           </p>
         </Card>
       )}
+
+      {leads.length === 0 && !searchTerm && (
+        <Card className="p-8 text-center border border-gray-200 bg-blue-50">
+          <p className="text-muted-foreground mb-4">
+            No leads in Quotation sent, Site visit, or Advance payment statuses yet.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Leads will appear here once you move them to these stages.
+          </p>
+        </Card>
+      )}
     </div>
   );
 }
