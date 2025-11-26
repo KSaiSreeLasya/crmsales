@@ -20,7 +20,6 @@ import { CSS } from "@dnd-kit/utilities";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { useAuth } from "@/context/AuthContext";
 import {
   BarChart,
   Bar,
@@ -155,26 +154,91 @@ function KanbanColumn({ status, leads, count }: KanbanColumnProps) {
   );
 }
 
+interface KanbanDndContentProps {
+  leads: Lead[];
+  filteredLeads: Lead[];
+  leadsByStatus: Record<KanbanStatus, Lead[]>;
+  analyticsData: Array<{ status: string; count: number; fill: string }>;
+  activeId: string | null;
+  onDragStart: (event: any) => void;
+  onDragEnd: (event: DragEndEvent) => void;
+}
+
+function KanbanDndContent({
+  leads,
+  filteredLeads,
+  leadsByStatus,
+  analyticsData,
+  activeId,
+  onDragStart,
+  onDragEnd,
+}: KanbanDndContentProps) {
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      distance: 8,
+    })
+  );
+
+  const KANBAN_STATUSES: KanbanStatus[] = [
+    "Quotation sent",
+    "Site visit",
+    "Advance payment",
+  ];
+
+  const activeLead = leads.find((l) => l.id === activeId);
+
+  return (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCorners}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+    >
+      <div className="flex gap-4 overflow-x-auto pb-4 -mx-8 px-8">
+        {KANBAN_STATUSES.map((status) => (
+          <KanbanColumn
+            key={status}
+            status={status}
+            leads={leadsByStatus[status]}
+            count={leadsByStatus[status].length}
+          />
+        ))}
+      </div>
+
+      <DragOverlay>
+        {activeLead ? (
+          <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-lg max-w-sm">
+            <div className="space-y-2">
+              <h4 className="font-semibold text-sm text-foreground">
+                {activeLead.name}
+              </h4>
+              <p className="text-xs text-muted-foreground">
+                {activeLead.company}
+              </p>
+            </div>
+          </div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
+  );
+}
+
+interface KanbanBoardContentProps {
+  leads: Lead[];
+  isLoading: boolean;
+  searchTerm: string;
+  onSearchChange: (term: string) => void;
+  onLeadsUpdate: (leads: Lead[]) => void;
+}
+
 function KanbanBoardContent({
   leads,
   isLoading,
   searchTerm,
   onSearchChange,
   onLeadsUpdate,
-}: {
-  leads: Lead[];
-  isLoading: boolean;
-  searchTerm: string;
-  onSearchChange: (term: string) => void;
-  onLeadsUpdate: (leads: Lead[]) => void;
-}) {
+}: KanbanBoardContentProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      distance: 8,
-    })
-  );
 
   const KANBAN_STATUSES: KanbanStatus[] = [
     "Quotation sent",
@@ -243,12 +307,6 @@ function KanbanBoardContent({
       const lead = leads.find((l) => l.id === leadId);
       const newStatus = over.id as KanbanStatus;
 
-      const KANBAN_STATUSES: KanbanStatus[] = [
-        "Quotation sent",
-        "Site visit",
-        "Advance payment",
-      ];
-
       if (!lead || !KANBAN_STATUSES.includes(newStatus as any)) return;
       if (lead.status === newStatus) return;
 
@@ -260,7 +318,6 @@ function KanbanBoardContent({
 
         if (error) throw error;
 
-        // Update local state
         onLeadsUpdate(
           leads.map((l) => (l.id === leadId ? { ...l, status: newStatus } : l))
         );
@@ -271,10 +328,8 @@ function KanbanBoardContent({
         toast.error("Failed to update lead status");
       }
     },
-    [leads, onLeadsUpdate]
+    [leads, onLeadsUpdate, KANBAN_STATUSES]
   );
-
-  const activeLead = leads.find((l) => l.id === activeId);
 
   if (isLoading) {
     return (
@@ -338,8 +393,8 @@ function KanbanBoardContent({
               <div className="pt-2 border-t border-gray-200">
                 <p className="text-xs text-muted-foreground">
                   {Math.round(
-                    (item.count / filteredLeads.length) * 100
-                  ) || 0}%
+                    (item.count / (filteredLeads.length || 1)) * 100
+                  )}%
                   of total
                 </p>
               </div>
@@ -367,38 +422,15 @@ function KanbanBoardContent({
       )}
 
       {/* Kanban Board */}
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCorners}
+      <KanbanDndContent
+        leads={leads}
+        filteredLeads={filteredLeads}
+        leadsByStatus={leadsByStatus}
+        analyticsData={analyticsData}
+        activeId={activeId}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
-      >
-        <div className="flex gap-4 overflow-x-auto pb-4 -mx-8 px-8">
-          {KANBAN_STATUSES.map((status) => (
-            <KanbanColumn
-              key={status}
-              status={status}
-              leads={leadsByStatus[status]}
-              count={leadsByStatus[status].length}
-            />
-          ))}
-        </div>
-
-        <DragOverlay>
-          {activeLead ? (
-            <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-lg max-w-sm">
-              <div className="space-y-2">
-                <h4 className="font-semibold text-sm text-foreground">
-                  {activeLead.name}
-                </h4>
-                <p className="text-xs text-muted-foreground">
-                  {activeLead.company}
-                </p>
-              </div>
-            </div>
-          ) : null}
-        </DragOverlay>
-      </DndContext>
+      />
 
       {filteredLeads.length === 0 && searchTerm && (
         <Card className="p-8 text-center border border-gray-200">
@@ -435,25 +467,25 @@ export default function KanbanBoard() {
   ];
 
   useEffect(() => {
+    const loadLeads = async () => {
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from("leads")
+          .select("*")
+          .in("status", KANBAN_STATUSES);
+
+        if (error) throw error;
+        setLeads(data || []);
+      } catch (error) {
+        console.error("Error loading leads:", error);
+        toast.error("Failed to load leads");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     loadLeads();
-  }, []);
-
-  const loadLeads = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from("leads")
-        .select("*")
-        .in("status", KANBAN_STATUSES);
-
-      if (error) throw error;
-      setLeads(data || []);
-    } catch (error) {
-      console.error("Error loading leads:", error);
-      toast.error("Failed to load leads");
-    } finally {
-      setIsLoading(false);
-    }
   }, []);
 
   return (
