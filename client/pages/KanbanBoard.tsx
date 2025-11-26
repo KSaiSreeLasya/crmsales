@@ -21,6 +21,7 @@ import { useDroppable } from "@dnd-kit/core";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { LeadDetailsModal } from "@/components/LeadDetailsModal";
 import {
   BarChart,
   Bar,
@@ -55,13 +56,25 @@ interface Lead {
   updated_at?: string;
 }
 
-function LeadCard({ lead }: { lead: Lead }) {
-  const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({ id: lead.id });
+function LeadCard({ lead, onClick }: { lead: Lead; onClick: () => void }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: lead.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+  };
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    if (!isDragging) {
+      onClick();
+    }
   };
 
   return (
@@ -70,6 +83,7 @@ function LeadCard({ lead }: { lead: Lead }) {
       style={style}
       {...attributes}
       {...listeners}
+      onClick={handleCardClick}
       className="bg-white rounded-lg border border-gray-200 p-4 cursor-grab active:cursor-grabbing shadow-sm hover:shadow-md transition-shadow"
     >
       <div className="space-y-2">
@@ -101,9 +115,15 @@ interface KanbanColumnProps {
   status: KanbanStatus;
   leads: Lead[];
   count: number;
+  onLeadClick: (lead: Lead) => void;
 }
 
-function KanbanColumn({ status, leads, count }: KanbanColumnProps) {
+function KanbanColumn({
+  status,
+  leads,
+  count,
+  onLeadClick,
+}: KanbanColumnProps) {
   const { setNodeRef } = useDroppable({
     id: status,
   });
@@ -154,7 +174,13 @@ function KanbanColumn({ status, leads, count }: KanbanColumnProps) {
               <p>No leads in this status</p>
             </div>
           ) : (
-            leads.map((lead) => <LeadCard key={lead.id} lead={lead} />)
+            leads.map((lead) => (
+              <LeadCard
+                key={lead.id}
+                lead={lead}
+                onClick={() => onLeadClick(lead)}
+              />
+            ))
           )}
         </div>
       </SortableContext>
@@ -168,6 +194,7 @@ interface KanbanBoardInnerProps {
   activeId: string | null;
   onDragStart: (event: any) => void;
   onDragEnd: (event: DragEndEvent) => void;
+  onLeadClick: (lead: Lead) => void;
 }
 
 function KanbanBoardInner({
@@ -176,6 +203,7 @@ function KanbanBoardInner({
   activeId,
   onDragStart,
   onDragEnd,
+  onLeadClick,
 }: KanbanBoardInnerProps) {
   const KANBAN_STATUSES: KanbanStatus[] = [
     "Quotation sent",
@@ -194,6 +222,7 @@ function KanbanBoardInner({
             status={status}
             leads={leadsByStatus[status]}
             count={leadsByStatus[status].length}
+            onLeadClick={onLeadClick}
           />
         ))}
       </div>
@@ -232,12 +261,35 @@ function KanbanBoardContent({
   onLeadsUpdate,
 }: KanbanBoardContentProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [openDetailsModal, setOpenDetailsModal] = useState(false);
+  const [salespersons, setSalespersons] = useState<string[]>([]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
       distance: 8,
     }),
   );
+
+  useEffect(() => {
+    const loadSalespersons = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("users")
+          .select("name")
+          .eq("role", "salesperson")
+          .order("name");
+
+        if (!error && data) {
+          setSalespersons(data.map((s) => s.name));
+        }
+      } catch (error) {
+        console.error("Error loading salespersons:", error);
+      }
+    };
+
+    loadSalespersons();
+  }, []);
 
   const KANBAN_STATUSES: KanbanStatus[] = [
     "Quotation sent",
@@ -294,6 +346,21 @@ function KanbanBoardContent({
   const handleDragStart = useCallback((event: any) => {
     setActiveId(event.active.id);
   }, []);
+
+  const handleLeadClick = useCallback((lead: Lead) => {
+    setSelectedLead(lead);
+    setOpenDetailsModal(true);
+  }, []);
+
+  const handleLeadUpdate = useCallback(
+    (updatedLead: Lead) => {
+      onLeadsUpdate(
+        leads.map((l) => (l.id === updatedLead.id ? updatedLead : l)),
+      );
+      setSelectedLead(updatedLead);
+    },
+    [leads, onLeadsUpdate],
+  );
 
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
@@ -434,8 +501,18 @@ function KanbanBoardContent({
           activeId={activeId}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
+          onLeadClick={handleLeadClick}
         />
       </DndContext>
+
+      {/* Lead Details Modal */}
+      <LeadDetailsModal
+        open={openDetailsModal}
+        onOpenChange={setOpenDetailsModal}
+        lead={selectedLead}
+        onLeadUpdate={handleLeadUpdate}
+        salespersons={salespersons}
+      />
 
       {filteredLeads.length === 0 && searchTerm && (
         <Card className="p-8 text-center border border-gray-200">

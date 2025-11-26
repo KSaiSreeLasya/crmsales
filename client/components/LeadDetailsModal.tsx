@@ -21,7 +21,7 @@ import {
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
-import { X } from "lucide-react";
+import { X, Download } from "lucide-react";
 
 type LeadStatus =
   | "New"
@@ -104,6 +104,206 @@ function formatDateIST(dateString?: string): string {
   } catch {
     return "-";
   }
+}
+
+function generateReceiptHTML(lead: Lead): string {
+  const receiptDate = new Date().toLocaleDateString("en-IN", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  const receiptTime = new Date().toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+
+  const receiptId = `RCP-${lead.id.substring(0, 8).toUpperCase()}-${Date.now().toString().slice(-6)}`;
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Advance Payment Receipt</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background-color: white;
+      padding: 40px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+      border-bottom: 3px solid #8b5cf6;
+      padding-bottom: 20px;
+    }
+    .header h1 {
+      margin: 0;
+      color: #8b5cf6;
+      font-size: 28px;
+    }
+    .header p {
+      margin: 5px 0;
+      color: #666;
+      font-size: 14px;
+    }
+    .receipt-id {
+      background-color: #f9fafb;
+      padding: 10px 15px;
+      border-radius: 4px;
+      font-weight: bold;
+      color: #1f2937;
+      text-align: center;
+      margin: 15px 0;
+    }
+    .section {
+      margin: 20px 0;
+    }
+    .section-title {
+      font-weight: bold;
+      color: #1f2937;
+      border-bottom: 2px solid #e5e7eb;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+      font-size: 14px;
+      text-transform: uppercase;
+    }
+    .field {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #f3f4f6;
+      font-size: 14px;
+    }
+    .field-label {
+      font-weight: 600;
+      color: #374151;
+      width: 40%;
+    }
+    .field-value {
+      color: #6b7280;
+      word-break: break-word;
+      width: 60%;
+      text-align: right;
+    }
+    .footer {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 2px solid #e5e7eb;
+      text-align: center;
+      font-size: 12px;
+      color: #9ca3af;
+    }
+    .status-badge {
+      display: inline-block;
+      background-color: #a855f7;
+      color: white;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>⚡ AXIS GREEN</h1>
+      <p>Advance Payment Receipt</p>
+    </div>
+
+    <div class="receipt-id">
+      Receipt ID: ${receiptId}
+    </div>
+
+    <div class="section">
+      <div class="section-title">Receipt Information</div>
+      <div class="field">
+        <span class="field-label">Receipt Date</span>
+        <span class="field-value">${receiptDate}</span>
+      </div>
+      <div class="field">
+        <span class="field-label">Receipt Time</span>
+        <span class="field-value">${receiptTime} IST</span>
+      </div>
+      <div class="field">
+        <span class="field-label">Status</span>
+        <span class="field-value"><span class="status-badge">Advance Payment</span></span>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Customer Information</div>
+      <div class="field">
+        <span class="field-label">Name</span>
+        <span class="field-value">${lead.name}</span>
+      </div>
+      <div class="field">
+        <span class="field-label">Email</span>
+        <span class="field-value">${lead.email}</span>
+      </div>
+      <div class="field">
+        <span class="field-label">Phone</span>
+        <span class="field-value">${lead.phone}</span>
+      </div>
+      <div class="field">
+        <span class="field-label">Company</span>
+        <span class="field-value">${lead.company || "-"}</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Property Details</div>
+      <div class="field">
+        <span class="field-label">Street Address</span>
+        <span class="field-value">${lead.street_address || "-"}</span>
+      </div>
+      <div class="field">
+        <span class="field-label">Post Code</span>
+        <span class="field-value">${lead.post_code || "-"}</span>
+      </div>
+      <div class="field">
+        <span class="field-label">Type of Property</span>
+        <span class="field-value">${lead.type_of_property || "-"}</span>
+      </div>
+      <div class="field">
+        <span class="field-label">Average Monthly Bill</span>
+        <span class="field-value">₹${lead.avg_monthly_bill || "-"}</span>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p>This is an electronically generated receipt. For any queries, please contact support.</p>
+      <p>Generated on ${receiptDate} at ${receiptTime} IST</p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+}
+
+function downloadReceipt(lead: Lead): void {
+  const htmlContent = generateReceiptHTML(lead);
+  const blob = new Blob([htmlContent], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `Receipt-${lead.name.replace(/\s+/g, "-")}-${new Date().getTime()}.html`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
 
 interface LeadDetailsModalProps {
