@@ -1351,19 +1351,34 @@ export default function Leads() {
                               >
                                 {lead.name}
                               </TableCell>
-                              <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                              <TableCell
+                                className="text-muted-foreground text-xs whitespace-nowrap cursor-pointer hover:bg-blue-100"
+                                onClick={() => handleOpenLeadDetails(lead)}
+                              >
                                 {lead.phone}
                               </TableCell>
-                              <TableCell className="text-muted-foreground truncate max-w-[120px]">
+                              <TableCell
+                                className="text-muted-foreground truncate max-w-[120px] cursor-pointer hover:bg-blue-100"
+                                onClick={() => handleOpenLeadDetails(lead)}
+                              >
                                 {lead.email}
                               </TableCell>
-                              <TableCell className="text-muted-foreground truncate max-w-[100px]">
+                              <TableCell
+                                className="text-muted-foreground truncate max-w-[100px] cursor-pointer hover:bg-blue-100"
+                                onClick={() => handleOpenLeadDetails(lead)}
+                              >
                                 {lead.street_address || "-"}
                               </TableCell>
-                              <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                              <TableCell
+                                className="text-muted-foreground text-xs whitespace-nowrap cursor-pointer hover:bg-blue-100"
+                                onClick={() => handleOpenLeadDetails(lead)}
+                              >
                                 {lead.post_code || "-"}
                               </TableCell>
-                              <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                              <TableCell
+                                className="text-muted-foreground text-xs whitespace-nowrap cursor-pointer hover:bg-blue-100"
+                                onClick={() => handleOpenLeadDetails(lead)}
+                              >
                                 {lead.lead_status || "-"}
                               </TableCell>
                               <TableCell className="text-xs whitespace-nowrap">
