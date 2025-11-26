@@ -122,6 +122,7 @@ export default function Leads() {
     leadId: string;
     field: "note1" | "note2";
   } | null>(null);
+  const [editingNoteContent, setEditingNoteContent] = useState<string>("");
   const [formData, setFormData] = useState({
     name: "",
     email: "",
