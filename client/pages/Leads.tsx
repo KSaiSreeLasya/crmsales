@@ -760,7 +760,7 @@ export default function Leads() {
     }
   };
 
-  const handleNoteUpdate = async (
+  const saveNoteUpdate = async (
     leadId: string,
     field: "note1" | "note2",
     value: string,
@@ -777,9 +777,21 @@ export default function Leads() {
       if (error) throw error;
       await loadLeads();
       setEditingNote(null);
+      setEditingNoteContent("");
     } catch (error) {
       console.error("Error updating note:", error);
       toast.error("Failed to update note");
+    }
+  };
+
+  const handleNoteClickEdit = (leadId: string, field: "note1" | "note2", currentValue: string) => {
+    setEditingNote({ leadId, field });
+    setEditingNoteContent(currentValue || "");
+  };
+
+  const handleNoteSave = async () => {
+    if (editingNote) {
+      await saveNoteUpdate(editingNote.leadId, editingNote.field, editingNoteContent);
     }
   };
 
