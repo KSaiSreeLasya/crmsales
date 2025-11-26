@@ -98,11 +98,13 @@ export default function Salespersons() {
         const combinedUsers: User[] = [...data];
 
         for (const sp of salespersons) {
-          // Check if this salesperson already exists in users table
+          // Check if this salesperson already exists in users table by email
           const exists = combinedUsers.some(u => u.email === sp.email);
           if (!exists) {
+            // For legacy salespersons, use their salespersons table ID
+            // They can be edited and updated in the users table
             combinedUsers.push({
-              id: sp.id,
+              id: sp.id, // Use salespersons table ID so we can identify them
               name: sp.name,
               email: sp.email,
               phone: sp.phone || "",
