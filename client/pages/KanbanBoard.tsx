@@ -56,13 +56,19 @@ interface Lead {
   updated_at?: string;
 }
 
-function LeadCard({ lead }: { lead: Lead }) {
-  const { attributes, listeners, setNodeRef, transform, transition } =
+function LeadCard({ lead, onClick }: { lead: Lead; onClick: () => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: lead.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+  };
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    if (!isDragging) {
+      onClick();
+    }
   };
 
   return (
@@ -71,6 +77,7 @@ function LeadCard({ lead }: { lead: Lead }) {
       style={style}
       {...attributes}
       {...listeners}
+      onClick={handleCardClick}
       className="bg-white rounded-lg border border-gray-200 p-4 cursor-grab active:cursor-grabbing shadow-sm hover:shadow-md transition-shadow"
     >
       <div className="space-y-2">
