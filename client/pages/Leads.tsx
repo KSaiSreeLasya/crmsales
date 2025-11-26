@@ -1331,16 +1331,24 @@ export default function Leads() {
                           return (
                             <TableRow
                               key={lead.id}
-                              className={`border-b border-border ${getRowHighlightClass(lead)} cursor-pointer hover:bg-blue-50 transition-colors`}
-                              onClick={() => handleOpenLeadDetails(lead)}
+                              className={`border-b border-border ${getRowHighlightClass(lead)}`}
                             >
-                              <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                              <TableCell
+                                className="text-muted-foreground text-xs whitespace-nowrap cursor-pointer hover:bg-blue-100"
+                                onClick={() => handleOpenLeadDetails(lead)}
+                              >
                                 {lead.type_of_property || "-"}
                               </TableCell>
-                              <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                              <TableCell
+                                className="text-muted-foreground text-xs whitespace-nowrap cursor-pointer hover:bg-blue-100"
+                                onClick={() => handleOpenLeadDetails(lead)}
+                              >
                                 {lead.avg_monthly_bill || "-"}
                               </TableCell>
-                              <TableCell className="font-medium text-foreground whitespace-nowrap text-xs">
+                              <TableCell
+                                className="font-medium text-foreground whitespace-nowrap text-xs cursor-pointer hover:bg-blue-100"
+                                onClick={() => handleOpenLeadDetails(lead)}
+                              >
                                 {lead.name}
                               </TableCell>
                               <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
