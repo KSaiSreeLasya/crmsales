@@ -16,6 +16,39 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Helper function to fetch user profile from database
+async function fetchUserProfile(userId: string): Promise<AuthUser | null> {
+  try {
+    const response = await fetch(
+      `/api/user-profile?userId=${encodeURIComponent(userId)}`
+    );
+    const profileData = await response.json();
+
+    if (response.ok && profileData.profile) {
+      return {
+        id: profileData.profile.id,
+        email: profileData.profile.email || "",
+        role: profileData.profile.role || "salesperson",
+        name: profileData.profile.name || "",
+        phone: profileData.profile.phone,
+      };
+    }
+  } catch (error) {
+    console.error("Error fetching user profile:", error);
+  }
+  return null;
+}
+
+// Helper function to create fallback user from session
+function createFallbackUser(sessionUser: any): AuthUser {
+  return {
+    id: sessionUser.id,
+    email: sessionUser.email || "",
+    role: "salesperson",
+    name: sessionUser.email || "",
+  };
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
