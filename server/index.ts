@@ -10,6 +10,7 @@ import { handleFetchGoogleSheetsMetadata } from "./routes/fetch-google-sheets-me
 import { handleSyncGoogleSheet } from "./routes/sync-google-sheet";
 import { handleGetUserProfile } from "./routes/get-user-profile";
 import { handleLogin } from "./routes/login";
+import { handleBatchUpdateLeads } from "./routes/batch-update-leads";
 import {
   handleCreateUser,
   handleDeleteUser,
