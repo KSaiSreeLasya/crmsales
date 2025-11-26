@@ -29,39 +29,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } = await supabase.auth.getSession();
 
         if (session?.user) {
-          try {
-            const response = await fetch(
-              `/api/user-profile?userId=${encodeURIComponent(session.user.id)}`,
-            );
-            const profileData = await response.json();
-
-            if (response.ok && profileData.profile) {
-              setUser({
-                id: profileData.profile.id,
-                email: profileData.profile.email,
-                role: profileData.profile.role,
-                name: profileData.profile.name,
-                phone: profileData.profile.phone,
-              });
-            } else {
-              // Fallback to session user
-              setUser({
-                id: session.user.id,
-                email: session.user.email || "",
-                role: "salesperson",
-                name: session.user.user_metadata?.name || session.user.email || "",
-              });
-            }
-          } catch (error) {
-            console.error("Error fetching user profile:", error);
-            // Fallback to session user
-            setUser({
-              id: session.user.id,
-              email: session.user.email || "",
-              role: "salesperson",
-              name: session.user.user_metadata?.name || session.user.email || "",
-            });
-          }
+          // Use session user data directly without extra API call
+          setUser({
+            id: session.user.id,
+            email: session.user.email || "",
+            role: (session.user.user_metadata?.role as "admin" | "salesperson") || "salesperson",
+            name: session.user.user_metadata?.name || session.user.email || "",
+            phone: session.user.user_metadata?.phone,
+          });
         }
       } catch (error) {
         console.error("Auth check error:", error);
@@ -77,39 +52,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
-        try {
-          const response = await fetch(
-            `/api/user-profile?userId=${encodeURIComponent(session.user.id)}`,
-          );
-          const profileData = await response.json();
-
-          if (response.ok && profileData.profile) {
-            setUser({
-              id: profileData.profile.id,
-              email: profileData.profile.email,
-              role: profileData.profile.role,
-              name: profileData.profile.name,
-              phone: profileData.profile.phone,
-            });
-          } else {
-            // Fallback to session user if profile not found
-            setUser({
-              id: session.user.id,
-              email: session.user.email || "",
-              role: "salesperson",
-              name: session.user.user_metadata?.name || session.user.email || "",
-            });
-          }
-        } catch (error) {
-          console.error("Error fetching user profile:", error);
-          // Fallback to session user
-          setUser({
-            id: session.user.id,
-            email: session.user.email || "",
-            role: "salesperson",
-            name: session.user.user_metadata?.name || session.user.email || "",
-          });
-        }
+        // Use session user data directly without extra API call
+        setUser({
+          id: session.user.id,
+          email: session.user.email || "",
+          role: (session.user.user_metadata?.role as "admin" | "salesperson") || "salesperson",
+          name: session.user.user_metadata?.name || session.user.email || "",
+          phone: session.user.user_metadata?.phone,
+        });
       } else {
         setUser(null);
       }
