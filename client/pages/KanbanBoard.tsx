@@ -57,8 +57,14 @@ interface Lead {
 }
 
 function LeadCard({ lead, onClick }: { lead: Lead; onClick: () => void }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: lead.id });
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: lead.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -112,7 +118,12 @@ interface KanbanColumnProps {
   onLeadClick: (lead: Lead) => void;
 }
 
-function KanbanColumn({ status, leads, count, onLeadClick }: KanbanColumnProps) {
+function KanbanColumn({
+  status,
+  leads,
+  count,
+  onLeadClick,
+}: KanbanColumnProps) {
   const { setNodeRef } = useDroppable({
     id: status,
   });
