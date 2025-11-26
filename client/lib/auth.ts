@@ -131,18 +131,17 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
 
     if (!user) return null;
 
-    const { data: profile } = await supabase
-      .from("users")
-      .select("*")
-      .eq("id", user.id)
-      .single();
+    const profileResponse = await fetch(
+      `/api/user-profile?userId=${encodeURIComponent(user.id)}`,
+    );
+    const profileData = await profileResponse.json();
 
-    if (profile) {
+    if (profileData.profile) {
       return {
-        id: profile.id,
-        email: profile.email,
-        role: profile.role,
-        name: profile.name,
+        id: profileData.profile.id,
+        email: profileData.profile.email,
+        role: profileData.profile.role,
+        name: profileData.profile.name,
       };
     }
 
