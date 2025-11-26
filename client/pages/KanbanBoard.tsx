@@ -490,8 +490,18 @@ function KanbanBoardContent({
           activeId={activeId}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
+          onLeadClick={handleLeadClick}
         />
       </DndContext>
+
+      {/* Lead Details Modal */}
+      <LeadDetailsModal
+        open={openDetailsModal}
+        onOpenChange={setOpenDetailsModal}
+        lead={selectedLead}
+        onLeadUpdate={handleLeadUpdate}
+        salespersons={salespersons}
+      />
 
       {filteredLeads.length === 0 && searchTerm && (
         <Card className="p-8 text-center border border-gray-200">
