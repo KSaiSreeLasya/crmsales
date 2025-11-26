@@ -322,7 +322,7 @@ export default function Index() {
               </div>
               <Users className="h-5 w-5 text-primary" />
             </div>
-            <Link to="/salespersons">
+            <Link to="/team">
               <Button
                 variant="outline"
                 className="mt-6 w-full gap-2 border-primary text-primary hover:bg-primary/10"
