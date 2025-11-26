@@ -12,7 +12,6 @@ interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
   logout: () => Promise<void>;
-  setPendingUser: (user: AuthUser | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -20,7 +19,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [pendingUser, setPendingUser] = useState<AuthUser | null>(null);
 
   useEffect(() => {
     // Check for existing session
@@ -106,7 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, logout: handleLogout, setPendingUser }}>
+    <AuthContext.Provider value={{ user, loading, logout: handleLogout }}>
       {children}
     </AuthContext.Provider>
   );
