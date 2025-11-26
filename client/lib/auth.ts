@@ -93,27 +93,42 @@ export async function createUser(
  */
 export async function login(email: string, password: string) {
   try {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) throw error;
-
-    // Get user profile
-    if (data.user) {
-      const { data: profile } = await supabase
-        .from("users")
-        .select("*")
-        .eq("id", data.user.id)
-        .single();
-
-      return { user: data.user, profile };
+    if (!email || !password) {
+      throw new Error("Email and password are required");
     }
 
-    return data;
+    const response = await fetch("/api/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || data.error || "Login failed");
+    }
+
+    // Store user data in localStorage for auth context to use
+    if (data.user) {
+      localStorage.setItem("pendingAuthUser", JSON.stringify(data.user));
+    }
+
+    // Set the session in Supabase to trigger auth context
+    if (data.session && data.session.access_token) {
+      await supabase.auth.setSession({
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token || "",
+      });
+    }
+
+    return { user: data.user, profile: null };
   } catch (error) {
-    console.error("Login error:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown login error";
+    console.error("Login error:", errorMessage);
     throw error;
   }
 }
@@ -132,7 +147,7 @@ export async function logout() {
 }
 
 /**
- * Get current user session
+ * Get current user session via backend API
  */
 export async function getCurrentUser(): Promise<AuthUser | null> {
   try {
@@ -142,23 +157,29 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
 
     if (!user) return null;
 
-    const { data: profile } = await supabase
-      .from("users")
-      .select("*")
-      .eq("id", user.id)
-      .single();
+    // Use backend API to fetch profile (avoids RLS issues)
+    const response = await fetch(
+      `/api/user-profile?userId=${encodeURIComponent(user.id)}`,
+    );
+    const profileData = await response.json();
 
-    if (profile) {
+    if (response.ok && profileData.profile) {
       return {
-        id: profile.id,
-        email: profile.email,
-        role: profile.role,
-        name: profile.name,
-        phone: profile.phone,
+        id: profileData.profile.id,
+        email: profileData.profile.email,
+        role: profileData.profile.role,
+        name: profileData.profile.name,
+        phone: profileData.profile.phone,
       };
     }
 
-    return null;
+    // Fallback to session user if profile not found
+    return {
+      id: user.id,
+      email: user.email || "",
+      role: "salesperson",
+      name: user.user_metadata?.name || user.email || "",
+    };
   } catch (error) {
     console.error("Get current user error:", error);
     return null;

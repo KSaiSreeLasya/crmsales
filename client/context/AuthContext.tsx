@@ -29,21 +29,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } = await supabase.auth.getSession();
 
         if (session?.user) {
-          const { data: profile } = await supabase
-            .from("users")
-            .select("*")
-            .eq("id", session.user.id)
-            .single();
-
-          if (profile) {
-            setUser({
-              id: profile.id,
-              email: profile.email,
-              role: profile.role,
-              name: profile.name,
-              phone: profile.phone,
-            });
-          }
+          // Use session user data directly without extra API call
+          setUser({
+            id: session.user.id,
+            email: session.user.email || "",
+            role:
+              (session.user.user_metadata?.role as "admin" | "salesperson") ||
+              "salesperson",
+            name: session.user.user_metadata?.name || session.user.email || "",
+            phone: session.user.user_metadata?.phone,
+          });
         }
       } catch (error) {
         console.error("Auth check error:", error);
@@ -59,23 +54,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
-        const { data: profile } = await supabase
-          .from("users")
-          .select("*")
-          .eq("id", session.user.id)
-          .single();
-
-        if (profile) {
+        // Try to get pending user data from localStorage
+        const storedUserData = localStorage.getItem("pendingAuthUser");
+        if (storedUserData) {
+          try {
+            const userData = JSON.parse(storedUserData) as AuthUser;
+            if (userData.id === session.user.id) {
+              setUser(userData);
+              localStorage.removeItem("pendingAuthUser");
+            } else {
+              // IDs don't match, use session data
+              setUser({
+                id: session.user.id,
+                email: session.user.email || "",
+                role: "salesperson",
+                name: session.user.email || "",
+              });
+            }
+          } catch (e) {
+            // Failed to parse, use session data
+            setUser({
+              id: session.user.id,
+              email: session.user.email || "",
+              role: "salesperson",
+              name: session.user.email || "",
+            });
+          }
+        } else {
+          // No pending data, use session data
           setUser({
-            id: profile.id,
-            email: profile.email,
-            role: profile.role,
-            name: profile.name,
-            phone: profile.phone,
+            id: session.user.id,
+            email: session.user.email || "",
+            role: "salesperson",
+            name: session.user.email || "",
           });
         }
       } else {
         setUser(null);
+        localStorage.removeItem("pendingAuthUser");
       }
     });
 

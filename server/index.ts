@@ -8,6 +8,8 @@ import { handleSyncSalespersons } from "./routes/sync-salespersons";
 import { handleFetchGoogleSheet } from "./routes/fetch-google-sheet";
 import { handleFetchGoogleSheetsMetadata } from "./routes/fetch-google-sheets-metadata";
 import { handleSyncGoogleSheet } from "./routes/sync-google-sheet";
+import { handleGetUserProfile } from "./routes/get-user-profile";
+import { handleLogin } from "./routes/login";
 import {
   handleCreateUser,
   handleDeleteUser,
@@ -28,7 +30,16 @@ export function createServer() {
     res.json({ message: ping });
   });
 
+  app.get("/api/debug/env", (_req, res) => {
+    res.json({
+      supabaseUrl: process.env.VITE_SUPABASE_URL ? "✅ SET" : "❌ MISSING",
+      supabaseKey: process.env.VITE_SUPABASE_ANON_KEY ? "✅ SET" : "❌ MISSING",
+    });
+  });
+
   app.get("/api/demo", handleDemo);
+  app.post("/api/login", handleLogin);
+  app.get("/api/user-profile", handleGetUserProfile);
 
   // Google Sheets API routes
   app.get("/api/fetch-google-sheet", handleFetchGoogleSheet);
