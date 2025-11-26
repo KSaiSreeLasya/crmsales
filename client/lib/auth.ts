@@ -77,8 +77,19 @@ export async function createUser(
     // Parse response body only once
     let data;
     try {
-      data = await response.json();
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        console.error("Server returned non-JSON response:", text);
+        throw new Error(`Server error: ${response.status} ${response.statusText}`);
+      }
     } catch (e) {
+      if (e instanceof Error && e.message.startsWith("Server error:")) {
+        throw e;
+      }
+      console.error("Failed to parse response:", e);
       throw new Error("Failed to parse server response");
     }
 
