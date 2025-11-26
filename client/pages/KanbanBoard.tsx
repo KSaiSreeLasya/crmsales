@@ -154,25 +154,21 @@ function KanbanColumn({ status, leads, count }: KanbanColumnProps) {
   );
 }
 
-interface KanbanDndContentProps {
+interface KanbanBoardInnerProps {
   leads: Lead[];
-  filteredLeads: Lead[];
   leadsByStatus: Record<KanbanStatus, Lead[]>;
-  analyticsData: Array<{ status: string; count: number; fill: string }>;
   activeId: string | null;
   onDragStart: (event: any) => void;
   onDragEnd: (event: DragEndEvent) => void;
 }
 
-function KanbanDndContent({
+function KanbanBoardInner({
   leads,
-  filteredLeads,
   leadsByStatus,
-  analyticsData,
   activeId,
   onDragStart,
   onDragEnd,
-}: KanbanDndContentProps) {
+}: KanbanBoardInnerProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       distance: 8,
@@ -188,12 +184,7 @@ function KanbanDndContent({
   const activeLead = leads.find((l) => l.id === activeId);
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCorners}
-      onDragStart={onDragStart}
-      onDragEnd={onDragEnd}
-    >
+    <>
       <div className="flex gap-4 overflow-x-auto pb-4 -mx-8 px-8">
         {KANBAN_STATUSES.map((status) => (
           <KanbanColumn
@@ -219,7 +210,7 @@ function KanbanDndContent({
           </div>
         ) : null}
       </DragOverlay>
-    </DndContext>
+    </>
   );
 }
 
