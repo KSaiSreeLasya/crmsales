@@ -24,6 +24,13 @@ export function createServer() {
     res.json({ message: ping });
   });
 
+  app.get("/api/debug/env", (_req, res) => {
+    res.json({
+      supabaseUrl: process.env.VITE_SUPABASE_URL ? "✅ SET" : "❌ MISSING",
+      supabaseKey: process.env.VITE_SUPABASE_ANON_KEY ? "✅ SET" : "❌ MISSING",
+    });
+  });
+
   app.get("/api/demo", handleDemo);
   app.get("/api/user-profile", handleGetUserProfile);
 
