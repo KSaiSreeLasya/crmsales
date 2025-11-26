@@ -106,21 +106,12 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
 
     if (!user) return null;
 
-    const profileResponse = await fetch(
-      `/api/user-profile?userId=${encodeURIComponent(user.id)}`,
-    );
-    const profileData = await profileResponse.json();
-
-    if (profileData.profile) {
-      return {
-        id: profileData.profile.id,
-        email: profileData.profile.email,
-        role: profileData.profile.role,
-        name: profileData.profile.name,
-      };
-    }
-
-    return null;
+    return {
+      id: user.id,
+      email: user.email || "",
+      role: "salesperson",
+      name: user.user_metadata?.name || user.email || "",
+    };
   } catch (error) {
     console.error("Get current user error:", error);
     return null;
