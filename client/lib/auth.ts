@@ -246,7 +246,12 @@ export async function deleteUser(userId: string) {
       body: JSON.stringify({ userId }),
     });
 
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (e) {
+      throw new Error("Failed to parse server response");
+    }
 
     if (!response.ok) {
       throw new Error(data.message || "Failed to delete user");
