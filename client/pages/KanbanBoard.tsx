@@ -413,15 +413,19 @@ function KanbanBoardContent({
       )}
 
       {/* Kanban Board */}
-      <KanbanDndContent
-        leads={leads}
-        filteredLeads={filteredLeads}
-        leadsByStatus={leadsByStatus}
-        analyticsData={analyticsData}
-        activeId={activeId}
+      <DndContext
+        collisionDetection={closestCorners}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
-      />
+      >
+        <KanbanBoardInner
+          leads={leads}
+          leadsByStatus={leadsByStatus}
+          activeId={activeId}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        />
+      </DndContext>
 
       {filteredLeads.length === 0 && searchTerm && (
         <Card className="p-8 text-center border border-gray-200">
