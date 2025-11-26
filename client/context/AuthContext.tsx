@@ -34,7 +34,8 @@ async function fetchUserProfile(userId: string): Promise<AuthUser | null> {
       };
     }
   } catch (error) {
-    console.error("Error fetching user profile:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("Error fetching user profile:", errorMessage);
   }
   return null;
 }
