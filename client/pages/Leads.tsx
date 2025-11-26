@@ -1768,6 +1768,14 @@ export default function Leads() {
             </div>
           </AlertDialogContent>
         </AlertDialog>
+
+        <LeadDetailsModal
+          open={openDetailsModal}
+          onOpenChange={setOpenDetailsModal}
+          lead={selectedLead}
+          onLeadUpdate={handleLeadUpdate}
+          salespersons={salespersons}
+        />
       </div>
     </CRMLayout>
   );
