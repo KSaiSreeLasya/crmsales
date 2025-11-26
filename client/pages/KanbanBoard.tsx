@@ -284,7 +284,8 @@ function KanbanBoardContent({
           setSalespersons(data.map((s) => s.name));
         }
       } catch (error) {
-        console.error("Error loading salespersons:", error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error("Error loading salespersons:", errorMessage);
       }
     };
 
