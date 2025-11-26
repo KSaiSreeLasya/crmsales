@@ -428,31 +428,20 @@ function KanbanBoardContent({
       )}
 
       {/* Kanban Board */}
-      <div>
-        <DndContext
-          collisionDetection={closestCorners}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCorners}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <KanbanBoardInner
+          leads={leads}
+          leadsByStatus={leadsByStatus}
+          activeId={activeId}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
-          sensors={[
-            {
-              setup: (context) => {
-                const pointerSensor = new (PointerSensor as any)(context, {
-                  distance: 8,
-                });
-                return pointerSensor;
-              },
-            } as any,
-          ]}
-        >
-          <KanbanBoardInner
-            leads={leads}
-            leadsByStatus={leadsByStatus}
-            activeId={activeId}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-          />
-        </DndContext>
-      </div>
+        />
+      </DndContext>
 
       {filteredLeads.length === 0 && searchTerm && (
         <Card className="p-8 text-center border border-gray-200">
