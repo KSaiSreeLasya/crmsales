@@ -111,6 +111,11 @@ export async function login(email: string, password: string) {
       throw new Error(data.message || data.error || "Login failed");
     }
 
+    // Store user data in localStorage for auth context to use
+    if (data.user) {
+      localStorage.setItem("pendingAuthUser", JSON.stringify(data.user));
+    }
+
     // Set the session in Supabase to trigger auth context
     if (data.session && data.session.access_token) {
       await supabase.auth.setSession({
