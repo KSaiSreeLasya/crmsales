@@ -119,7 +119,7 @@ function KanbanColumn({ status, leads, count }: KanbanColumnProps) {
 
   return (
     <div
-      className="flex flex-col min-h-screen bg-gray-50 rounded-lg p-4 flex-1 min-w-[350px]"
+      className="flex flex-col bg-gray-50 rounded-lg p-4 flex-1 min-w-[350px] h-full max-h-[600px]"
     >
       {/* Column Header */}
       <div className={`bg-gradient-to-r ${statusColors[status]} rounded-lg p-4 mb-4 text-white`}>
@@ -141,8 +141,8 @@ function KanbanColumn({ status, leads, count }: KanbanColumnProps) {
       <SortableContext items={leads.map((l) => l.id)} strategy={verticalListSortingStrategy}>
         <div className="space-y-3 flex-1 overflow-y-auto">
           {leads.length === 0 ? (
-            <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
-              No leads yet
+            <div className="flex items-center justify-center py-8 text-muted-foreground text-sm">
+              <p>No leads in this status</p>
             </div>
           ) : (
             leads.map((lead) => <LeadCard key={lead.id} lead={lead} />)
