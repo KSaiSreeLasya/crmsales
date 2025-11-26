@@ -412,7 +412,8 @@ export function LeadDetailsModal({
         await loadActivityNotes();
       }
     } catch (error) {
-      console.error("Error adding note:", error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error("Error adding note:", errorMessage);
       toast.error("Failed to add note");
     } finally {
       setIsAddingNote(false);
