@@ -11,6 +11,8 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import { AdminRoute } from "./components/AdminRoute";
 import Index from "./pages/Index";
 import Leads from "./pages/Leads";
+import Team from "./pages/Team";
+import KanbanBoard from "./pages/KanbanBoard";
 import Salespersons from "./pages/Salespersons";
 import Settings from "./pages/Settings";
 import Login from "./pages/Login";
@@ -57,6 +59,22 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <Leads />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/kanban"
+          element={
+            <ProtectedRoute>
+              <KanbanBoard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/team"
+          element={
+            <ProtectedRoute>
+              <Team />
             </ProtectedRoute>
           }
         />

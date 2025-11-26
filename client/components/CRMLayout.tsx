@@ -5,6 +5,7 @@ import {
   Users,
   UserCheck,
   Settings,
+  Kanban,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -21,10 +22,13 @@ export function CRMLayout({ children }: CRMLayoutProps) {
   const navItems = [
     { label: "Dashboard", href: "/", icon: LayoutDashboard },
     { label: "Leads", href: "/leads", icon: Users },
-    // Only show Team Management to admin
-    ...(user?.role === "admin"
-      ? [{ label: "Team Management", href: "/salespersons", icon: UserCheck }]
-      : []),
+    { label: "Kanban Board", href: "/kanban", icon: Kanban },
+    // Show Team to all users (salespersons see View Team, admins can see Team Management)
+    {
+      label: user?.role === "admin" ? "Team Management" : "View Team",
+      href: "/team",
+      icon: UserCheck,
+    },
     { label: "Settings", href: "/settings", icon: Settings },
   ];
 
