@@ -56,27 +56,45 @@ export async function signUp(
  */
 export async function login(email: string, password: string) {
   try {
+    if (!email || !password) {
+      throw new Error("Email and password are required");
+    }
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    if (error) throw error;
+    if (error) {
+      // Handle specific Supabase errors
+      if (error.message.includes("body stream already read")) {
+        throw new Error(
+          "Authentication service connection failed. Please check that Supabase credentials are configured correctly.",
+        );
+      }
+      throw error;
+    }
 
     // Get user profile
     if (data.user) {
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from("users")
         .select("*")
         .eq("id", data.user.id)
         .single();
+
+      if (profileError) {
+        console.warn("Could not fetch user profile:", profileError);
+      }
 
       return { user: data.user, profile };
     }
 
     return data;
   } catch (error) {
-    console.error("Login error:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown login error";
+    console.error("Login error:", errorMessage);
     throw error;
   }
 }
