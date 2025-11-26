@@ -32,7 +32,7 @@ export const handleLogin: RequestHandler = async (req, res) => {
     }
 
     // Fetch user profile to get role and other metadata
-    const { data: profileData, error: profileError } = await supabase
+    const { data: profileData } = await supabase
       .from("users")
       .select("*")
       .eq("id", data.user.id)
@@ -40,6 +40,16 @@ export const handleLogin: RequestHandler = async (req, res) => {
 
     const role = profileData?.role || "salesperson";
     const name = profileData?.name || data.user.user_metadata?.name || data.user.email;
+    const phone = profileData?.phone;
+
+    // Update auth user metadata with profile data
+    await supabase.auth.admin.updateUserById(data.user.id, {
+      user_metadata: {
+        name: name,
+        role: role,
+        phone: phone,
+      },
+    });
 
     res.json({
       success: true,
@@ -48,7 +58,7 @@ export const handleLogin: RequestHandler = async (req, res) => {
         email: data.user.email,
         name: name,
         role: role,
-        phone: profileData?.phone,
+        phone: phone,
       },
       session: {
         access_token: data.session?.access_token,
