@@ -33,6 +33,7 @@ export function createServer() {
   });
 
   app.get("/api/demo", handleDemo);
+  app.post("/api/login", handleLogin);
   app.get("/api/user-profile", handleGetUserProfile);
 
   // Google Sheets API routes
