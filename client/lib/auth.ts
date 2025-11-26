@@ -75,19 +75,27 @@ export async function login(email: string, password: string) {
       throw error;
     }
 
-    // Get user profile
+    // Get user profile from backend API
     if (data.user) {
-      const { data: profile, error: profileError } = await supabase
-        .from("users")
-        .select("*")
-        .eq("id", data.user.id)
-        .single();
+      try {
+        const profileResponse = await fetch(
+          `/api/user-profile?userId=${encodeURIComponent(data.user.id)}`,
+        );
+        const profileData = await profileResponse.json();
 
-      if (profileError) {
-        console.warn("Could not fetch user profile:", profileError);
+        if (!profileResponse.ok) {
+          console.warn(
+            "Could not fetch user profile:",
+            profileData.message || profileData.error,
+          );
+          return { user: data.user, profile: null };
+        }
+
+        return { user: data.user, profile: profileData.profile };
+      } catch (profileError) {
+        console.warn("Error fetching user profile:", profileError);
+        return { user: data.user, profile: null };
       }
-
-      return { user: data.user, profile };
     }
 
     return data;
