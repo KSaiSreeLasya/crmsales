@@ -41,6 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               email: profile.email,
               role: profile.role,
               name: profile.name,
+              phone: profile.phone,
             });
           }
         }
@@ -70,6 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             email: profile.email,
             role: profile.role,
             name: profile.name,
+            phone: profile.phone,
           });
         }
       } else {
