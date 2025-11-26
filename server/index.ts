@@ -25,6 +25,7 @@ export function createServer() {
   });
 
   app.get("/api/demo", handleDemo);
+  app.get("/api/user-profile", handleGetUserProfile);
 
   // Google Sheets API routes
   app.get("/api/fetch-google-sheet", handleFetchGoogleSheet);
