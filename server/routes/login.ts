@@ -38,7 +38,12 @@ export const handleLogin: RequestHandler = async (req, res) => {
         email: data.user.email,
         name: data.user.user_metadata?.name || data.user.email,
       },
-      session: data.session,
+      session: {
+        access_token: data.session?.access_token,
+        refresh_token: data.session?.refresh_token,
+        expires_in: data.session?.expires_in,
+        expires_at: data.session?.expires_at,
+      },
     });
   } catch (error) {
     console.error("Login error:", error);
