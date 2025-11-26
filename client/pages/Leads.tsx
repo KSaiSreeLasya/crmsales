@@ -44,6 +44,7 @@ import { supabase } from "@/lib/supabase";
 import { parseLeadRow } from "@shared/googleSheets";
 import { useAuth } from "@/context/AuthContext";
 import { getAssignedLeads } from "@/lib/auth";
+import { LeadDetailsModal } from "@/components/LeadDetailsModal";
 
 type LeadStatus =
   | "New"
