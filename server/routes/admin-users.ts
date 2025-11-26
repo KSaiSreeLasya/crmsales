@@ -165,6 +165,7 @@ export const handleUpdatePassword: RequestHandler = async (req, res) => {
 
     if (!userId || !newPassword) {
       return res.status(400).json({
+        success: false,
         message: "Missing required fields: userId, newPassword",
       });
     }
@@ -176,16 +177,19 @@ export const handleUpdatePassword: RequestHandler = async (req, res) => {
     if (error) {
       console.error("Password update error:", error);
       return res.status(400).json({
+        success: false,
         message: error.message || "Failed to update password",
       });
     }
 
     return res.json({
+      success: true,
       message: "Password updated successfully",
     });
   } catch (error) {
     console.error("Update password error:", error);
     return res.status(500).json({
+      success: false,
       message: error instanceof Error ? error.message : "Internal server error",
     });
   }
