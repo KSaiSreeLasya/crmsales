@@ -22,6 +22,7 @@ export function CRMLayout({ children }: CRMLayoutProps) {
   const navItems = [
     { label: "Dashboard", href: "/", icon: LayoutDashboard },
     { label: "Leads", href: "/leads", icon: Users },
+    { label: "Kanban Board", href: "/kanban", icon: Kanban },
     // Show Team to all users (salespersons see View Team, admins can see Team Management)
     {
       label: user?.role === "admin" ? "Team Management" : "View Team",
