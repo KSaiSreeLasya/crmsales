@@ -1619,8 +1619,7 @@ export default function Leads() {
                         assignedLeads.map((lead) => (
                           <TableRow
                             key={lead.id}
-                            className={`border-b border-border ${getRowHighlightClass(lead)} cursor-pointer hover:bg-blue-50 transition-colors`}
-                            onClick={() => handleOpenLeadDetails(lead)}
+                            className={`border-b border-border ${getRowHighlightClass(lead)}`}
                           >
                             <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
                               {lead.type_of_property || "-"}
