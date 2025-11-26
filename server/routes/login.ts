@@ -39,17 +39,8 @@ export const handleLogin: RequestHandler = async (req, res) => {
       .single();
 
     const role = profileData?.role || "salesperson";
-    const name = profileData?.name || data.user.user_metadata?.name || data.user.email;
+    const name = profileData?.name || data.user.email;
     const phone = profileData?.phone;
-
-    // Update auth user metadata with profile data
-    await supabase.auth.admin.updateUserById(data.user.id, {
-      user_metadata: {
-        name: name,
-        role: role,
-        phone: phone,
-      },
-    });
 
     res.json({
       success: true,
