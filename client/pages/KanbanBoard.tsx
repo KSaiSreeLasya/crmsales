@@ -109,6 +109,7 @@ interface KanbanColumnProps {
   status: KanbanStatus;
   leads: Lead[];
   count: number;
+  onLeadClick: (lead: Lead) => void;
 }
 
 function KanbanColumn({ status, leads, count }: KanbanColumnProps) {
