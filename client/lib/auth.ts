@@ -60,45 +60,20 @@ export async function login(email: string, password: string) {
       throw new Error("Email and password are required");
     }
 
+    console.log("Attempting login with email:", email);
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
+    console.log("Auth response:", { data, error });
+
     if (error) {
-      // Handle specific Supabase errors
-      if (error.message.includes("body stream already read")) {
-        throw new Error(
-          "Authentication service connection failed. Please check that Supabase credentials are configured correctly.",
-        );
-      }
       throw error;
     }
 
-    // Get user profile from backend API
-    if (data.user) {
-      try {
-        const profileResponse = await fetch(
-          `/api/user-profile?userId=${encodeURIComponent(data.user.id)}`,
-        );
-        const profileData = await profileResponse.json();
-
-        if (!profileResponse.ok) {
-          console.warn(
-            "Could not fetch user profile:",
-            profileData.message || profileData.error,
-          );
-          return { user: data.user, profile: null };
-        }
-
-        return { user: data.user, profile: profileData.profile };
-      } catch (profileError) {
-        console.warn("Error fetching user profile:", profileError);
-        return { user: data.user, profile: null };
-      }
-    }
-
-    return data;
+    return { user: data.user, profile: null };
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown login error";
