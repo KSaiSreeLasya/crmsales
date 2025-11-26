@@ -74,8 +74,13 @@ export async function createUser(
       }),
     });
 
-    // Read response body once
-    const data = await response.json();
+    // Parse response body only once
+    let data;
+    try {
+      data = await response.json();
+    } catch (e) {
+      throw new Error("Failed to parse server response");
+    }
 
     if (!response.ok) {
       throw new Error(data.message || "Failed to create user");
