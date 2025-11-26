@@ -75,6 +75,23 @@ export const handleCreateUser: RequestHandler = async (req, res) => {
         });
       }
 
+      // If role is salesperson, also add to salespersons table for backward compatibility
+      if (role === "salesperson") {
+        const { error: salespersonError } = await supabase
+          .from("salespersons")
+          .insert({
+            name,
+            email,
+            phone: phone || "",
+          });
+
+        if (salespersonError) {
+          console.error("Salesperson insertion error:", salespersonError);
+          // Log the error but don't fail the entire operation
+          // The user is already created in the users table
+        }
+      }
+
       return res.status(201).json({
         success: true,
         message: "User created successfully",
