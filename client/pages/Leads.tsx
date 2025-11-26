@@ -1361,7 +1361,7 @@ export default function Leads() {
                                 editingNote.field === "note2" ? (
                                   <Input
                                     autoFocus
-                                    value={lead.note2}
+                                    value={lead.note2 || ""}
                                     onChange={(e) =>
                                       handleNoteUpdate(
                                         lead.id,
