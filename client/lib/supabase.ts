@@ -1,27 +1,28 @@
 /**
  * Supabase Client Setup
  * Configure and export Supabase client for database and real-time operations
- *
- * TODO: Set up environment variables:
- * - VITE_SUPABASE_URL: Your Supabase project URL
- * - VITE_SUPABASE_ANON_KEY: Your Supabase anonymous key
  */
 
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn(
-    "Supabase credentials not configured. Some features may not work.",
+  console.error(
+    "❌ Supabase credentials not configured!",
+    "\nPlease add these environment variables:",
+    "\n- VITE_SUPABASE_URL",
+    "\n- VITE_SUPABASE_ANON_KEY",
   );
 }
 
-export const supabase = createClient(
-  supabaseUrl || "https://placeholder.supabase.co",
-  supabaseAnonKey || "placeholder-key",
-);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+  },
+});
 
 /**
  * Database Types for TypeScript support
