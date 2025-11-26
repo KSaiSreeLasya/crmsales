@@ -7,6 +7,7 @@ A comprehensive Lead Details modal has been implemented that allows users to vie
 ## Features Implemented
 
 ### 1. **Overview Tab**
+
 - Display all lead information in a clean, organized layout:
   - Name, Email, Phone, Company
   - Street Address, Post Code
@@ -17,6 +18,7 @@ A comprehensive Lead Details modal has been implemented that allows users to vie
 - Changes are automatically saved to the database when you blur the field
 
 ### 2. **Notes Tab**
+
 - Add new timestamped notes to any lead
 - View all notes with creation date/time in **IST (Indian Standard Time)** format
 - Example timestamp format: `15 Jan 2024, 03:45:30 PM`
@@ -26,6 +28,7 @@ A comprehensive Lead Details modal has been implemented that allows users to vie
   - The exact date and time it was created (in IST)
 
 ### 3. **Activity Log Tab**
+
 - Complete history of all changes made to the lead
 - Tracks status changes with before/after values
 - Tracks updates to Note 1 and Note 2
@@ -37,6 +40,7 @@ A comprehensive Lead Details modal has been implemented that allows users to vie
 - Logs are stored in the `activity_logs` table (requires setup)
 
 ### 4. **Status Tab**
+
 - Shows the current status at the top
 - Easy button-based interface to change status
 - All 9 status options available:
@@ -55,21 +59,25 @@ A comprehensive Lead Details modal has been implemented that allows users to vie
 ## How to Use
 
 ### Open Lead Details
+
 1. Go to the **Leads** page
 2. Click on any cell in a lead row (except action buttons)
 3. The Lead Details modal will open
 
 ### View Lead Information
+
 - All lead details are displayed in the **Overview** tab
 - Information is read-only unless you edit Note 1 or Note 2
 
 ### Edit Notes (Note 1 & Note 2)
+
 1. In the **Overview** tab, click on the Note 1 or Note 2 text area
 2. Edit the text as needed
 3. Click outside the field (blur) to auto-save
 4. A success toast notification will appear
 
 ### Add Activity Notes
+
 1. Go to the **Notes** tab
 2. Type your note in the "Add New Note" text area
 3. Click the "Add Note" button
@@ -77,12 +85,14 @@ A comprehensive Lead Details modal has been implemented that allows users to vie
 5. All notes are displayed below with their timestamps
 
 ### Change Lead Status
+
 1. Go to the **Status** tab
 2. Click any status button to change the lead's status
 3. The change will be logged in the Activity Log
 4. A success toast notification will confirm the change
 
 ### View Activity History
+
 1. Go to the **Activity** tab
 2. See all changes in reverse chronological order (newest first)
 3. Each entry shows:
@@ -93,12 +103,15 @@ A comprehensive Lead Details modal has been implemented that allows users to vie
 ## Technical Details
 
 ### Date/Time Formatting
+
 All timestamps are formatted in **IST (Indian Standard Time)** which is UTC+5:30:
+
 - Format: `DD MMM YYYY, HH:MM:SS AM/PM`
 - Example: `15 Jan 2024, 03:45:30 PM`
 - Uses JavaScript's `Intl.DateTimeFormat` with `Asia/Kolkata` timezone
 
 ### Files Modified
+
 1. **client/components/LeadDetailsModal.tsx** (NEW)
    - Main modal component with all tabs and functionality
    - Handles all API calls to Supabase
@@ -117,6 +130,7 @@ All timestamps are formatted in **IST (Indian Standard Time)** which is UTC+5:30
    - Integrated the `LeadDetailsModal` component into the page
 
 ### Database Tables Required
+
 Two new tables are required in Supabase:
 
 1. **activity_logs**
@@ -132,7 +146,9 @@ Two new tables are required in Supabase:
 See `ACTIVITY_LOG_SETUP.md` for detailed instructions on creating these tables.
 
 ### Graceful Degradation
+
 If the activity tables don't exist:
+
 - ✅ The app continues to work normally
 - ✅ Lead details are still viewable and editable
 - ✅ Note 1 and Note 2 can still be edited
@@ -142,18 +158,22 @@ If the activity tables don't exist:
 - The application logs warnings to the console but doesn't break
 
 ## Browser Compatibility
+
 - Works on all modern browsers (Chrome, Firefox, Safari, Edge)
 - Requires JavaScript enabled
 - IST timezone formatting works in all browsers supporting `Intl` API (all modern browsers)
 
 ## Performance Considerations
+
 - Modal lazy-loads activity logs and notes only when opened
 - Separate API calls for different data types
 - Efficient filtering and sorting on the client side
 - Indexes on `lead_id` and `created_at` in database tables for faster queries
 
 ## Future Enhancements
+
 Potential improvements for future versions:
+
 - Export activity log as PDF/CSV
 - Bulk status changes with activity logging
 - User attribution (show who made changes)
@@ -165,24 +185,29 @@ Potential improvements for future versions:
 ## Troubleshooting
 
 ### Modal doesn't open when clicking on a lead
+
 - Make sure you're clicking on a data cell, not an action button
 - Try clicking on the lead name
 - Check browser console for error messages
 
 ### Notes not saving
+
 - Ensure `activity_notes` table exists in Supabase
 - Check browser console for error messages
 - Verify you have write permissions to the table
 
 ### Dates not in IST format
+
 - Clear your browser cache
 - Refresh the page
 - Check browser support for Intl API
 
 ### Activity log not showing
+
 - Ensure `activity_logs` table exists in Supabase
 - Status changes should create entries in the log
 - Check browser console for warnings
 
 ## Contact & Support
+
 For issues or feature requests related to the Lead Details modal, please refer to the ACTIVITY_LOG_SETUP.md file for database setup instructions or check the browser console for detailed error messages.

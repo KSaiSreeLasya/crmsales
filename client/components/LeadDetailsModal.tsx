@@ -235,17 +235,15 @@ export function LeadDetailsModal({
 
       if (updateError) throw updateError;
 
-      const { error: logError } = await supabase
-        .from("activity_logs")
-        .insert([
-          {
-            lead_id: formData.id,
-            action: "status_change",
-            old_value: oldStatus,
-            new_value: newStatus,
-            created_at: new Date().toISOString(),
-          },
-        ]);
+      const { error: logError } = await supabase.from("activity_logs").insert([
+        {
+          lead_id: formData.id,
+          action: "status_change",
+          old_value: oldStatus,
+          new_value: newStatus,
+          created_at: new Date().toISOString(),
+        },
+      ]);
 
       if (logError && logError.code !== "PGRST116") {
         console.warn("Could not log activity:", logError);
@@ -359,7 +357,9 @@ export function LeadDetailsModal({
                 </p>
               </div>
               <div>
-                <Label className="text-xs font-semibold">Type of Property</Label>
+                <Label className="text-xs font-semibold">
+                  Type of Property
+                </Label>
                 <p className="text-sm text-foreground">
                   {formData.type_of_property || "-"}
                 </p>
@@ -406,9 +406,7 @@ export function LeadDetailsModal({
                 onChange={(e) =>
                   setFormData({ ...formData, note1: e.target.value })
                 }
-                onBlur={() =>
-                  handleSaveField("note1", formData.note1 || "")
-                }
+                onBlur={() => handleSaveField("note1", formData.note1 || "")}
                 placeholder="Add or edit note 1..."
                 className="mt-2 min-h-[80px] text-xs"
               />
@@ -422,9 +420,7 @@ export function LeadDetailsModal({
                 onChange={(e) =>
                   setFormData({ ...formData, note2: e.target.value })
                 }
-                onBlur={() =>
-                  handleSaveField("note2", formData.note2 || "")
-                }
+                onBlur={() => handleSaveField("note2", formData.note2 || "")}
                 placeholder="Add or edit note 2..."
                 className="mt-2 min-h-[80px] text-xs"
               />
@@ -457,7 +453,9 @@ export function LeadDetailsModal({
                 Notes ({activityNotes.length})
               </Label>
               {isLoadingNotes ? (
-                <p className="text-xs text-muted-foreground">Loading notes...</p>
+                <p className="text-xs text-muted-foreground">
+                  Loading notes...
+                </p>
               ) : activityNotes.length === 0 ? (
                 <p className="text-xs text-muted-foreground italic">
                   No notes yet. Add one above to get started.
@@ -553,9 +551,7 @@ export function LeadDetailsModal({
                 {STATUS_OPTIONS.map((status) => (
                   <Button
                     key={status}
-                    variant={
-                      formData.status === status ? "default" : "outline"
-                    }
+                    variant={formData.status === status ? "default" : "outline"}
                     className="w-full justify-start text-xs h-8"
                     onClick={() => {
                       if (formData.status !== status) {

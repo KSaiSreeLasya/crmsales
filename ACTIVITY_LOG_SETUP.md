@@ -5,6 +5,7 @@ This guide explains how to set up the Activity Log feature for lead tracking in 
 ## Overview
 
 The Lead Details Modal includes three new features:
+
 1. **Activity Log**: Tracks all status changes and note updates
 2. **Activity Notes**: Allows adding timestamped notes to leads
 3. **Enhanced Status Management**: Easy button-based status changes with history
@@ -18,6 +19,7 @@ You need to create two tables in your Supabase database:
 This table tracks all changes made to leads.
 
 **SQL:**
+
 ```sql
 CREATE TABLE activity_logs (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -35,6 +37,7 @@ CREATE INDEX idx_activity_logs_created_at ON activity_logs(created_at DESC);
 ```
 
 **Columns:**
+
 - `id`: Unique identifier (UUID)
 - `lead_id`: Reference to the lead being modified
 - `action`: Type of action (e.g., "status_change", "note1_updated", "note2_updated")
@@ -48,6 +51,7 @@ CREATE INDEX idx_activity_logs_created_at ON activity_logs(created_at DESC);
 This table stores timestamped notes added through the Lead Details modal.
 
 **SQL:**
+
 ```sql
 CREATE TABLE activity_notes (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -63,6 +67,7 @@ CREATE INDEX idx_activity_notes_created_at ON activity_notes(created_at DESC);
 ```
 
 **Columns:**
+
 - `id`: Unique identifier (UUID)
 - `lead_id`: Reference to the lead
 - `content`: The note text
@@ -99,22 +104,27 @@ CREATE INDEX idx_activity_notes_created_at ON activity_notes(created_at DESC);
 ## How It Works
 
 ### Activity Log Feature
+
 - Every time a lead's status is changed through the Status tab, an entry is created in `activity_logs`
 - Every time Note 1 or Note 2 is updated in the Overview tab, an entry is created
 - All changes are logged with the old and new values
 
 ### Activity Notes Feature
+
 - Users can add timestamped notes in the "Notes" tab
 - Notes are stored separately from the main lead notes (note1 and note2)
 - Each note displays the creation date/time in **IST (Indian Standard Time)**
 
 ### Date/Time Format
+
 All timestamps are displayed in IST (Asia/Kolkata timezone) format:
+
 - Example: `15 Jan 2024, 03:45:30 PM IST`
 
 ## Graceful Degradation
 
 If the tables don't exist:
+
 - The app will still work normally
 - Activity Log and Activity Notes tabs will show "No activity recorded yet" or "No notes yet"
 - The warning messages will appear in browser console but won't break the application
@@ -163,18 +173,22 @@ WITH CHECK (auth.role() = 'authenticated');
 ## Troubleshooting
 
 ### "Activity logs not available" message
+
 - This means the `activity_logs` table doesn't exist yet
 - Create the table using the SQL provided above
 
 ### "Activity notes not available" message
+
 - This means the `activity_notes` table doesn't exist yet
 - Create the table using the SQL provided above
 
 ### Date/Time not in IST format
+
 - Clear your browser cache and refresh
 - The formatting is done client-side using JavaScript's `Intl.DateTimeFormat`
 
 ### Notes not saving
+
 - Check browser console for error messages
 - Ensure you have write permissions to the `activity_notes` table
 - Verify the table exists in Supabase

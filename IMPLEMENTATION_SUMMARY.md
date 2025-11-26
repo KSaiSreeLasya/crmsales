@@ -3,6 +3,7 @@
 ## What Was Implemented
 
 A complete Lead Details modal system has been added to the CRM application that allows users to:
+
 1. ✅ Click on any lead in the Leads table to view detailed information
 2. ✅ Add, edit, and manage notes with timestamps in IST format
 3. ✅ View a complete activity log of all changes (status changes, note updates)
@@ -12,7 +13,9 @@ A complete Lead Details modal system has been added to the CRM application that 
 ## Files Created
 
 ### 1. `client/components/LeadDetailsModal.tsx` (NEW)
+
 A comprehensive React component that provides:
+
 - **4 Tabs**: Overview, Notes, Activity, Status
 - **Auto-saving fields**: Edit Note 1 and Note 2 with blur-to-save
 - **Add notes**: Create timestamped notes that are stored separately
@@ -21,6 +24,7 @@ A comprehensive React component that provides:
 - **IST date formatting**: All timestamps in `DD MMM YYYY, HH:MM:SS AM/PM` format
 
 **Key Features:**
+
 - Graceful error handling for missing database tables
 - Responsive modal design with scrollable content
 - Loading states for async operations
@@ -30,11 +34,13 @@ A comprehensive React component that provides:
 ## Files Modified
 
 ### 1. `client/pages/Leads.tsx` (MODIFIED)
+
 Changes made to integrate the Lead Details modal:
+
 - Added import: `import { LeadDetailsModal } from "@/components/LeadDetailsModal"`
 - Added state management:
   ```javascript
-  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [selectedLead, setSelectedLead] = (useState < Lead) | (null > null);
   const [openDetailsModal, setOpenDetailsModal] = useState(false);
   ```
 - Added handler functions:
@@ -48,11 +54,13 @@ Changes made to integrate the Lead Details modal:
 - Added `<LeadDetailsModal>` component to render the modal
 
 **Changes to "All Leads" tab:**
+
 - Made lead name, phone, email, address, zip code, and other data cells clickable
 - Each cell shows blue highlight on hover
 - Clicking opens the full lead details
 
 **Changes to "My Leads" (Assigned) tab:**
+
 - Applied same clickable cell functionality
 - Maintains consistency across both tabs
 
@@ -61,6 +69,7 @@ Changes made to integrate the Lead Details modal:
 Two new Supabase tables need to be created (optional, but recommended):
 
 ### `activity_logs` Table
+
 ```sql
 CREATE TABLE activity_logs (
   id UUID PRIMARY KEY,
@@ -75,6 +84,7 @@ CREATE TABLE activity_logs (
 ```
 
 ### `activity_notes` Table
+
 ```sql
 CREATE TABLE activity_notes (
   id UUID PRIMARY KEY,
@@ -91,6 +101,7 @@ CREATE TABLE activity_notes (
 ## How to Use
 
 ### For Users
+
 1. **View Lead Details**
    - Open the Leads page
    - Click on any cell in a lead row
@@ -120,10 +131,12 @@ CREATE TABLE activity_notes (
 ### For Developers
 
 **Key Code Locations:**
+
 - Modal component: `client/components/LeadDetailsModal.tsx` (lines 1-578)
 - Integration in Leads page: `client/pages/Leads.tsx` (lines 48, 125-126, 767-777, 1332-1368, 1619-1647, 1776-1782)
 
 **Using the Modal in Other Components:**
+
 ```jsx
 import { LeadDetailsModal } from "@/components/LeadDetailsModal";
 
@@ -134,10 +147,11 @@ import { LeadDetailsModal } from "@/components/LeadDetailsModal";
   lead={selectedLead}
   onLeadUpdate={handleLeadUpdated}
   salespersons={["John", "Jane", "Bob"]}
-/>
+/>;
 ```
 
 **IST Date Formatting Function:**
+
 ```javascript
 function formatDateIST(dateString?: string): string {
   if (!dateString) return "-";
@@ -159,12 +173,14 @@ function formatDateIST(dateString?: string): string {
 ## Features & Capabilities
 
 ### 📋 Overview Tab
+
 - Display all 12+ lead fields
 - Read-only field views (except notes)
 - Editable Note 1 and Note 2 with auto-save
 - Clean grid layout (2 columns)
 
 ### 📝 Notes Tab
+
 - Add new notes with one click
 - Unlimited timestamped notes
 - Notes stored separately from Note 1/2
@@ -172,6 +188,7 @@ function formatDateIST(dateString?: string): string {
 - Loading states and error handling
 
 ### 📊 Activity Tab
+
 - Complete change history
 - Shows what changed, when, and the values
 - Status changes display old → new values
@@ -179,6 +196,7 @@ function formatDateIST(dateString?: string): string {
 - Handles missing activity_logs table gracefully
 
 ### 🔄 Status Tab
+
 - Current status display
 - 9 status options as buttons
 - Quick, intuitive status changes
@@ -188,6 +206,7 @@ function formatDateIST(dateString?: string): string {
 ## Technical Highlights
 
 ### Date/Time Handling
+
 - **Format**: IST (Asia/Kolkata timezone, UTC+5:30)
 - **Display Format**: `DD MMM YYYY, HH:MM:SS AM/PM`
 - **Example**: `15 Jan 2024, 03:45:30 PM`
@@ -195,6 +214,7 @@ function formatDateIST(dateString?: string): string {
 - Works across all modern browsers
 
 ### Error Handling
+
 - Graceful degradation if activity tables don't exist
 - Error codes checked: `PGRST116` (table not found)
 - User-friendly error messages
@@ -202,6 +222,7 @@ function formatDateIST(dateString?: string): string {
 - No app crashes, just feature limitations
 
 ### Performance
+
 - Lazy loading of activity logs (only when modal opens)
 - Separate API calls for different data types
 - Efficient state management
@@ -209,6 +230,7 @@ function formatDateIST(dateString?: string): string {
 - Database indexes on `lead_id` and `created_at`
 
 ### UX/UI
+
 - Responsive modal design
 - Smooth transitions and hover effects
 - Clear visual feedback (blue highlight on clickable areas)
@@ -221,12 +243,14 @@ function formatDateIST(dateString?: string): string {
 The app is designed to work even if the `activity_logs` and `activity_notes` tables haven't been created yet:
 
 ✅ **Still Works:**
+
 - Viewing lead details
 - Editing Note 1 and Note 2
 - Changing lead status
 - All other CRM features
 
 ❌ **Won't Work (Gracefully):**
+
 - Activity Log tab will show "No activity recorded yet"
 - Notes tab will show "Activity notes feature not yet available"
 - Console will show warnings (but no errors)
@@ -271,6 +295,7 @@ Once you create the tables (see `ACTIVITY_LOG_SETUP.md`), the features will star
 ## Next Steps (Optional)
 
 If you want to enable full activity tracking:
+
 1. Follow the instructions in `ACTIVITY_LOG_SETUP.md`
 2. Create the `activity_logs` table in Supabase
 3. Create the `activity_notes` table in Supabase
