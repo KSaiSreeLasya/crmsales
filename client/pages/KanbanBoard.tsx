@@ -336,6 +336,21 @@ function KanbanBoardContent({
     setActiveId(event.active.id);
   }, []);
 
+  const handleLeadClick = useCallback((lead: Lead) => {
+    setSelectedLead(lead);
+    setOpenDetailsModal(true);
+  }, []);
+
+  const handleLeadUpdate = useCallback(
+    (updatedLead: Lead) => {
+      onLeadsUpdate(
+        leads.map((l) => (l.id === updatedLead.id ? updatedLead : l)),
+      );
+      setSelectedLead(updatedLead);
+    },
+    [leads, onLeadsUpdate],
+  );
+
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
       const { active, over } = event;
