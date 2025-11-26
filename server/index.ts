@@ -51,6 +51,7 @@ export function createServer() {
   app.post("/api/sync-leads", handleSyncLeads);
   app.post("/api/sync-leads-dynamic", handleSyncLeadsDynamic);
   app.post("/api/sync-salespersons", handleSyncSalespersons);
+  app.post("/api/batch-update-leads", handleBatchUpdateLeads);
 
   // Admin routes for user management
   app.post("/api/admin/create-user", handleCreateUser);
