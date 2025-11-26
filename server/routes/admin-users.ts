@@ -2,15 +2,21 @@ import { RequestHandler } from "express";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || "";
-const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || "";
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || "";
+const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || "";
 
-if (!supabaseUrl || !supabaseKey) {
+if (!supabaseUrl) {
+  console.warn("Supabase URL not configured for admin routes.");
+}
+
+if (!supabaseServiceKey) {
   console.warn(
-    "Supabase credentials not configured for admin routes. User management may not work.",
+    "⚠️ SUPABASE_SERVICE_KEY not configured! Admin user management will not work. User management may fail.",
   );
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Use service key for admin operations if available, otherwise fall back to anon key
+const supabase = createClient(supabaseUrl, supabaseServiceKey || supabaseAnonKey);
 
 /**
  * Create a new user with password and profile
