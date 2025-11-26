@@ -60,17 +60,18 @@ export async function login(email: string, password: string) {
       throw new Error("Email and password are required");
     }
 
-    console.log("Attempting login with email:", email);
-
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+    const response = await fetch("/api/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email, password }),
     });
 
-    console.log("Auth response:", { data, error });
+    const data = await response.json();
 
-    if (error) {
-      throw error;
+    if (!response.ok) {
+      throw new Error(data.message || data.error || "Login failed");
     }
 
     return { user: data.user, profile: null };
