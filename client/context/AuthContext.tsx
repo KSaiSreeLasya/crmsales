@@ -16,6 +16,39 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Helper function to fetch user profile from database
+async function fetchUserProfile(userId: string): Promise<AuthUser | null> {
+  try {
+    const response = await fetch(
+      `/api/user-profile?userId=${encodeURIComponent(userId)}`,
+    );
+    const profileData = await response.json();
+
+    if (response.ok && profileData.profile) {
+      return {
+        id: profileData.profile.id,
+        email: profileData.profile.email || "",
+        role: profileData.profile.role || "salesperson",
+        name: profileData.profile.name || "",
+        phone: profileData.profile.phone,
+      };
+    }
+  } catch (error) {
+    console.error("Error fetching user profile:", error);
+  }
+  return null;
+}
+
+// Helper function to create fallback user from session
+function createFallbackUser(sessionUser: any): AuthUser {
+  return {
+    id: sessionUser.id,
+    email: sessionUser.email || "",
+    role: "salesperson",
+    name: sessionUser.email || "",
+  };
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -29,16 +62,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } = await supabase.auth.getSession();
 
         if (session?.user) {
-          // Use session user data directly without extra API call
-          setUser({
-            id: session.user.id,
-            email: session.user.email || "",
-            role:
-              (session.user.user_metadata?.role as "admin" | "salesperson") ||
-              "salesperson",
-            name: session.user.user_metadata?.name || session.user.email || "",
-            phone: session.user.user_metadata?.phone,
-          });
+          // Fetch user profile from database to get the correct role
+          const profile = await fetchUserProfile(session.user.id);
+          setUser(profile || createFallbackUser(session.user));
         }
       } catch (error) {
         console.error("Auth check error:", error);
@@ -54,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
-        // Try to get pending user data from localStorage
+        // Try to get pending user data from localStorage (set during login)
         const storedUserData = localStorage.getItem("pendingAuthUser");
         if (storedUserData) {
           try {
@@ -63,31 +89,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               setUser(userData);
               localStorage.removeItem("pendingAuthUser");
             } else {
-              // IDs don't match, use session data
-              setUser({
-                id: session.user.id,
-                email: session.user.email || "",
-                role: "salesperson",
-                name: session.user.email || "",
-              });
+              // IDs don't match, fetch from database
+              const profile = await fetchUserProfile(session.user.id);
+              setUser(profile || createFallbackUser(session.user));
             }
           } catch (e) {
-            // Failed to parse, use session data
-            setUser({
-              id: session.user.id,
-              email: session.user.email || "",
-              role: "salesperson",
-              name: session.user.email || "",
-            });
+            // Failed to parse localStorage, fetch from database
+            const profile = await fetchUserProfile(session.user.id);
+            setUser(profile || createFallbackUser(session.user));
           }
         } else {
-          // No pending data, use session data
-          setUser({
-            id: session.user.id,
-            email: session.user.email || "",
-            role: "salesperson",
-            name: session.user.email || "",
-          });
+          // No pending data, fetch from database
+          const profile = await fetchUserProfile(session.user.id);
+          setUser(profile || createFallbackUser(session.user));
         }
       } else {
         setUser(null);

@@ -122,6 +122,7 @@ export default function Leads() {
     leadId: string;
     field: "note1" | "note2";
   } | null>(null);
+  const [editingNoteContent, setEditingNoteContent] = useState<string>("");
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -606,21 +607,33 @@ export default function Leads() {
     }
 
     try {
-      for (let i = 0; i < unassignedLeads.length; i++) {
-        const lead = unassignedLeads[i];
-        const assignedTo = salespersons[i % salespersons.length];
+      // Prepare batch updates using the backend API to handle them efficiently
+      const updates = unassignedLeads.map((lead, index) => ({
+        id: lead.id,
+        assigned_to: salespersons[index % salespersons.length],
+      }));
 
-        await supabase
-          .from("leads")
-          .update({ assigned_to: assignedTo })
-          .eq("id", lead.id);
+      // Send batch update request to backend
+      const response = await fetch("/api/batch-update-leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ updates }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.message || `Server error: ${response.status}`,
+        );
       }
 
       await loadLeads();
       toast.success(`Auto-assigned ${unassignedLeads.length} leads`);
     } catch (error) {
       console.error("Error auto-assigning leads:", error);
-      toast.error("Failed to auto-assign leads");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to auto-assign leads",
+      );
     }
   };
 
@@ -747,7 +760,7 @@ export default function Leads() {
     }
   };
 
-  const handleNoteUpdate = async (
+  const saveNoteUpdate = async (
     leadId: string,
     field: "note1" | "note2",
     value: string,
@@ -764,9 +777,31 @@ export default function Leads() {
       if (error) throw error;
       await loadLeads();
       setEditingNote(null);
+      setEditingNoteContent("");
     } catch (error) {
       console.error("Error updating note:", error);
       toast.error("Failed to update note");
+    }
+  };
+
+  const handleNoteClickEdit = (
+    leadId: string,
+    field: "note1" | "note2",
+    currentValue: string,
+  ) => {
+    setEditingNote({ leadId, field });
+    setEditingNoteContent(currentValue || "");
+  };
+
+  const handleNoteSave = async () => {
+    if (editingNote) {
+      await saveNoteUpdate(
+        editingNote.leadId,
+        editingNote.field,
+        editingNoteContent,
+      );
+      // Reload assigned leads to ensure consistency
+      await loadAssignedLeads();
     }
   };
 
@@ -1311,28 +1346,27 @@ export default function Leads() {
                                 editingNote.field === "note1" ? (
                                   <Input
                                     autoFocus
-                                    value={lead.note1}
+                                    value={editingNoteContent}
                                     onChange={(e) =>
-                                      handleNoteUpdate(
-                                        lead.id,
-                                        "note1",
-                                        e.target.value,
-                                      )
+                                      setEditingNoteContent(e.target.value)
                                     }
-                                    onBlur={() => setEditingNote(null)}
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter")
-                                        setEditingNote(null);
+                                    onBlur={handleNoteSave}
+                                    onKeyDown={async (e) => {
+                                      if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        await handleNoteSave();
+                                      }
                                     }}
                                     className="text-xs"
                                   />
                                 ) : (
                                   <div
                                     onClick={() =>
-                                      setEditingNote({
-                                        leadId: lead.id,
-                                        field: "note1",
-                                      })
+                                      handleNoteClickEdit(
+                                        lead.id,
+                                        "note1",
+                                        lead.note1,
+                                      )
                                     }
                                     className="cursor-pointer hover:bg-gray-100 p-0.5 rounded min-h-6 text-xs"
                                   >
@@ -1349,28 +1383,27 @@ export default function Leads() {
                                 editingNote.field === "note2" ? (
                                   <Input
                                     autoFocus
-                                    value={lead.note2}
+                                    value={editingNoteContent}
                                     onChange={(e) =>
-                                      handleNoteUpdate(
-                                        lead.id,
-                                        "note2",
-                                        e.target.value,
-                                      )
+                                      setEditingNoteContent(e.target.value)
                                     }
-                                    onBlur={() => setEditingNote(null)}
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter")
-                                        setEditingNote(null);
+                                    onBlur={handleNoteSave}
+                                    onKeyDown={async (e) => {
+                                      if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        await handleNoteSave();
+                                      }
                                     }}
                                     className="text-xs"
                                   />
                                 ) : (
                                   <div
                                     onClick={() =>
-                                      setEditingNote({
-                                        leadId: lead.id,
-                                        field: "note2",
-                                      })
+                                      handleNoteClickEdit(
+                                        lead.id,
+                                        "note2",
+                                        lead.note2,
+                                      )
                                     }
                                     className="cursor-pointer hover:bg-gray-100 p-0.5 rounded min-h-6 text-xs"
                                   >
@@ -1546,7 +1579,7 @@ export default function Leads() {
                         assignedLeads.map((lead) => (
                           <TableRow
                             key={lead.id}
-                            className="border-b border-border hover:bg-gray-50"
+                            className={`border-b border-border ${getRowHighlightClass(lead)}`}
                           >
                             <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
                               {lead.type_of_property || "-"}
@@ -1577,27 +1610,26 @@ export default function Leads() {
                               editingNote.field === "note1" ? (
                                 <Input
                                   autoFocus
-                                  value={lead.note1}
+                                  value={editingNoteContent}
                                   onChange={(e) =>
-                                    handleNoteUpdate(
-                                      lead.id,
-                                      "note1",
-                                      e.target.value,
-                                    )
+                                    setEditingNoteContent(e.target.value)
                                   }
-                                  onBlur={() => setEditingNote(null)}
+                                  onBlur={handleNoteSave}
                                   onKeyDown={(e) => {
-                                    if (e.key === "Enter") setEditingNote(null);
+                                    if (e.key === "Enter") {
+                                      handleNoteSave();
+                                    }
                                   }}
                                   className="text-xs"
                                 />
                               ) : (
                                 <div
                                   onClick={() =>
-                                    setEditingNote({
-                                      leadId: lead.id,
-                                      field: "note1",
-                                    })
+                                    handleNoteClickEdit(
+                                      lead.id,
+                                      "note1",
+                                      lead.note1,
+                                    )
                                   }
                                   className="cursor-pointer hover:bg-gray-100 p-0.5 rounded min-h-6 text-xs"
                                 >
@@ -1614,27 +1646,26 @@ export default function Leads() {
                               editingNote.field === "note2" ? (
                                 <Input
                                   autoFocus
-                                  value={lead.note2}
+                                  value={editingNoteContent}
                                   onChange={(e) =>
-                                    handleNoteUpdate(
-                                      lead.id,
-                                      "note2",
-                                      e.target.value,
-                                    )
+                                    setEditingNoteContent(e.target.value)
                                   }
-                                  onBlur={() => setEditingNote(null)}
+                                  onBlur={handleNoteSave}
                                   onKeyDown={(e) => {
-                                    if (e.key === "Enter") setEditingNote(null);
+                                    if (e.key === "Enter") {
+                                      handleNoteSave();
+                                    }
                                   }}
                                   className="text-xs"
                                 />
                               ) : (
                                 <div
                                   onClick={() =>
-                                    setEditingNote({
-                                      leadId: lead.id,
-                                      field: "note2",
-                                    })
+                                    handleNoteClickEdit(
+                                      lead.id,
+                                      "note2",
+                                      lead.note2,
+                                    )
                                   }
                                   className="cursor-pointer hover:bg-gray-100 p-0.5 rounded min-h-6 text-xs"
                                 >
