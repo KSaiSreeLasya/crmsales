@@ -1336,28 +1336,22 @@ export default function Leads() {
                                 editingNote.field === "note1" ? (
                                   <Input
                                     autoFocus
-                                    value={lead.note1 || ""}
+                                    value={editingNoteContent}
                                     onChange={(e) =>
-                                      handleNoteUpdate(
-                                        lead.id,
-                                        "note1",
-                                        e.target.value,
-                                      )
+                                      setEditingNoteContent(e.target.value)
                                     }
-                                    onBlur={() => setEditingNote(null)}
+                                    onBlur={handleNoteSave}
                                     onKeyDown={(e) => {
-                                      if (e.key === "Enter")
-                                        setEditingNote(null);
+                                      if (e.key === "Enter") {
+                                        handleNoteSave();
+                                      }
                                     }}
                                     className="text-xs"
                                   />
                                 ) : (
                                   <div
                                     onClick={() =>
-                                      setEditingNote({
-                                        leadId: lead.id,
-                                        field: "note1",
-                                      })
+                                      handleNoteClickEdit(lead.id, "note1", lead.note1)
                                     }
                                     className="cursor-pointer hover:bg-gray-100 p-0.5 rounded min-h-6 text-xs"
                                   >
