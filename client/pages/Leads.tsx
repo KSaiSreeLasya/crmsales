@@ -1343,9 +1343,10 @@ export default function Leads() {
                                       setEditingNoteContent(e.target.value)
                                     }
                                     onBlur={handleNoteSave}
-                                    onKeyDown={(e) => {
+                                    onKeyDown={async (e) => {
                                       if (e.key === "Enter") {
-                                        handleNoteSave();
+                                        e.preventDefault();
+                                        await handleNoteSave();
                                       }
                                     }}
                                     className="text-xs"
@@ -1364,24 +1365,25 @@ export default function Leads() {
                                     )}
                                   </div>
                                 )}
-                              </TableCell>
-                              <TableCell className="text-xs whitespace-nowrap">
-                                {editingNote?.leadId === lead.id &&
-                                editingNote.field === "note2" ? (
-                                  <Input
-                                    autoFocus
-                                    value={editingNoteContent}
-                                    onChange={(e) =>
-                                      setEditingNoteContent(e.target.value)
+                            </TableCell>
+                            <TableCell className="text-xs whitespace-nowrap">
+                              {editingNote?.leadId === lead.id &&
+                              editingNote.field === "note2" ? (
+                                <Input
+                                  autoFocus
+                                  value={editingNoteContent}
+                                  onChange={(e) =>
+                                    setEditingNoteContent(e.target.value)
+                                  }
+                                  onBlur={handleNoteSave}
+                                  onKeyDown={async (e) => {
+                                    if (e.key === "Enter") {
+                                      e.preventDefault();
+                                      await handleNoteSave();
                                     }
-                                    onBlur={handleNoteSave}
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter") {
-                                        handleNoteSave();
-                                      }
-                                    }}
-                                    className="text-xs"
-                                  />
+                                  }}
+                                  className="text-xs"
+                                />
                                 ) : (
                                   <div
                                     onClick={() =>
@@ -1561,7 +1563,7 @@ export default function Leads() {
                         assignedLeads.map((lead) => (
                           <TableRow
                             key={lead.id}
-                            className="border-b border-border hover:bg-gray-50"
+                            className={`border-b border-border ${getRowHighlightClass(lead)}`}
                           >
                             <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
                               {lead.type_of_property || "-"}
