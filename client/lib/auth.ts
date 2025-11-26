@@ -74,6 +74,14 @@ export async function login(email: string, password: string) {
       throw new Error(data.message || data.error || "Login failed");
     }
 
+    // Set the session in Supabase to trigger auth context
+    if (data.session && data.session.access_token) {
+      await supabase.auth.setSession({
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token || "",
+      });
+    }
+
     return { user: data.user, profile: null };
   } catch (error) {
     const errorMessage =
