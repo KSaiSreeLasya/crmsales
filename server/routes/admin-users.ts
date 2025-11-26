@@ -29,9 +29,9 @@ export const handleCreateUser: RequestHandler = async (req, res) => {
   try {
     const { email, password, name, phone, role } = req.body;
 
-    if (!email || !password || !name || !phone || !role) {
+    if (!email || !password || !name || !role) {
       return res.status(400).json({
-        message: "Missing required fields: email, password, name, phone, role",
+        message: "Missing required fields: email, password, name, role",
       });
     }
 
@@ -62,7 +62,6 @@ export const handleCreateUser: RequestHandler = async (req, res) => {
         id: authData.user.id,
         email,
         name,
-        phone,
         role,
       });
 
@@ -76,13 +75,30 @@ export const handleCreateUser: RequestHandler = async (req, res) => {
         });
       }
 
-      return res.json({
+      // If role is salesperson, also add to salespersons table for backward compatibility
+      if (role === "salesperson") {
+        const { error: salespersonError } = await supabase
+          .from("salespersons")
+          .insert({
+            name,
+            email,
+            phone: phone || "",
+          });
+
+        if (salespersonError) {
+          console.error("Salesperson insertion error:", salespersonError);
+          // Log the error but don't fail the entire operation
+          // The user is already created in the users table
+        }
+      }
+
+      return res.status(201).json({
+        success: true,
         message: "User created successfully",
         user: {
           id: authData.user.id,
           email,
           name,
-          phone,
           role,
         },
       });
@@ -94,6 +110,7 @@ export const handleCreateUser: RequestHandler = async (req, res) => {
   } catch (error) {
     console.error("Create user error:", error);
     return res.status(500).json({
+      success: false,
       message: error instanceof Error ? error.message : "Internal server error",
     });
   }
@@ -109,9 +126,17 @@ export const handleDeleteUser: RequestHandler = async (req, res) => {
 
     if (!userId) {
       return res.status(400).json({
+        success: false,
         message: "Missing required field: userId",
       });
     }
+
+    // Get user info before deletion to check role
+    const { data: userData } = await supabase
+      .from("users")
+      .select("name, role")
+      .eq("id", userId)
+      .single();
 
     // Delete user profile from database
     const { error: profileError } = await supabase
@@ -122,8 +147,22 @@ export const handleDeleteUser: RequestHandler = async (req, res) => {
     if (profileError) {
       console.error("Profile deletion error:", profileError);
       return res.status(400).json({
+        success: false,
         message: profileError.message || "Failed to delete user profile",
       });
+    }
+
+    // If user was a salesperson, also delete from salespersons table
+    if (userData?.role === "salesperson" && userData?.name) {
+      const { error: salespersonError } = await supabase
+        .from("salespersons")
+        .delete()
+        .eq("name", userData.name);
+
+      if (salespersonError) {
+        console.error("Salesperson deletion error:", salespersonError);
+        // Log but don't fail - user already deleted from users table
+      }
     }
 
     // Delete auth user
@@ -133,6 +172,7 @@ export const handleDeleteUser: RequestHandler = async (req, res) => {
       console.error("Auth deletion error:", authError);
       // Profile already deleted, but auth deletion failed
       return res.status(400).json({
+        success: false,
         message:
           authError.message ||
           "User profile deleted but auth account deletion failed",
@@ -140,11 +180,13 @@ export const handleDeleteUser: RequestHandler = async (req, res) => {
     }
 
     return res.json({
+      success: true,
       message: "User deleted successfully",
     });
   } catch (error) {
     console.error("Delete user error:", error);
     return res.status(500).json({
+      success: false,
       message: error instanceof Error ? error.message : "Internal server error",
     });
   }
@@ -160,6 +202,7 @@ export const handleUpdatePassword: RequestHandler = async (req, res) => {
 
     if (!userId || !newPassword) {
       return res.status(400).json({
+        success: false,
         message: "Missing required fields: userId, newPassword",
       });
     }
@@ -171,16 +214,19 @@ export const handleUpdatePassword: RequestHandler = async (req, res) => {
     if (error) {
       console.error("Password update error:", error);
       return res.status(400).json({
+        success: false,
         message: error.message || "Failed to update password",
       });
     }
 
     return res.json({
+      success: true,
       message: "Password updated successfully",
     });
   } catch (error) {
     console.error("Update password error:", error);
     return res.status(500).json({
+      success: false,
       message: error instanceof Error ? error.message : "Internal server error",
     });
   }
