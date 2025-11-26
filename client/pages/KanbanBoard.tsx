@@ -183,6 +183,7 @@ interface KanbanBoardInnerProps {
   activeId: string | null;
   onDragStart: (event: any) => void;
   onDragEnd: (event: DragEndEvent) => void;
+  onLeadClick: (lead: Lead) => void;
 }
 
 function KanbanBoardInner({
@@ -191,6 +192,7 @@ function KanbanBoardInner({
   activeId,
   onDragStart,
   onDragEnd,
+  onLeadClick,
 }: KanbanBoardInnerProps) {
   const KANBAN_STATUSES: KanbanStatus[] = [
     "Quotation sent",
@@ -209,6 +211,7 @@ function KanbanBoardInner({
             status={status}
             leads={leadsByStatus[status]}
             count={leadsByStatus[status].length}
+            onLeadClick={onLeadClick}
           />
         ))}
       </div>
