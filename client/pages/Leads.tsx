@@ -253,8 +253,9 @@ export default function Leads() {
   const loadSalespersons = async () => {
     try {
       const { data, error } = await supabase
-        .from("salespersons")
+        .from("users")
         .select("name")
+        .eq("role", "salesperson")
         .order("name");
 
       if (!error && data) {
