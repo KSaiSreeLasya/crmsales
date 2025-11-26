@@ -792,6 +792,8 @@ export default function Leads() {
   const handleNoteSave = async () => {
     if (editingNote) {
       await saveNoteUpdate(editingNote.leadId, editingNote.field, editingNoteContent);
+      // Reload assigned leads to ensure consistency
+      await loadAssignedLeads();
     }
   };
 
