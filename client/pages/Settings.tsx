@@ -50,7 +50,8 @@ export default function Settings() {
         toast.error(result.error || "Failed to sync leads");
       }
     } catch (error) {
-      console.error("Error syncing leads:", error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error("Error syncing leads:", errorMessage);
       toast.error("Failed to sync leads from Google Sheet");
     } finally {
       setIsSyncingLeads(false);
