@@ -96,7 +96,8 @@ export default function Index() {
         leadsBySalesperson,
       });
     } catch (error) {
-      console.error("Error loading dashboard stats:", error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error("Error loading dashboard stats:", errorMessage);
       toast.error("Failed to load dashboard stats");
       setStats({
         totalLeads: 0,
