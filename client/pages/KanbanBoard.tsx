@@ -18,7 +18,6 @@ import {
 } from "@dnd-kit/sortable";
 import {
   useSortable,
-  arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useState, useEffect, useMemo } from "react";
@@ -160,12 +159,23 @@ function KanbanColumn({ status, leads, count }: KanbanColumnProps) {
   );
 }
 
-export default function KanbanBoard() {
-  const { user } = useAuth();
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
+interface KanbanBoardContentProps {
+  leads: Lead[];
+  isLoading: boolean;
+  isSaving: boolean;
+  searchTerm: string;
+  onSearchChange: (term: string) => void;
+  onLeadsUpdate: (leads: Lead[]) => void;
+}
+
+function KanbanBoardContent({
+  leads,
+  isLoading,
+  isSaving,
+  searchTerm,
+  onSearchChange,
+  onLeadsUpdate,
+}: KanbanBoardContentProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const sensors = useSensors(
@@ -179,28 +189,6 @@ export default function KanbanBoard() {
     "Site visit",
     "Advance payment",
   ];
-
-  useEffect(() => {
-    loadLeads();
-  }, []);
-
-  const loadLeads = async () => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from("leads")
-        .select("*")
-        .in("status", KANBAN_STATUSES);
-
-      if (error) throw error;
-      setLeads(data || []);
-    } catch (error) {
-      console.error("Error loading leads:", error);
-      toast.error("Failed to load leads");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const filteredLeads = useMemo(() => {
     return leads.filter(
@@ -263,7 +251,6 @@ export default function KanbanBoard() {
     if (!lead || !KANBAN_STATUSES.includes(newStatus as any)) return;
     if (lead.status === newStatus) return;
 
-    setIsSaving(true);
     try {
       const { error } = await supabase
         .from("leads")
@@ -273,8 +260,8 @@ export default function KanbanBoard() {
       if (error) throw error;
 
       // Update local state
-      setLeads((prevLeads) =>
-        prevLeads.map((l) =>
+      onLeadsUpdate(
+        leads.map((l) =>
           l.id === leadId ? { ...l, status: newStatus } : l
         )
       );
@@ -283,9 +270,6 @@ export default function KanbanBoard() {
     } catch (error) {
       console.error("Error updating lead status:", error);
       toast.error("Failed to update lead status");
-      loadLeads(); // Reload to sync state
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -293,119 +277,166 @@ export default function KanbanBoard() {
 
   if (isLoading) {
     return (
-      <CRMLayout>
-        <div className="flex items-center justify-center h-screen">
-          <p className="text-muted-foreground">Loading Kanban board...</p>
-        </div>
-      </CRMLayout>
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-muted-foreground">Loading Kanban board...</p>
+      </div>
     );
   }
 
   return (
-    <CRMLayout>
-      <div className="space-y-6 p-8">
-        {/* Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-3xl font-bold text-foreground">
-              Lead Management Dashboard
-            </h2>
-            <p className="mt-1 text-muted-foreground">
-              Track and manage leads with drag-and-drop kanban board
-            </p>
-          </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-3xl font-bold text-foreground">
+            Lead Management Dashboard
+          </h2>
+          <p className="mt-1 text-muted-foreground">
+            Track and manage leads with drag-and-drop kanban board
+          </p>
         </div>
+      </div>
 
-        {/* Search */}
-        <div className="flex gap-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by name, email, phone, or company..."
-              className="pl-10"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+      {/* Search */}
+      <div className="flex gap-4">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by name, email, phone, or company..."
+            className="pl-10"
+            value={searchTerm}
+            onChange={(e) => onSearchChange(e.target.value)}
+          />
         </div>
+      </div>
 
-        {/* Analytics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {analyticsData.map((item) => (
-            <Card key={item.status} className="p-6 border border-gray-200">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">{item.status}</p>
-                    <p className="text-3xl font-bold text-foreground mt-1">
-                      {item.count}
-                    </p>
-                  </div>
-                  <div
-                    className="w-12 h-12 rounded-lg flex items-center justify-center"
-                    style={{ backgroundColor: `${item.fill}20` }}
-                  >
-                    <TrendingUp style={{ color: item.fill }} className="w-6 h-6" />
-                  </div>
-                </div>
-                <div className="pt-2 border-t border-gray-200">
-                  <p className="text-xs text-muted-foreground">
-                    {Math.round((item.count / filteredLeads.length) * 100) || 0}% of total
+      {/* Analytics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {analyticsData.map((item) => (
+          <Card key={item.status} className="p-6 border border-gray-200">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">{item.status}</p>
+                  <p className="text-3xl font-bold text-foreground mt-1">
+                    {item.count}
                   </p>
                 </div>
+                <div
+                  className="w-12 h-12 rounded-lg flex items-center justify-center"
+                  style={{ backgroundColor: `${item.fill}20` }}
+                >
+                  <TrendingUp style={{ color: item.fill }} className="w-6 h-6" />
+                </div>
               </div>
-            </Card>
+              <div className="pt-2 border-t border-gray-200">
+                <p className="text-xs text-muted-foreground">
+                  {Math.round((item.count / filteredLeads.length) * 100) || 0}% of total
+                </p>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Chart */}
+      {filteredLeads.length > 0 && (
+        <Card className="p-6 border border-gray-200">
+          <h3 className="text-lg font-bold mb-4 text-foreground">
+            Lead Distribution
+          </h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={analyticsData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="status" angle={-45} textAnchor="end" height={80} />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="count" fill="#3b82f6" />
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+      )}
+
+      {/* Kanban Board */}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCorners}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="flex gap-4 overflow-x-auto pb-4 -mx-8 px-8">
+          {KANBAN_STATUSES.map((status) => (
+            <KanbanColumn
+              key={status}
+              status={status}
+              leads={leadsByStatus[status]}
+              count={leadsByStatus[status].length}
+            />
           ))}
         </div>
 
-        {/* Chart */}
-        {filteredLeads.length > 0 && (
-          <Card className="p-6 border border-gray-200">
-            <h3 className="text-lg font-bold mb-4 text-foreground">
-              Lead Distribution
-            </h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={analyticsData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="status" angle={-45} textAnchor="end" height={80} />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="count" fill="#3b82f6" />
-              </BarChart>
-            </ResponsiveContainer>
-          </Card>
-        )}
+        <DragOverlay>
+          {activeLead ? <LeadCard lead={activeLead} isDragging /> : null}
+        </DragOverlay>
+      </DndContext>
 
-        {/* Kanban Board */}
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCorners}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-        >
-          <div className="flex gap-4 overflow-x-auto pb-4 -mx-8 px-8">
-            {KANBAN_STATUSES.map((status) => (
-              <KanbanColumn
-                key={status}
-                status={status}
-                leads={leadsByStatus[status]}
-                count={leadsByStatus[status].length}
-              />
-            ))}
-          </div>
+      {filteredLeads.length === 0 && searchTerm && (
+        <Card className="p-8 text-center border border-gray-200">
+          <p className="text-muted-foreground">
+            No leads found matching "{searchTerm}"
+          </p>
+        </Card>
+      )}
+    </div>
+  );
+}
 
-          <DragOverlay>
-            {activeLead ? <LeadCard lead={activeLead} isDragging /> : null}
-          </DragOverlay>
-        </DndContext>
+export default function KanbanBoard() {
+  const { user } = useAuth();
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
-        {filteredLeads.length === 0 && searchTerm && (
-          <Card className="p-8 text-center border border-gray-200">
-            <p className="text-muted-foreground">
-              No leads found matching "{searchTerm}"
-            </p>
-          </Card>
-        )}
+  const KANBAN_STATUSES: KanbanStatus[] = [
+    "Quotation sent",
+    "Site visit",
+    "Advance payment",
+  ];
+
+  useEffect(() => {
+    loadLeads();
+  }, []);
+
+  const loadLeads = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("leads")
+        .select("*")
+        .in("status", KANBAN_STATUSES);
+
+      if (error) throw error;
+      setLeads(data || []);
+    } catch (error) {
+      console.error("Error loading leads:", error);
+      toast.error("Failed to load leads");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <CRMLayout>
+      <div className="space-y-6 p-8">
+        <KanbanBoardContent
+          leads={leads}
+          isLoading={isLoading}
+          isSaving={isSaving}
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          onLeadsUpdate={setLeads}
+        />
       </div>
     </CRMLayout>
   );
