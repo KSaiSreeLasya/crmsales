@@ -5,6 +5,7 @@ export interface AuthUser {
   email: string;
   role: "admin" | "salesperson";
   name: string;
+  phone?: string;
 }
 
 /**
@@ -47,6 +48,42 @@ export async function signUp(
     return authData.user;
   } catch (error) {
     console.error("Sign up error:", error);
+    throw error;
+  }
+}
+
+/**
+ * Create a new user with password (admin creating salesperson/other admin)
+ */
+export async function createUser(
+  email: string,
+  password: string,
+  userData: { name: string; phone: string; role: "admin" | "salesperson" },
+) {
+  try {
+    // Call the admin API endpoint to create user
+    const response = await fetch("/api/admin/create-user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email,
+        password,
+        name: userData.name,
+        phone: userData.phone,
+        role: userData.role,
+      }),
+    });
+
+    // Read response body once
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to create user");
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Create user error:", error);
     throw error;
   }
 }
@@ -105,7 +142,7 @@ export async function logout() {
 }
 
 /**
- * Get current user session
+ * Get current user session via backend API
  */
 export async function getCurrentUser(): Promise<AuthUser | null> {
   try {
@@ -115,6 +152,23 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
 
     if (!user) return null;
 
+    // Use backend API to fetch profile (avoids RLS issues)
+    const response = await fetch(
+      `/api/user-profile?userId=${encodeURIComponent(user.id)}`,
+    );
+    const profileData = await response.json();
+
+    if (response.ok && profileData.profile) {
+      return {
+        id: profileData.profile.id,
+        email: profileData.profile.email,
+        role: profileData.profile.role,
+        name: profileData.profile.name,
+        phone: profileData.profile.phone,
+      };
+    }
+
+    // Fallback to session user if profile not found
     return {
       id: user.id,
       email: user.email || "",
@@ -124,6 +178,74 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
   } catch (error) {
     console.error("Get current user error:", error);
     return null;
+  }
+}
+
+/**
+ * Get all users (admin only)
+ */
+export async function getAllUsers(): Promise<AuthUser[]> {
+  try {
+    const { data, error } = await supabase
+      .from("users")
+      .select("*")
+      .order("name");
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    return [];
+  }
+}
+
+/**
+ * Update user (admin only)
+ */
+export async function updateUser(userId: string, updates: Partial<AuthUser>) {
+  try {
+    const { data, error } = await supabase
+      .from("users")
+      .update({
+        name: updates.name,
+        email: updates.email,
+        phone: updates.phone,
+        role: updates.role,
+      })
+      .eq("id", userId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error("Error updating user:", error);
+    throw error;
+  }
+}
+
+/**
+ * Delete user (admin only)
+ */
+export async function deleteUser(userId: string) {
+  try {
+    // Call the admin API endpoint to delete user
+    const response = await fetch("/api/admin/delete-user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to delete user");
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error deleting user:", error);
+    throw error;
   }
 }
 

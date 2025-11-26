@@ -10,6 +10,11 @@ import { handleFetchGoogleSheetsMetadata } from "./routes/fetch-google-sheets-me
 import { handleSyncGoogleSheet } from "./routes/sync-google-sheet";
 import { handleGetUserProfile } from "./routes/get-user-profile";
 import { handleLogin } from "./routes/login";
+import {
+  handleCreateUser,
+  handleDeleteUser,
+  handleUpdatePassword,
+} from "./routes/admin-users";
 
 export function createServer() {
   const app = express();
@@ -45,6 +50,11 @@ export function createServer() {
   app.post("/api/sync-leads", handleSyncLeads);
   app.post("/api/sync-leads-dynamic", handleSyncLeadsDynamic);
   app.post("/api/sync-salespersons", handleSyncSalespersons);
+
+  // Admin routes for user management
+  app.post("/api/admin/create-user", handleCreateUser);
+  app.post("/api/admin/delete-user", handleDeleteUser);
+  app.post("/api/admin/update-password", handleUpdatePassword);
 
   return app;
 }

@@ -41,6 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 email: profileData.profile.email,
                 role: profileData.profile.role,
                 name: profileData.profile.name,
+                phone: profileData.profile.phone,
               });
             } else {
               // Fallback to session user
@@ -88,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               email: profileData.profile.email,
               role: profileData.profile.role,
               name: profileData.profile.name,
+              phone: profileData.profile.phone,
             });
           } else {
             // Fallback to session user if profile not found

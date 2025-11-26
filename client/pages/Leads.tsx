@@ -35,12 +35,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Search, Trash2, RefreshCw, Zap } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { parseLeadRow } from "@shared/googleSheets";
+import { useAuth } from "@/context/AuthContext";
+import { getAssignedLeads } from "@/lib/auth";
 
 type LeadStatus =
   | "New"
@@ -100,7 +103,9 @@ const STATUS_OPTIONS: LeadStatus[] = [
 const SPREADSHEET_ID = "1QY8_Q8-ybLKNVs4hynPZslZDwUfC-PIJrViJfL0-tpM";
 
 export default function Leads() {
+  const { user } = useAuth();
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [assignedLeads, setAssignedLeads] = useState<Lead[]>([]);
   const [dateRows, setDateRows] = useState<DateRowMarker[]>([]);
   const [displayRows, setDisplayRows] = useState<DisplayRow[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -110,6 +115,9 @@ export default function Leads() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"all" | "assigned">(
+    user?.role === "salesperson" ? "assigned" : "all",
+  );
   const [editingNote, setEditingNote] = useState<{
     leadId: string;
     field: "note1" | "note2";
@@ -150,7 +158,10 @@ export default function Leads() {
   useEffect(() => {
     loadLeads();
     loadSalespersons();
-  }, [selectedSheetId]);
+    if (user?.name && user?.role === "salesperson") {
+      loadAssignedLeads();
+    }
+  }, [selectedSheetId, user?.name, user?.role]);
 
   // Combine leads and date rows for display
   useEffect(() => {
@@ -251,6 +262,17 @@ export default function Leads() {
       }
     } catch (error) {
       console.error("Error loading salespersons:", error);
+    }
+  };
+
+  const loadAssignedLeads = async () => {
+    if (!user?.name) return;
+
+    try {
+      const data = await getAssignedLeads(user.name);
+      setAssignedLeads(data);
+    } catch (error) {
+      console.error("Error loading assigned leads:", error);
     }
   };
 
@@ -1119,229 +1141,386 @@ export default function Leads() {
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              placeholder="Search by name, email, phone, company..."
-              className="pl-9 py-1.5 text-xs h-8"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-40 h-8 text-xs">
-              <SelectValue placeholder="All statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              {STATUS_OPTIONS.map((status) => (
-                <SelectItem key={status} value={status}>
-                  {status}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {/* Tabs for All Leads and Assigned Leads */}
+        <Tabs
+          value={activeTab}
+          onValueChange={(value) => setActiveTab(value as "all" | "assigned")}
+          className="w-full"
+        >
+          <TabsList>
+            <TabsTrigger value="all">All Leads ({leads.length})</TabsTrigger>
+            {user?.role === "salesperson" && (
+              <TabsTrigger value="assigned">
+                My Leads ({assignedLeads.length})
+              </TabsTrigger>
+            )}
+          </TabsList>
 
-        {/* Table */}
-        <Card className="border border-border bg-card p-2">
-          <div className="overflow-x-auto">
-            {isLoading ? (
-              <div className="p-4 text-center">
-                <p className="text-muted-foreground">Loading leads...</p>
+          <TabsContent value="all" className="space-y-3">
+            {/* Filters */}
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  placeholder="Search by name, email, phone, company..."
+                  className="pl-9 py-1.5 text-xs h-8"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
               </div>
-            ) : (
-              <Table className="[&_th]:h-4 [&_th]:px-1 [&_td]:px-0.5 [&_td]:py-0.5 text-[9px] leading-tight">
-                <TableHeader>
-                  <TableRow className="border-b border-border bg-gray-50">
-                    <TableHead
-                      className="whitespace-nowrap font-bold text-[11px]"
-                      title="Type of Property"
-                    >
-                      TYPE
-                    </TableHead>
-                    <TableHead
-                      className="whitespace-nowrap font-bold text-[11px]"
-                      title="Average Monthly Bill"
-                    >
-                      AVG
-                    </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-[11px]">
-                      NAME
-                    </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-[11px]">
-                      PHONE
-                    </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-[11px]">
-                      EMAIL
-                    </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-[11px]">
-                      ADDR
-                    </TableHead>
-                    <TableHead
-                      className="whitespace-nowrap font-bold text-[11px]"
-                      title="Postal Code"
-                    >
-                      ZIP
-                    </TableHead>
-                    <TableHead
-                      className="whitespace-nowrap font-bold text-[11px]"
-                      title="Lead Status"
-                    >
-                      L.STS
-                    </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-[11px]">
-                      NOTE1
-                    </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-[11px]">
-                      NOTE2
-                    </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-[11px]">
-                      STATUS
-                    </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-[11px]">
-                      ASSIGN
-                    </TableHead>
-                    <TableHead className="whitespace-nowrap font-bold text-[11px]">
-                      ACT
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredLeads.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={14} className="py-8 text-center">
-                        <p className="text-muted-foreground">
-                          No leads found.{" "}
-                          {displayRows.length === 0 &&
-                            "Click 'Sync All Columns' to import leads from Google Sheet."}
-                        </p>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredLeads.map((row) => {
-                      if (isDateRow(row)) {
-                        return (
-                          <TableRow
-                            key={`date-${row._dateValue}`}
-                            className="border-b border-border bg-blue-50 hover:bg-blue-100"
-                          >
-                            <TableCell
-                              colSpan={14}
-                              className="py-3 text-center font-semibold text-blue-700"
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="w-40 h-8 text-xs">
+                  <SelectValue placeholder="All statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
+                  {STATUS_OPTIONS.map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {status}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Table */}
+            <Card className="border border-border bg-card p-2">
+              <div className="overflow-x-auto">
+                {isLoading ? (
+                  <div className="p-4 text-center">
+                    <p className="text-muted-foreground">Loading leads...</p>
+                  </div>
+                ) : (
+                  <Table className="[&_th]:h-4 [&_th]:px-1 [&_td]:px-0.5 [&_td]:py-0.5 text-[9px] leading-tight">
+                    <TableHeader>
+                      <TableRow className="border-b border-border bg-gray-50">
+                        <TableHead
+                          className="whitespace-nowrap font-bold text-[11px]"
+                          title="Type of Property"
+                        >
+                          TYPE
+                        </TableHead>
+                        <TableHead
+                          className="whitespace-nowrap font-bold text-[11px]"
+                          title="Average Monthly Bill"
+                        >
+                          AVG
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap font-bold text-[11px]">
+                          NAME
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap font-bold text-[11px]">
+                          PHONE
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap font-bold text-[11px]">
+                          EMAIL
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap font-bold text-[11px]">
+                          ADDR
+                        </TableHead>
+                        <TableHead
+                          className="whitespace-nowrap font-bold text-[11px]"
+                          title="Postal Code"
+                        >
+                          ZIP
+                        </TableHead>
+                        <TableHead
+                          className="whitespace-nowrap font-bold text-[11px]"
+                          title="Lead Status"
+                        >
+                          L.STS
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap font-bold text-[11px]">
+                          NOTE1
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap font-bold text-[11px]">
+                          NOTE2
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap font-bold text-[11px]">
+                          STATUS
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap font-bold text-[11px]">
+                          ASSIGN
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap font-bold text-[11px]">
+                          ACT
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredLeads.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={14} className="py-8 text-center">
+                            <p className="text-muted-foreground">
+                              No leads found.{" "}
+                              {displayRows.length === 0 &&
+                                "Click 'Sync All Columns' to import leads from Google Sheet."}
+                            </p>
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filteredLeads.map((row) => {
+                          if (isDateRow(row)) {
+                            return (
+                              <TableRow
+                                key={`date-${row._dateValue}`}
+                                className="border-b border-border bg-blue-50 hover:bg-blue-100"
+                              >
+                                <TableCell
+                                  colSpan={14}
+                                  className="py-3 text-center font-semibold text-blue-700"
+                                >
+                                  📅 {row._dateValue}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          }
+                          const lead = row as Lead;
+                          return (
+                            <TableRow
+                              key={lead.id}
+                              className={`border-b border-border ${getRowHighlightClass(lead)}`}
                             >
-                              📅 {row._dateValue}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      }
-                      const lead = row as Lead;
-                      return (
+                              <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                                {lead.type_of_property || "-"}
+                              </TableCell>
+                              <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                                {lead.avg_monthly_bill || "-"}
+                              </TableCell>
+                              <TableCell className="font-medium text-foreground whitespace-nowrap text-xs">
+                                {lead.name}
+                              </TableCell>
+                              <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                                {lead.phone}
+                              </TableCell>
+                              <TableCell className="text-muted-foreground truncate max-w-[120px]">
+                                {lead.email}
+                              </TableCell>
+                              <TableCell className="text-muted-foreground truncate max-w-[100px]">
+                                {lead.street_address || "-"}
+                              </TableCell>
+                              <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                                {lead.post_code || "-"}
+                              </TableCell>
+                              <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                                {lead.lead_status || "-"}
+                              </TableCell>
+                              <TableCell className="text-xs whitespace-nowrap">
+                                {editingNote?.leadId === lead.id &&
+                                editingNote.field === "note1" ? (
+                                  <Input
+                                    autoFocus
+                                    value={lead.note1}
+                                    onChange={(e) =>
+                                      handleNoteUpdate(
+                                        lead.id,
+                                        "note1",
+                                        e.target.value,
+                                      )
+                                    }
+                                    onBlur={() => setEditingNote(null)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter")
+                                        setEditingNote(null);
+                                    }}
+                                    className="text-xs"
+                                  />
+                                ) : (
+                                  <div
+                                    onClick={() =>
+                                      setEditingNote({
+                                        leadId: lead.id,
+                                        field: "note1",
+                                      })
+                                    }
+                                    className="cursor-pointer hover:bg-gray-100 p-0.5 rounded min-h-6 text-xs"
+                                  >
+                                    {lead.note1 || (
+                                      <span className="text-muted-foreground italic text-xs">
+                                        Add...
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-xs whitespace-nowrap">
+                                {editingNote?.leadId === lead.id &&
+                                editingNote.field === "note2" ? (
+                                  <Input
+                                    autoFocus
+                                    value={lead.note2}
+                                    onChange={(e) =>
+                                      handleNoteUpdate(
+                                        lead.id,
+                                        "note2",
+                                        e.target.value,
+                                      )
+                                    }
+                                    onBlur={() => setEditingNote(null)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter")
+                                        setEditingNote(null);
+                                    }}
+                                    className="text-xs"
+                                  />
+                                ) : (
+                                  <div
+                                    onClick={() =>
+                                      setEditingNote({
+                                        leadId: lead.id,
+                                        field: "note2",
+                                      })
+                                    }
+                                    className="cursor-pointer hover:bg-gray-100 p-0.5 rounded min-h-6 text-xs"
+                                  >
+                                    {lead.note2 || (
+                                      <span className="text-muted-foreground italic text-xs">
+                                        Add...
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                              </TableCell>
+                              <TableCell className="whitespace-nowrap">
+                                <select
+                                  value={lead.status}
+                                  onChange={async (e) => {
+                                    try {
+                                      await supabase
+                                        .from("leads")
+                                        .update({
+                                          status: e.target.value as LeadStatus,
+                                          updated_at: new Date().toISOString(),
+                                        })
+                                        .eq("id", lead.id);
+                                      await loadLeads();
+                                    } catch (error) {
+                                      console.error(
+                                        "Error updating status:",
+                                        error,
+                                      );
+                                      toast.error("Failed to update status");
+                                    }
+                                  }}
+                                  className="rounded border border-border bg-background px-1.5 py-0.5 text-xs"
+                                >
+                                  {STATUS_OPTIONS.map((status) => (
+                                    <option key={status} value={status}>
+                                      {status}
+                                    </option>
+                                  ))}
+                                </select>
+                              </TableCell>
+                              <TableCell className="whitespace-nowrap">
+                                <select
+                                  value={lead.assigned_to || "Unassigned"}
+                                  onChange={async (e) => {
+                                    try {
+                                      await supabase
+                                        .from("leads")
+                                        .update({
+                                          assigned_to: e.target.value,
+                                          updated_at: new Date().toISOString(),
+                                        })
+                                        .eq("id", lead.id);
+                                      await loadLeads();
+                                    } catch (error) {
+                                      console.error(
+                                        "Error updating owner:",
+                                        error,
+                                      );
+                                      toast.error("Failed to update owner");
+                                    }
+                                  }}
+                                  className="rounded border border-border bg-background px-1.5 py-0.5 text-xs"
+                                >
+                                  <option value="Unassigned">Unassigned</option>
+                                  {salespersons.map((person) => (
+                                    <option key={person} value={person}>
+                                      {person}
+                                    </option>
+                                  ))}
+                                </select>
+                              </TableCell>
+                              <TableCell className="whitespace-nowrap">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setDeleteId(lead.id)}
+                                  className="text-red-600 hover:text-red-700 h-6 w-6 p-0"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      )}
+                    </TableBody>
+                  </Table>
+                )}
+              </div>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="assigned" className="space-y-3">
+            {isLoading ? (
+              <Card className="border border-border bg-card p-8 text-center">
+                <p className="text-muted-foreground">
+                  Loading your assigned leads...
+                </p>
+              </Card>
+            ) : assignedLeads.length === 0 ? (
+              <Card className="border border-border bg-card p-8 text-center">
+                <p className="text-muted-foreground">
+                  No leads assigned to you yet.
+                </p>
+              </Card>
+            ) : (
+              <Card className="border border-border bg-card p-2">
+                <div className="overflow-x-auto">
+                  <Table className="[&_th]:h-4 [&_th]:px-1 [&_td]:px-0.5 [&_td]:py-0.5 text-[9px] leading-tight">
+                    <TableHeader>
+                      <TableRow className="border-b border-border bg-gray-50">
+                        <TableHead className="whitespace-nowrap font-bold text-[11px]">
+                          NAME
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap font-bold text-[11px]">
+                          PHONE
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap font-bold text-[11px]">
+                          EMAIL
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap font-bold text-[11px]">
+                          STATUS
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap font-bold text-[11px]">
+                          ADDR
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap font-bold text-[11px]">
+                          ZIP
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap font-bold text-[11px]">
+                          NOTES
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {assignedLeads.map((lead) => (
                         <TableRow
                           key={lead.id}
-                          className={`border-b border-border ${getRowHighlightClass(lead)}`}
+                          className="border-b border-border hover:bg-gray-50"
                         >
-                          <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                            {lead.type_of_property || "-"}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                            {lead.avg_monthly_bill || "-"}
-                          </TableCell>
-                          <TableCell className="font-medium text-foreground whitespace-nowrap text-xs">
+                          <TableCell className="font-medium text-foreground text-xs">
                             {lead.name}
                           </TableCell>
-                          <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                          <TableCell className="text-muted-foreground text-xs">
                             {lead.phone}
                           </TableCell>
-                          <TableCell className="text-muted-foreground truncate max-w-[120px]">
+                          <TableCell className="text-muted-foreground text-xs truncate max-w-[100px]">
                             {lead.email}
                           </TableCell>
-                          <TableCell className="text-muted-foreground truncate max-w-[100px]">
-                            {lead.street_address || "-"}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                            {lead.post_code || "-"}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                            {lead.lead_status || "-"}
-                          </TableCell>
-                          <TableCell className="text-xs whitespace-nowrap">
-                            {editingNote?.leadId === lead.id &&
-                            editingNote.field === "note1" ? (
-                              <Input
-                                autoFocus
-                                value={lead.note1}
-                                onChange={(e) =>
-                                  handleNoteUpdate(
-                                    lead.id,
-                                    "note1",
-                                    e.target.value,
-                                  )
-                                }
-                                onBlur={() => setEditingNote(null)}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") setEditingNote(null);
-                                }}
-                                className="text-xs"
-                              />
-                            ) : (
-                              <div
-                                onClick={() =>
-                                  setEditingNote({
-                                    leadId: lead.id,
-                                    field: "note1",
-                                  })
-                                }
-                                className="cursor-pointer hover:bg-gray-100 p-0.5 rounded min-h-6 text-xs"
-                              >
-                                {lead.note1 || (
-                                  <span className="text-muted-foreground italic text-xs">
-                                    Add...
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-xs whitespace-nowrap">
-                            {editingNote?.leadId === lead.id &&
-                            editingNote.field === "note2" ? (
-                              <Input
-                                autoFocus
-                                value={lead.note2}
-                                onChange={(e) =>
-                                  handleNoteUpdate(
-                                    lead.id,
-                                    "note2",
-                                    e.target.value,
-                                  )
-                                }
-                                onBlur={() => setEditingNote(null)}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") setEditingNote(null);
-                                }}
-                                className="text-xs"
-                              />
-                            ) : (
-                              <div
-                                onClick={() =>
-                                  setEditingNote({
-                                    leadId: lead.id,
-                                    field: "note2",
-                                  })
-                                }
-                                className="cursor-pointer hover:bg-gray-100 p-0.5 rounded min-h-6 text-xs"
-                              >
-                                {lead.note2 || (
-                                  <span className="text-muted-foreground italic text-xs">
-                                    Add...
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap">
+                          <TableCell className="text-xs">
                             <select
                               value={lead.status}
                               onChange={async (e) => {
@@ -1353,7 +1532,7 @@ export default function Leads() {
                                       updated_at: new Date().toISOString(),
                                     })
                                     .eq("id", lead.id);
-                                  await loadLeads();
+                                  await loadAssignedLeads();
                                 } catch (error) {
                                   console.error(
                                     "Error updating status:",
@@ -1371,53 +1550,28 @@ export default function Leads() {
                               ))}
                             </select>
                           </TableCell>
-                          <TableCell className="whitespace-nowrap">
-                            <select
-                              value={lead.assigned_to || "Unassigned"}
-                              onChange={async (e) => {
-                                try {
-                                  await supabase
-                                    .from("leads")
-                                    .update({
-                                      assigned_to: e.target.value,
-                                      updated_at: new Date().toISOString(),
-                                    })
-                                    .eq("id", lead.id);
-                                  await loadLeads();
-                                } catch (error) {
-                                  console.error("Error updating owner:", error);
-                                  toast.error("Failed to update owner");
-                                }
-                              }}
-                              className="rounded border border-border bg-background px-1.5 py-0.5 text-xs"
-                            >
-                              <option value="Unassigned">Unassigned</option>
-                              {salespersons.map((person) => (
-                                <option key={person} value={person}>
-                                  {person}
-                                </option>
-                              ))}
-                            </select>
+                          <TableCell className="text-muted-foreground text-xs">
+                            {lead.street_address || "-"}
                           </TableCell>
-                          <TableCell className="whitespace-nowrap">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setDeleteId(lead.id)}
-                              className="text-red-600 hover:text-red-700 h-6 w-6 p-0"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
+                          <TableCell className="text-muted-foreground text-xs">
+                            {lead.post_code || "-"}
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {lead.note1 && <div>• {lead.note1}</div>}
+                            {lead.note2 && <div>• {lead.note2}</div>}
+                            {!lead.note1 && !lead.note2 && (
+                              <span className="text-muted-foreground">-</span>
+                            )}
                           </TableCell>
                         </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </Card>
             )}
-          </div>
-        </Card>
+          </TabsContent>
+        </Tabs>
 
         {/* Delete Confirmation Dialog */}
         <AlertDialog

@@ -21,9 +21,9 @@ export function CRMLayout({ children }: CRMLayoutProps) {
   const navItems = [
     { label: "Dashboard", href: "/", icon: LayoutDashboard },
     { label: "Leads", href: "/leads", icon: Users },
-    // Only show Salespersons management to admin
+    // Only show Team Management to admin
     ...(user?.role === "admin"
-      ? [{ label: "Salespersons", href: "/salespersons", icon: UserCheck }]
+      ? [{ label: "Team Management", href: "/salespersons", icon: UserCheck }]
       : []),
     { label: "Settings", href: "/settings", icon: Settings },
   ];

@@ -8,6 +8,7 @@ import { ThemeProvider } from "next-themes";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { AdminRoute } from "./components/AdminRoute";
 import Index from "./pages/Index";
 import Leads from "./pages/Leads";
 import Salespersons from "./pages/Salespersons";
@@ -62,9 +63,9 @@ function AppRoutes() {
         <Route
           path="/salespersons"
           element={
-            <ProtectedRoute>
+            <AdminRoute>
               <Salespersons />
-            </ProtectedRoute>
+            </AdminRoute>
           }
         />
         <Route
@@ -89,6 +90,14 @@ function AppRoutes() {
   );
 }
 
+function AppContent() {
+  return (
+    <BrowserRouter>
+      <AppRoutes />
+    </BrowserRouter>
+  );
+}
+
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
     <QueryClientProvider client={queryClient}>
@@ -96,9 +105,7 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter>
-            <AppRoutes />
-          </BrowserRouter>
+          <AppContent />
         </TooltipProvider>
       </AuthProvider>
     </QueryClientProvider>
