@@ -63,39 +63,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (session?.user) {
           // Fetch user profile from database to get the correct role
-          try {
-            const response = await fetch(
-              `/api/user-profile?userId=${encodeURIComponent(session.user.id)}`
-            );
-            const profileData = await response.json();
-
-            if (response.ok && profileData.profile) {
-              setUser({
-                id: profileData.profile.id,
-                email: profileData.profile.email || "",
-                role: profileData.profile.role || "salesperson",
-                name: profileData.profile.name || "",
-                phone: profileData.profile.phone,
-              });
-            } else {
-              // Fallback if profile fetch fails
-              setUser({
-                id: session.user.id,
-                email: session.user.email || "",
-                role: "salesperson",
-                name: session.user.email || "",
-              });
-            }
-          } catch (error) {
-            console.error("Error fetching user profile:", error);
-            // Fallback if fetch fails
-            setUser({
-              id: session.user.id,
-              email: session.user.email || "",
-              role: "salesperson",
-              name: session.user.email || "",
-            });
-          }
+          const profile = await fetchUserProfile(session.user.id);
+          setUser(profile || createFallbackUser(session.user));
         }
       } catch (error) {
         console.error("Auth check error:", error);
@@ -121,105 +90,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               localStorage.removeItem("pendingAuthUser");
             } else {
               // IDs don't match, fetch from database
-              try {
-                const response = await fetch(
-                  `/api/user-profile?userId=${encodeURIComponent(session.user.id)}`
-                );
-                const profileData = await response.json();
-
-                if (response.ok && profileData.profile) {
-                  setUser({
-                    id: profileData.profile.id,
-                    email: profileData.profile.email || "",
-                    role: profileData.profile.role || "salesperson",
-                    name: profileData.profile.name || "",
-                    phone: profileData.profile.phone,
-                  });
-                } else {
-                  setUser({
-                    id: session.user.id,
-                    email: session.user.email || "",
-                    role: "salesperson",
-                    name: session.user.email || "",
-                  });
-                }
-              } catch (error) {
-                console.error("Error fetching user profile:", error);
-                setUser({
-                  id: session.user.id,
-                  email: session.user.email || "",
-                  role: "salesperson",
-                  name: session.user.email || "",
-                });
-              }
+              const profile = await fetchUserProfile(session.user.id);
+              setUser(profile || createFallbackUser(session.user));
             }
           } catch (e) {
             // Failed to parse localStorage, fetch from database
-            try {
-              const response = await fetch(
-                `/api/user-profile?userId=${encodeURIComponent(session.user.id)}`
-              );
-              const profileData = await response.json();
-
-              if (response.ok && profileData.profile) {
-                setUser({
-                  id: profileData.profile.id,
-                  email: profileData.profile.email || "",
-                  role: profileData.profile.role || "salesperson",
-                  name: profileData.profile.name || "",
-                  phone: profileData.profile.phone,
-                });
-              } else {
-                setUser({
-                  id: session.user.id,
-                  email: session.user.email || "",
-                  role: "salesperson",
-                  name: session.user.email || "",
-                });
-              }
-            } catch (error) {
-              console.error("Error fetching user profile:", error);
-              setUser({
-                id: session.user.id,
-                email: session.user.email || "",
-                role: "salesperson",
-                name: session.user.email || "",
-              });
-            }
+            const profile = await fetchUserProfile(session.user.id);
+            setUser(profile || createFallbackUser(session.user));
           }
         } else {
           // No pending data, fetch from database
-          try {
-            const response = await fetch(
-              `/api/user-profile?userId=${encodeURIComponent(session.user.id)}`
-            );
-            const profileData = await response.json();
-
-            if (response.ok && profileData.profile) {
-              setUser({
-                id: profileData.profile.id,
-                email: profileData.profile.email || "",
-                role: profileData.profile.role || "salesperson",
-                name: profileData.profile.name || "",
-                phone: profileData.profile.phone,
-              });
-            } else {
-              setUser({
-                id: session.user.id,
-                email: session.user.email || "",
-                role: "salesperson",
-                name: session.user.email || "",
-              });
-            }
-          } catch (error) {
-            console.error("Error fetching user profile:", error);
-            setUser({
-              id: session.user.id,
-              email: session.user.email || "",
-              role: "salesperson",
-              name: session.user.email || "",
-            });
-          }
+          const profile = await fetchUserProfile(session.user.id);
+          setUser(profile || createFallbackUser(session.user));
         }
       } else {
         setUser(null);
