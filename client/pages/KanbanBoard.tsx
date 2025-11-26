@@ -177,12 +177,6 @@ function KanbanBoardInner({
   onDragStart,
   onDragEnd,
 }: KanbanBoardInnerProps) {
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      distance: 8,
-    }),
-  );
-
   const KANBAN_STATUSES: KanbanStatus[] = [
     "Quotation sent",
     "Site visit",
