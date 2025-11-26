@@ -21,7 +21,7 @@ import {
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
-import { X } from "lucide-react";
+import { X, Download } from "lucide-react";
 
 type LeadStatus =
   | "New"
