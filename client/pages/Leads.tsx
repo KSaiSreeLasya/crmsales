@@ -44,6 +44,7 @@ import { supabase } from "@/lib/supabase";
 import { parseLeadRow } from "@shared/googleSheets";
 import { useAuth } from "@/context/AuthContext";
 import { getAssignedLeads } from "@/lib/auth";
+import { LeadDetailsModal } from "@/components/LeadDetailsModal";
 
 type LeadStatus =
   | "New"
@@ -123,6 +124,8 @@ export default function Leads() {
     field: "note1" | "note2";
   } | null>(null);
   const [editingNoteContent, setEditingNoteContent] = useState<string>("");
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [openDetailsModal, setOpenDetailsModal] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -760,6 +763,19 @@ export default function Leads() {
     }
   };
 
+  const handleOpenLeadDetails = (lead: Lead) => {
+    setSelectedLead(lead);
+    setOpenDetailsModal(true);
+  };
+
+  const handleLeadUpdate = (updatedLead: Lead) => {
+    setSelectedLead(updatedLead);
+    const updatedLeads = leads.map((l) =>
+      l.id === updatedLead.id ? updatedLead : l,
+    );
+    setLeads(updatedLeads);
+  };
+
   const saveNoteUpdate = async (
     leadId: string,
     field: "note1" | "note2",
@@ -1317,28 +1333,52 @@ export default function Leads() {
                               key={lead.id}
                               className={`border-b border-border ${getRowHighlightClass(lead)}`}
                             >
-                              <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                              <TableCell
+                                className="text-muted-foreground text-xs whitespace-nowrap cursor-pointer hover:bg-blue-100"
+                                onClick={() => handleOpenLeadDetails(lead)}
+                              >
                                 {lead.type_of_property || "-"}
                               </TableCell>
-                              <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                              <TableCell
+                                className="text-muted-foreground text-xs whitespace-nowrap cursor-pointer hover:bg-blue-100"
+                                onClick={() => handleOpenLeadDetails(lead)}
+                              >
                                 {lead.avg_monthly_bill || "-"}
                               </TableCell>
-                              <TableCell className="font-medium text-foreground whitespace-nowrap text-xs">
+                              <TableCell
+                                className="font-medium text-foreground whitespace-nowrap text-xs cursor-pointer hover:bg-blue-100"
+                                onClick={() => handleOpenLeadDetails(lead)}
+                              >
                                 {lead.name}
                               </TableCell>
-                              <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                              <TableCell
+                                className="text-muted-foreground text-xs whitespace-nowrap cursor-pointer hover:bg-blue-100"
+                                onClick={() => handleOpenLeadDetails(lead)}
+                              >
                                 {lead.phone}
                               </TableCell>
-                              <TableCell className="text-muted-foreground truncate max-w-[120px]">
+                              <TableCell
+                                className="text-muted-foreground truncate max-w-[120px] cursor-pointer hover:bg-blue-100"
+                                onClick={() => handleOpenLeadDetails(lead)}
+                              >
                                 {lead.email}
                               </TableCell>
-                              <TableCell className="text-muted-foreground truncate max-w-[100px]">
+                              <TableCell
+                                className="text-muted-foreground truncate max-w-[100px] cursor-pointer hover:bg-blue-100"
+                                onClick={() => handleOpenLeadDetails(lead)}
+                              >
                                 {lead.street_address || "-"}
                               </TableCell>
-                              <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                              <TableCell
+                                className="text-muted-foreground text-xs whitespace-nowrap cursor-pointer hover:bg-blue-100"
+                                onClick={() => handleOpenLeadDetails(lead)}
+                              >
                                 {lead.post_code || "-"}
                               </TableCell>
-                              <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                              <TableCell
+                                className="text-muted-foreground text-xs whitespace-nowrap cursor-pointer hover:bg-blue-100"
+                                onClick={() => handleOpenLeadDetails(lead)}
+                              >
                                 {lead.lead_status || "-"}
                               </TableCell>
                               <TableCell className="text-xs whitespace-nowrap">
@@ -1581,28 +1621,52 @@ export default function Leads() {
                             key={lead.id}
                             className={`border-b border-border ${getRowHighlightClass(lead)}`}
                           >
-                            <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                            <TableCell
+                              className="text-muted-foreground text-xs whitespace-nowrap cursor-pointer hover:bg-blue-100"
+                              onClick={() => handleOpenLeadDetails(lead)}
+                            >
                               {lead.type_of_property || "-"}
                             </TableCell>
-                            <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                            <TableCell
+                              className="text-muted-foreground text-xs whitespace-nowrap cursor-pointer hover:bg-blue-100"
+                              onClick={() => handleOpenLeadDetails(lead)}
+                            >
                               {lead.avg_monthly_bill || "-"}
                             </TableCell>
-                            <TableCell className="font-medium text-foreground whitespace-nowrap text-xs">
+                            <TableCell
+                              className="font-medium text-foreground whitespace-nowrap text-xs cursor-pointer hover:bg-blue-100"
+                              onClick={() => handleOpenLeadDetails(lead)}
+                            >
                               {lead.name}
                             </TableCell>
-                            <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                            <TableCell
+                              className="text-muted-foreground text-xs whitespace-nowrap cursor-pointer hover:bg-blue-100"
+                              onClick={() => handleOpenLeadDetails(lead)}
+                            >
                               {lead.phone}
                             </TableCell>
-                            <TableCell className="text-muted-foreground truncate max-w-[120px]">
+                            <TableCell
+                              className="text-muted-foreground truncate max-w-[120px] cursor-pointer hover:bg-blue-100"
+                              onClick={() => handleOpenLeadDetails(lead)}
+                            >
                               {lead.email}
                             </TableCell>
-                            <TableCell className="text-muted-foreground truncate max-w-[100px]">
+                            <TableCell
+                              className="text-muted-foreground truncate max-w-[100px] cursor-pointer hover:bg-blue-100"
+                              onClick={() => handleOpenLeadDetails(lead)}
+                            >
                               {lead.street_address || "-"}
                             </TableCell>
-                            <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                            <TableCell
+                              className="text-muted-foreground text-xs whitespace-nowrap cursor-pointer hover:bg-blue-100"
+                              onClick={() => handleOpenLeadDetails(lead)}
+                            >
                               {lead.post_code || "-"}
                             </TableCell>
-                            <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                            <TableCell
+                              className="text-muted-foreground text-xs whitespace-nowrap cursor-pointer hover:bg-blue-100"
+                              onClick={() => handleOpenLeadDetails(lead)}
+                            >
                               {lead.lead_status || "-"}
                             </TableCell>
                             <TableCell className="text-xs whitespace-nowrap">
@@ -1752,6 +1816,14 @@ export default function Leads() {
             </div>
           </AlertDialogContent>
         </AlertDialog>
+
+        <LeadDetailsModal
+          open={openDetailsModal}
+          onOpenChange={setOpenDetailsModal}
+          lead={selectedLead}
+          onLeadUpdate={handleLeadUpdate}
+          salespersons={salespersons}
+        />
       </div>
     </CRMLayout>
   );
