@@ -20,7 +20,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 async function fetchUserProfile(userId: string): Promise<AuthUser | null> {
   try {
     const response = await fetch(
-      `/api/user-profile?userId=${encodeURIComponent(userId)}`
+      `/api/user-profile?userId=${encodeURIComponent(userId)}`,
     );
     const profileData = await response.json();
 

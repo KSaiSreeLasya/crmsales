@@ -784,14 +784,22 @@ export default function Leads() {
     }
   };
 
-  const handleNoteClickEdit = (leadId: string, field: "note1" | "note2", currentValue: string) => {
+  const handleNoteClickEdit = (
+    leadId: string,
+    field: "note1" | "note2",
+    currentValue: string,
+  ) => {
     setEditingNote({ leadId, field });
     setEditingNoteContent(currentValue || "");
   };
 
   const handleNoteSave = async () => {
     if (editingNote) {
-      await saveNoteUpdate(editingNote.leadId, editingNote.field, editingNoteContent);
+      await saveNoteUpdate(
+        editingNote.leadId,
+        editingNote.field,
+        editingNoteContent,
+      );
       // Reload assigned leads to ensure consistency
       await loadAssignedLeads();
     }
@@ -1354,7 +1362,11 @@ export default function Leads() {
                                 ) : (
                                   <div
                                     onClick={() =>
-                                      handleNoteClickEdit(lead.id, "note1", lead.note1)
+                                      handleNoteClickEdit(
+                                        lead.id,
+                                        "note1",
+                                        lead.note1,
+                                      )
                                     }
                                     className="cursor-pointer hover:bg-gray-100 p-0.5 rounded min-h-6 text-xs"
                                   >
@@ -1365,29 +1377,33 @@ export default function Leads() {
                                     )}
                                   </div>
                                 )}
-                            </TableCell>
-                            <TableCell className="text-xs whitespace-nowrap">
-                              {editingNote?.leadId === lead.id &&
-                              editingNote.field === "note2" ? (
-                                <Input
-                                  autoFocus
-                                  value={editingNoteContent}
-                                  onChange={(e) =>
-                                    setEditingNoteContent(e.target.value)
-                                  }
-                                  onBlur={handleNoteSave}
-                                  onKeyDown={async (e) => {
-                                    if (e.key === "Enter") {
-                                      e.preventDefault();
-                                      await handleNoteSave();
+                              </TableCell>
+                              <TableCell className="text-xs whitespace-nowrap">
+                                {editingNote?.leadId === lead.id &&
+                                editingNote.field === "note2" ? (
+                                  <Input
+                                    autoFocus
+                                    value={editingNoteContent}
+                                    onChange={(e) =>
+                                      setEditingNoteContent(e.target.value)
                                     }
-                                  }}
-                                  className="text-xs"
-                                />
+                                    onBlur={handleNoteSave}
+                                    onKeyDown={async (e) => {
+                                      if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        await handleNoteSave();
+                                      }
+                                    }}
+                                    className="text-xs"
+                                  />
                                 ) : (
                                   <div
                                     onClick={() =>
-                                      handleNoteClickEdit(lead.id, "note2", lead.note2)
+                                      handleNoteClickEdit(
+                                        lead.id,
+                                        "note2",
+                                        lead.note2,
+                                      )
                                     }
                                     className="cursor-pointer hover:bg-gray-100 p-0.5 rounded min-h-6 text-xs"
                                   >
@@ -1609,7 +1625,11 @@ export default function Leads() {
                               ) : (
                                 <div
                                   onClick={() =>
-                                    handleNoteClickEdit(lead.id, "note1", lead.note1)
+                                    handleNoteClickEdit(
+                                      lead.id,
+                                      "note1",
+                                      lead.note1,
+                                    )
                                   }
                                   className="cursor-pointer hover:bg-gray-100 p-0.5 rounded min-h-6 text-xs"
                                 >
@@ -1641,7 +1661,11 @@ export default function Leads() {
                               ) : (
                                 <div
                                   onClick={() =>
-                                    handleNoteClickEdit(lead.id, "note2", lead.note2)
+                                    handleNoteClickEdit(
+                                      lead.id,
+                                      "note2",
+                                      lead.note2,
+                                    )
                                   }
                                   className="cursor-pointer hover:bg-gray-100 p-0.5 rounded min-h-6 text-xs"
                                 >
