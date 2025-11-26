@@ -112,7 +112,7 @@ interface KanbanColumnProps {
   onLeadClick: (lead: Lead) => void;
 }
 
-function KanbanColumn({ status, leads, count }: KanbanColumnProps) {
+function KanbanColumn({ status, leads, count, onLeadClick }: KanbanColumnProps) {
   const { setNodeRef } = useDroppable({
     id: status,
   });
@@ -163,7 +163,13 @@ function KanbanColumn({ status, leads, count }: KanbanColumnProps) {
               <p>No leads in this status</p>
             </div>
           ) : (
-            leads.map((lead) => <LeadCard key={lead.id} lead={lead} />)
+            leads.map((lead) => (
+              <LeadCard
+                key={lead.id}
+                lead={lead}
+                onClick={() => onLeadClick(lead)}
+              />
+            ))
           )}
         </div>
       </SortableContext>
