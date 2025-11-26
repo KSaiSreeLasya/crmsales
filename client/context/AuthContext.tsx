@@ -29,16 +29,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } = await supabase.auth.getSession();
 
         if (session?.user) {
-          // Use session user data directly without extra API call
-          setUser({
-            id: session.user.id,
-            email: session.user.email || "",
-            role:
-              (session.user.user_metadata?.role as "admin" | "salesperson") ||
-              "salesperson",
-            name: session.user.user_metadata?.name || session.user.email || "",
-            phone: session.user.user_metadata?.phone,
-          });
+          // Fetch user profile from database to get the correct role
+          try {
+            const response = await fetch(
+              `/api/user-profile?userId=${encodeURIComponent(session.user.id)}`
+            );
+            const profileData = await response.json();
+
+            if (response.ok && profileData.profile) {
+              setUser({
+                id: profileData.profile.id,
+                email: profileData.profile.email || "",
+                role: profileData.profile.role || "salesperson",
+                name: profileData.profile.name || "",
+                phone: profileData.profile.phone,
+              });
+            } else {
+              // Fallback if profile fetch fails
+              setUser({
+                id: session.user.id,
+                email: session.user.email || "",
+                role: "salesperson",
+                name: session.user.email || "",
+              });
+            }
+          } catch (error) {
+            console.error("Error fetching user profile:", error);
+            // Fallback if fetch fails
+            setUser({
+              id: session.user.id,
+              email: session.user.email || "",
+              role: "salesperson",
+              name: session.user.email || "",
+            });
+          }
         }
       } catch (error) {
         console.error("Auth check error:", error);
@@ -54,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
-        // Try to get pending user data from localStorage
+        // Try to get pending user data from localStorage (set during login)
         const storedUserData = localStorage.getItem("pendingAuthUser");
         if (storedUserData) {
           try {
@@ -63,7 +87,65 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               setUser(userData);
               localStorage.removeItem("pendingAuthUser");
             } else {
-              // IDs don't match, use session data
+              // IDs don't match, fetch from database
+              try {
+                const response = await fetch(
+                  `/api/user-profile?userId=${encodeURIComponent(session.user.id)}`
+                );
+                const profileData = await response.json();
+
+                if (response.ok && profileData.profile) {
+                  setUser({
+                    id: profileData.profile.id,
+                    email: profileData.profile.email || "",
+                    role: profileData.profile.role || "salesperson",
+                    name: profileData.profile.name || "",
+                    phone: profileData.profile.phone,
+                  });
+                } else {
+                  setUser({
+                    id: session.user.id,
+                    email: session.user.email || "",
+                    role: "salesperson",
+                    name: session.user.email || "",
+                  });
+                }
+              } catch (error) {
+                console.error("Error fetching user profile:", error);
+                setUser({
+                  id: session.user.id,
+                  email: session.user.email || "",
+                  role: "salesperson",
+                  name: session.user.email || "",
+                });
+              }
+            }
+          } catch (e) {
+            // Failed to parse localStorage, fetch from database
+            try {
+              const response = await fetch(
+                `/api/user-profile?userId=${encodeURIComponent(session.user.id)}`
+              );
+              const profileData = await response.json();
+
+              if (response.ok && profileData.profile) {
+                setUser({
+                  id: profileData.profile.id,
+                  email: profileData.profile.email || "",
+                  role: profileData.profile.role || "salesperson",
+                  name: profileData.profile.name || "",
+                  phone: profileData.profile.phone,
+                });
+              } else {
+                setUser({
+                  id: session.user.id,
+                  email: session.user.email || "",
+                  role: "salesperson",
+                  name: session.user.email || "",
+                });
+              }
+            } catch (error) {
+              console.error("Error fetching user profile:", error);
               setUser({
                 id: session.user.id,
                 email: session.user.email || "",
@@ -71,8 +153,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 name: session.user.email || "",
               });
             }
-          } catch (e) {
-            // Failed to parse, use session data
+          }
+        } else {
+          // No pending data, fetch from database
+          try {
+            const response = await fetch(
+              `/api/user-profile?userId=${encodeURIComponent(session.user.id)}`
+            );
+            const profileData = await response.json();
+
+            if (response.ok && profileData.profile) {
+              setUser({
+                id: profileData.profile.id,
+                email: profileData.profile.email || "",
+                role: profileData.profile.role || "salesperson",
+                name: profileData.profile.name || "",
+                phone: profileData.profile.phone,
+              });
+            } else {
+              setUser({
+                id: session.user.id,
+                email: session.user.email || "",
+                role: "salesperson",
+                name: session.user.email || "",
+              });
+            }
+          } catch (error) {
+            console.error("Error fetching user profile:", error);
             setUser({
               id: session.user.id,
               email: session.user.email || "",
@@ -80,14 +187,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               name: session.user.email || "",
             });
           }
-        } else {
-          // No pending data, use session data
-          setUser({
-            id: session.user.id,
-            email: session.user.email || "",
-            role: "salesperson",
-            name: session.user.email || "",
-          });
         }
       } else {
         setUser(null);
