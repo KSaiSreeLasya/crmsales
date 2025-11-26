@@ -21,6 +21,7 @@ import { useDroppable } from "@dnd-kit/core";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { LeadDetailsModal } from "@/components/LeadDetailsModal";
 import {
   BarChart,
   Bar,
