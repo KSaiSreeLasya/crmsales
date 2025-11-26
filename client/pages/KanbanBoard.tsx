@@ -104,6 +104,10 @@ interface KanbanColumnProps {
 }
 
 function KanbanColumn({ status, leads, count }: KanbanColumnProps) {
+  const { setNodeRef } = useDroppable({
+    id: status,
+  });
+
   const statusColors: Record<KanbanStatus, string> = {
     "Quotation sent": "from-blue-500 to-blue-600",
     "Site visit": "from-green-500 to-green-600",
@@ -117,7 +121,10 @@ function KanbanColumn({ status, leads, count }: KanbanColumnProps) {
   };
 
   return (
-    <div className="flex flex-col bg-gray-50 rounded-lg p-4 flex-1 min-w-[350px] h-full max-h-[600px]">
+    <div
+      ref={setNodeRef}
+      className="flex flex-col bg-gray-50 rounded-lg p-4 flex-1 min-w-[350px] h-full max-h-[600px]"
+    >
       {/* Column Header */}
       <div
         className={`bg-gradient-to-r ${statusColors[status]} rounded-lg p-4 mb-4 text-white`}
