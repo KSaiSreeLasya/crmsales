@@ -54,23 +54,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
-        // If we have pending user data from login, use it
-        if (pendingUser?.id === session.user.id) {
-          setUser(pendingUser);
-          setPendingUser(null);
+        // Try to get pending user data from localStorage
+        const storedUserData = localStorage.getItem("pendingAuthUser");
+        if (storedUserData) {
+          try {
+            const userData = JSON.parse(storedUserData) as AuthUser;
+            if (userData.id === session.user.id) {
+              setUser(userData);
+              localStorage.removeItem("pendingAuthUser");
+            } else {
+              // IDs don't match, use session data
+              setUser({
+                id: session.user.id,
+                email: session.user.email || "",
+                role: "salesperson",
+                name: session.user.email || "",
+              });
+            }
+          } catch (e) {
+            // Failed to parse, use session data
+            setUser({
+              id: session.user.id,
+              email: session.user.email || "",
+              role: "salesperson",
+              name: session.user.email || "",
+            });
+          }
         } else {
-          // Fallback to session data
+          // No pending data, use session data
           setUser({
             id: session.user.id,
             email: session.user.email || "",
-            role: (session.user.user_metadata?.role as "admin" | "salesperson") || "salesperson",
-            name: session.user.user_metadata?.name || session.user.email || "",
-            phone: session.user.user_metadata?.phone,
+            role: "salesperson",
+            name: session.user.email || "",
           });
         }
       } else {
         setUser(null);
-        setPendingUser(null);
+        localStorage.removeItem("pendingAuthUser");
       }
     });
 
