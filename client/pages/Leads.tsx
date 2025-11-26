@@ -763,6 +763,19 @@ export default function Leads() {
     }
   };
 
+  const handleOpenLeadDetails = (lead: Lead) => {
+    setSelectedLead(lead);
+    setOpenDetailsModal(true);
+  };
+
+  const handleLeadUpdate = (updatedLead: Lead) => {
+    setSelectedLead(updatedLead);
+    const updatedLeads = leads.map((l) =>
+      l.id === updatedLead.id ? updatedLead : l,
+    );
+    setLeads(updatedLeads);
+  };
+
   const saveNoteUpdate = async (
     leadId: string,
     field: "note1" | "note2",
