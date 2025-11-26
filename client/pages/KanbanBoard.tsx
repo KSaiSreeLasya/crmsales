@@ -250,12 +250,35 @@ function KanbanBoardContent({
   onLeadsUpdate,
 }: KanbanBoardContentProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [openDetailsModal, setOpenDetailsModal] = useState(false);
+  const [salespersons, setSalespersons] = useState<string[]>([]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
       distance: 8,
     }),
   );
+
+  useEffect(() => {
+    const loadSalespersons = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("users")
+          .select("name")
+          .eq("role", "salesperson")
+          .order("name");
+
+        if (!error && data) {
+          setSalespersons(data.map((s) => s.name));
+        }
+      } catch (error) {
+        console.error("Error loading salespersons:", error);
+      }
+    };
+
+    loadSalespersons();
+  }, []);
 
   const KANBAN_STATUSES: KanbanStatus[] = [
     "Quotation sent",
