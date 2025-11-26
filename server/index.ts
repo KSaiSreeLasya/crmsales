@@ -8,6 +8,7 @@ import { handleSyncSalespersons } from "./routes/sync-salespersons";
 import { handleFetchGoogleSheet } from "./routes/fetch-google-sheet";
 import { handleFetchGoogleSheetsMetadata } from "./routes/fetch-google-sheets-metadata";
 import { handleSyncGoogleSheet } from "./routes/sync-google-sheet";
+import { handleGetUserProfile } from "./routes/get-user-profile";
 
 export function createServer() {
   const app = express();
