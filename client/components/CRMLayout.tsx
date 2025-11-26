@@ -5,6 +5,7 @@ import {
   Users,
   UserCheck,
   Settings,
+  Kanban,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
