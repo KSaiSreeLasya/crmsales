@@ -239,6 +239,12 @@ function KanbanBoardContent({
 }: KanbanBoardContentProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      distance: 8,
+    }),
+  );
+
   const KANBAN_STATUSES: KanbanStatus[] = [
     "Quotation sent",
     "Site visit",
