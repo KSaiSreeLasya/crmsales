@@ -124,6 +124,8 @@ export default function Leads() {
     field: "note1" | "note2";
   } | null>(null);
   const [editingNoteContent, setEditingNoteContent] = useState<string>("");
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [openDetailsModal, setOpenDetailsModal] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
