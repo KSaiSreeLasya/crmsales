@@ -172,7 +172,7 @@ function KanbanBoardInner({
   const sensors = useSensors(
     useSensor(PointerSensor, {
       distance: 8,
-    })
+    }),
   );
 
   const KANBAN_STATUSES: KanbanStatus[] = [
@@ -243,7 +243,7 @@ function KanbanBoardContent({
         lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
         lead.phone.includes(searchTerm) ||
-        lead.company.toLowerCase().includes(searchTerm.toLowerCase())
+        lead.company.toLowerCase().includes(searchTerm.toLowerCase()),
     );
   }, [leads, searchTerm]);
 
@@ -310,7 +310,7 @@ function KanbanBoardContent({
         if (error) throw error;
 
         onLeadsUpdate(
-          leads.map((l) => (l.id === leadId ? { ...l, status: newStatus } : l))
+          leads.map((l) => (l.id === leadId ? { ...l, status: newStatus } : l)),
         );
 
         toast.success(`Lead moved to ${newStatus}`);
@@ -319,7 +319,7 @@ function KanbanBoardContent({
         toast.error("Failed to update lead status");
       }
     },
-    [leads, onLeadsUpdate, KANBAN_STATUSES]
+    [leads, onLeadsUpdate, KANBAN_STATUSES],
   );
 
   if (isLoading) {
@@ -364,9 +364,7 @@ function KanbanBoardContent({
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">
-                    {item.status}
-                  </p>
+                  <p className="text-sm text-muted-foreground">{item.status}</p>
                   <p className="text-3xl font-bold text-foreground mt-1">
                     {item.count}
                   </p>
@@ -383,10 +381,8 @@ function KanbanBoardContent({
               </div>
               <div className="pt-2 border-t border-gray-200">
                 <p className="text-xs text-muted-foreground">
-                  {Math.round(
-                    (item.count / (filteredLeads.length || 1)) * 100
-                  )}%
-                  of total
+                  {Math.round((item.count / (filteredLeads.length || 1)) * 100)}
+                  % of total
                 </p>
               </div>
             </div>
@@ -403,7 +399,12 @@ function KanbanBoardContent({
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={analyticsData}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="status" angle={-45} textAnchor="end" height={80} />
+              <XAxis
+                dataKey="status"
+                angle={-45}
+                textAnchor="end"
+                height={80}
+              />
               <YAxis />
               <Tooltip />
               <Bar dataKey="count" fill="#3b82f6" />

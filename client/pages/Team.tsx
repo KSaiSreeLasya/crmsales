@@ -102,10 +102,7 @@ export default function Team() {
     }
 
     // Prevent salespersons from editing other users
-    if (
-      currentUser?.role === "salesperson" &&
-      editingId !== currentUser.id
-    ) {
+    if (currentUser?.role === "salesperson" && editingId !== currentUser.id) {
       toast.error("You can only edit your own details");
       return;
     }
@@ -211,7 +208,9 @@ export default function Team() {
                   {filteredUsers.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={5} className="py-8 text-center">
-                        <p className="text-muted-foreground">No team members found</p>
+                        <p className="text-muted-foreground">
+                          No team members found
+                        </p>
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -219,9 +218,7 @@ export default function Team() {
                       <TableRow
                         key={person.id}
                         className={`border-b border-border hover:bg-gray-50 ${
-                          person.id === currentUser?.id
-                            ? "bg-blue-50"
-                            : ""
+                          person.id === currentUser?.id ? "bg-blue-50" : ""
                         }`}
                       >
                         <TableCell className="font-medium text-foreground">
