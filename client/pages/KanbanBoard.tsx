@@ -1,6 +1,5 @@
 import { CRMLayout } from "@/components/CRMLayout";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -16,15 +15,21 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import {
-  useSortable,
-} from "@dnd-kit/sortable";
+import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import { Search, TrendingUp } from "lucide-react";
 
 type KanbanStatus = "Quotation sent" | "Site visit" | "Advance payment";
@@ -50,19 +55,13 @@ interface Lead {
   updated_at?: string;
 }
 
-interface LeadCardProps {
-  lead: Lead;
-  isDragging?: boolean;
-}
-
-function LeadCard({ lead, isDragging }: LeadCardProps) {
+function LeadCard({ lead }: { lead: Lead }) {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: lead.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
   };
 
   return (
@@ -71,9 +70,7 @@ function LeadCard({ lead, isDragging }: LeadCardProps) {
       style={style}
       {...attributes}
       {...listeners}
-      className={`bg-white rounded-lg border border-gray-200 p-4 cursor-grab active:cursor-grabbing shadow-sm hover:shadow-md transition-shadow ${
-        isDragging ? "opacity-50" : ""
-      }`}
+      className="bg-white rounded-lg border border-gray-200 p-4 cursor-grab active:cursor-grabbing shadow-sm hover:shadow-md transition-shadow"
     >
       <div className="space-y-2">
         <div className="flex items-start justify-between gap-2">
@@ -86,7 +83,9 @@ function LeadCard({ lead, isDragging }: LeadCardProps) {
             </Badge>
           )}
         </div>
-        <p className="text-xs text-muted-foreground line-clamp-1">{lead.company}</p>
+        <p className="text-xs text-muted-foreground line-clamp-1">
+          {lead.company}
+        </p>
         <p className="text-xs text-muted-foreground">{lead.phone}</p>
         {lead.note1 && (
           <p className="text-xs text-muted-foreground line-clamp-2 italic">
@@ -118,11 +117,11 @@ function KanbanColumn({ status, leads, count }: KanbanColumnProps) {
   };
 
   return (
-    <div
-      className="flex flex-col bg-gray-50 rounded-lg p-4 flex-1 min-w-[350px] h-full max-h-[600px]"
-    >
+    <div className="flex flex-col bg-gray-50 rounded-lg p-4 flex-1 min-w-[350px] h-full max-h-[600px]">
       {/* Column Header */}
-      <div className={`bg-gradient-to-r ${statusColors[status]} rounded-lg p-4 mb-4 text-white`}>
+      <div
+        className={`bg-gradient-to-r ${statusColors[status]} rounded-lg p-4 mb-4 text-white`}
+      >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-2xl">{statusIcons[status]}</span>
@@ -138,7 +137,10 @@ function KanbanColumn({ status, leads, count }: KanbanColumnProps) {
       </div>
 
       {/* Cards Container */}
-      <SortableContext items={leads.map((l) => l.id)} strategy={verticalListSortingStrategy}>
+      <SortableContext
+        items={leads.map((l) => l.id)}
+        strategy={verticalListSortingStrategy}
+      >
         <div className="space-y-3 flex-1 overflow-y-auto">
           {leads.length === 0 ? (
             <div className="flex items-center justify-center py-8 text-muted-foreground text-sm">
@@ -153,23 +155,19 @@ function KanbanColumn({ status, leads, count }: KanbanColumnProps) {
   );
 }
 
-interface KanbanBoardContentProps {
-  leads: Lead[];
-  isLoading: boolean;
-  isSaving: boolean;
-  searchTerm: string;
-  onSearchChange: (term: string) => void;
-  onLeadsUpdate: (leads: Lead[]) => void;
-}
-
 function KanbanBoardContent({
   leads,
   isLoading,
-  isSaving,
   searchTerm,
   onSearchChange,
   onLeadsUpdate,
-}: KanbanBoardContentProps) {
+}: {
+  leads: Lead[];
+  isLoading: boolean;
+  searchTerm: string;
+  onSearchChange: (term: string) => void;
+  onLeadsUpdate: (leads: Lead[]) => void;
+}) {
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const sensors = useSensors(
@@ -210,62 +208,71 @@ function KanbanBoardContent({
     return grouped;
   }, [filteredLeads]);
 
-  const analyticsData = [
-    {
-      status: "Quotation sent",
-      count: leadsByStatus["Quotation sent"].length,
-      fill: "#3b82f6",
-    },
-    {
-      status: "Site visit",
-      count: leadsByStatus["Site visit"].length,
-      fill: "#10b981",
-    },
-    {
-      status: "Advance payment",
-      count: leadsByStatus["Advance payment"].length,
-      fill: "#a855f7",
-    },
-  ];
+  const analyticsData = useMemo(() => {
+    return [
+      {
+        status: "Quotation sent",
+        count: leadsByStatus["Quotation sent"].length,
+        fill: "#3b82f6",
+      },
+      {
+        status: "Site visit",
+        count: leadsByStatus["Site visit"].length,
+        fill: "#10b981",
+      },
+      {
+        status: "Advance payment",
+        count: leadsByStatus["Advance payment"].length,
+        fill: "#a855f7",
+      },
+    ];
+  }, [leadsByStatus]);
 
-  const handleDragStart = (event: any) => {
+  const handleDragStart = useCallback((event: any) => {
     setActiveId(event.active.id);
-  };
+  }, []);
 
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-    setActiveId(null);
+  const handleDragEnd = useCallback(
+    async (event: DragEndEvent) => {
+      const { active, over } = event;
+      setActiveId(null);
 
-    if (!over) return;
+      if (!over) return;
 
-    const leadId = active.id;
-    const lead = leads.find((l) => l.id === leadId);
-    const newStatus = over.id as KanbanStatus;
+      const leadId = active.id as string;
+      const lead = leads.find((l) => l.id === leadId);
+      const newStatus = over.id as KanbanStatus;
 
-    if (!lead || !KANBAN_STATUSES.includes(newStatus as any)) return;
-    if (lead.status === newStatus) return;
+      const KANBAN_STATUSES: KanbanStatus[] = [
+        "Quotation sent",
+        "Site visit",
+        "Advance payment",
+      ];
 
-    try {
-      const { error } = await supabase
-        .from("leads")
-        .update({ status: newStatus })
-        .eq("id", leadId);
+      if (!lead || !KANBAN_STATUSES.includes(newStatus as any)) return;
+      if (lead.status === newStatus) return;
 
-      if (error) throw error;
+      try {
+        const { error } = await supabase
+          .from("leads")
+          .update({ status: newStatus })
+          .eq("id", leadId);
 
-      // Update local state
-      onLeadsUpdate(
-        leads.map((l) =>
-          l.id === leadId ? { ...l, status: newStatus } : l
-        )
-      );
+        if (error) throw error;
 
-      toast.success(`Lead moved to ${newStatus}`);
-    } catch (error) {
-      console.error("Error updating lead status:", error);
-      toast.error("Failed to update lead status");
-    }
-  };
+        // Update local state
+        onLeadsUpdate(
+          leads.map((l) => (l.id === leadId ? { ...l, status: newStatus } : l))
+        );
+
+        toast.success(`Lead moved to ${newStatus}`);
+      } catch (error) {
+        console.error("Error updating lead status:", error);
+        toast.error("Failed to update lead status");
+      }
+    },
+    [leads, onLeadsUpdate]
+  );
 
   const activeLead = leads.find((l) => l.id === activeId);
 
@@ -311,7 +318,9 @@ function KanbanBoardContent({
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">{item.status}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {item.status}
+                  </p>
                   <p className="text-3xl font-bold text-foreground mt-1">
                     {item.count}
                   </p>
@@ -320,12 +329,18 @@ function KanbanBoardContent({
                   className="w-12 h-12 rounded-lg flex items-center justify-center"
                   style={{ backgroundColor: `${item.fill}20` }}
                 >
-                  <TrendingUp style={{ color: item.fill }} className="w-6 h-6" />
+                  <TrendingUp
+                    style={{ color: item.fill }}
+                    className="w-6 h-6"
+                  />
                 </div>
               </div>
               <div className="pt-2 border-t border-gray-200">
                 <p className="text-xs text-muted-foreground">
-                  {Math.round((item.count / filteredLeads.length) * 100) || 0}% of total
+                  {Math.round(
+                    (item.count / filteredLeads.length) * 100
+                  ) || 0}%
+                  of total
                 </p>
               </div>
             </div>
@@ -370,7 +385,18 @@ function KanbanBoardContent({
         </div>
 
         <DragOverlay>
-          {activeLead ? <LeadCard lead={activeLead} isDragging /> : null}
+          {activeLead ? (
+            <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-lg max-w-sm">
+              <div className="space-y-2">
+                <h4 className="font-semibold text-sm text-foreground">
+                  {activeLead.name}
+                </h4>
+                <p className="text-xs text-muted-foreground">
+                  {activeLead.company}
+                </p>
+              </div>
+            </div>
+          ) : null}
         </DragOverlay>
       </DndContext>
 
@@ -385,7 +411,8 @@ function KanbanBoardContent({
       {leads.length === 0 && !searchTerm && (
         <Card className="p-8 text-center border border-gray-200 bg-blue-50">
           <p className="text-muted-foreground mb-4">
-            No leads in Quotation sent, Site visit, or Advance payment statuses yet.
+            No leads in Quotation sent, Site visit, or Advance payment statuses
+            yet.
           </p>
           <p className="text-sm text-muted-foreground">
             Leads will appear here once you move them to these stages.
@@ -397,10 +424,8 @@ function KanbanBoardContent({
 }
 
 export default function KanbanBoard() {
-  const { user } = useAuth();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
   const KANBAN_STATUSES: KanbanStatus[] = [
@@ -413,7 +438,7 @@ export default function KanbanBoard() {
     loadLeads();
   }, []);
 
-  const loadLeads = async () => {
+  const loadLeads = useCallback(async () => {
     setIsLoading(true);
     try {
       const { data, error } = await supabase
@@ -429,7 +454,7 @@ export default function KanbanBoard() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   return (
     <CRMLayout>
@@ -437,7 +462,6 @@ export default function KanbanBoard() {
         <KanbanBoardContent
           leads={leads}
           isLoading={isLoading}
-          isSaving={isSaving}
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
           onLeadsUpdate={setLeads}
