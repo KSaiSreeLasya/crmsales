@@ -16,7 +16,10 @@ if (!supabaseServiceKey) {
 }
 
 // Use service key for admin operations if available, otherwise fall back to anon key
-const supabase = createClient(supabaseUrl, supabaseServiceKey || supabaseAnonKey);
+const supabase = createClient(
+  supabaseUrl,
+  supabaseServiceKey || supabaseAnonKey,
+);
 
 /**
  * Create a new user with password and profile

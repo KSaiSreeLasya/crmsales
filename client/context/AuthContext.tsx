@@ -33,7 +33,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser({
             id: session.user.id,
             email: session.user.email || "",
-            role: (session.user.user_metadata?.role as "admin" | "salesperson") || "salesperson",
+            role:
+              (session.user.user_metadata?.role as "admin" | "salesperson") ||
+              "salesperson",
             name: session.user.user_metadata?.name || session.user.email || "",
             phone: session.user.user_metadata?.phone,
           });
