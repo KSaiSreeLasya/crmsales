@@ -83,7 +83,9 @@ export function createServer() {
       });
     } else {
       // Let frontend handle non-API routes
-      res.status(err.status || 500).send(err.message || "Internal server error");
+      res
+        .status(err.status || 500)
+        .send(err.message || "Internal server error");
     }
   });
 
