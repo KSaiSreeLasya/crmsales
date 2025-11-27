@@ -145,7 +145,9 @@ export async function login(email: string, password: string) {
         throw e;
       }
       console.error("Failed to parse response:", e);
-      throw new Error("Server returned an invalid response. Please ensure the server is running.");
+      throw new Error(
+        "Server returned an invalid response. Please ensure the server is running.",
+      );
     }
 
     if (!response.ok) {
