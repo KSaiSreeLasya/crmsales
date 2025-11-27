@@ -14,6 +14,16 @@ export const handleLogin: RequestHandler = async (req, res) => {
       return res.status(400).json({ error: "Email and password are required" });
     }
 
+    // Check if Supabase is configured
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error("Supabase credentials not configured");
+      return res.status(500).json({
+        error: "Server configuration error",
+        message:
+          "Supabase credentials are not configured. Please contact your administrator.",
+      });
+    }
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,

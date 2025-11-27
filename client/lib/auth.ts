@@ -123,7 +123,25 @@ export async function login(email: string, password: string) {
       body: JSON.stringify({ email, password }),
     });
 
-    const data = await response.json();
+    let data;
+    try {
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        console.error("Server returned non-JSON response:", text);
+        throw new Error(
+          `Server error: ${response.status} ${response.statusText}`,
+        );
+      }
+    } catch (e) {
+      if (e instanceof Error && e.message.startsWith("Server error:")) {
+        throw e;
+      }
+      console.error("Failed to parse response:", e);
+      throw new Error("Server returned an invalid response. Please try again.");
+    }
 
     if (!response.ok) {
       throw new Error(data.message || data.error || "Login failed");
