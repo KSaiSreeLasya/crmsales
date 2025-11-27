@@ -39,43 +39,77 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       return;
     }
 
-    // For dynamic sync, validate that rows have meaningful data and required fields
-    const validLeads = leads.filter((lead) => {
-      let nameValue = "";
-      let phoneValue = "";
+    // For dynamic sync, validate that rows have meaningful data
+    // More lenient validation - just need some basic info
+    const validLeads = leads
+      .map((lead, index) => {
+        let nameValue = "";
+        let emailValue = "";
+        let phoneValue = "";
 
-      for (const [key, value] of Object.entries(lead)) {
-        const normalizedKey = key.toLowerCase().trim().replace(/\s+/g, "_");
-        const strValue = String(value || "").trim();
+        // Find name, email, phone across all columns with flexible matching
+        for (const [key, value] of Object.entries(lead)) {
+          const normalizedKey = key.toLowerCase().trim().replace(/\s+/g, "_");
+          const strValue = String(value || "").trim();
 
-        if (
-          (normalizedKey.includes("full") || normalizedKey.includes("name")) &&
-          strValue &&
-          !normalizedKey.includes("email")
-        ) {
-          nameValue = strValue;
+          // Look for name column (but not full_name as a strict match, be flexible)
+          if (
+            !nameValue &&
+            (normalizedKey.includes("name") || normalizedKey.includes("full")) &&
+            !normalizedKey.includes("email") &&
+            strValue
+          ) {
+            nameValue = strValue;
+          }
+
+          // Look for email
+          if (
+            !emailValue &&
+            (normalizedKey.includes("email") ||
+              normalizedKey.includes("mail")) &&
+            strValue
+          ) {
+            emailValue = strValue;
+          }
+
+          // Look for phone
+          if (
+            !phoneValue &&
+            (normalizedKey.includes("phone") ||
+              normalizedKey.includes("contact") ||
+              normalizedKey.includes("phone_no") ||
+              normalizedKey.includes("mobile")) &&
+            strValue
+          ) {
+            phoneValue = strValue;
+          }
         }
-        if (
-          (normalizedKey.includes("phone") ||
-            normalizedKey.includes("phone_no") ||
-            normalizedKey.includes("contact")) &&
-          strValue
-        ) {
-          phoneValue = strValue;
+
+        const nonEmptyFields = Object.values(lead).filter(
+          (v) => v !== undefined && v !== null && String(v).trim() !== "",
+        ).length;
+
+        // Validation: at least name OR email/phone, and at least 2 fields total
+        const isValid =
+          nonEmptyFields >= 2 &&
+          (nameValue ||
+            emailValue ||
+            phoneValue);
+
+        if (!isValid && index < 5) {
+          console.log(`[VALIDATION] Row ${index} rejected:`, {
+            nameValue,
+            emailValue,
+            phoneValue,
+            nonEmptyFields,
+            allKeys: Object.keys(lead),
+          });
         }
-      }
 
-      // Must have both name and phone to be valid
-      const hasName = nameValue.length > 0;
-      const hasPhone = phoneValue.length > 0;
-
-      const nonEmptyFields = Object.values(lead).filter(
-        (v) => v !== undefined && v !== null && String(v).trim() !== "",
-      ).length;
-
-      // Must have at least 2 non-empty fields AND valid name and phone
-      return hasName && hasPhone && nonEmptyFields >= 2;
-    });
+        return { lead, isValid, nameValue, emailValue, phoneValue };
+      })
+      .filter((item) => item.isValid)
+      .map((item) => item.lead);
 
     console.log("Valid leads after filtering:", validLeads.length);
     console.log(
