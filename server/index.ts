@@ -16,6 +16,7 @@ import {
   handleDeleteUser,
   handleUpdatePassword,
 } from "./routes/admin-users";
+import { handleTestSupabase } from "./routes/test-supabase";
 
 export function createServer() {
   const app = express();
