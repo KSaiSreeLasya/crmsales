@@ -580,10 +580,23 @@ function KanbanBoardContent({
 
       const leadId = active.id as string;
       const lead = leads.find((l) => l.id === leadId);
-      const newStatus = over.id as KanbanStatus;
 
-      if (!lead || !KANBAN_STATUSES.includes(newStatus as any)) return;
-      if (lead.status === newStatus) return;
+      if (!lead) return;
+
+      let newStatus: KanbanStatus | null = null;
+
+      // Check if over.id is a status (column) or a lead (in a status)
+      if (KANBAN_STATUSES.includes(over.id as any)) {
+        newStatus = over.id as KanbanStatus;
+      } else {
+        // over.id is a lead, find its status
+        const overLead = leads.find((l) => l.id === over.id);
+        if (overLead) {
+          newStatus = overLead.status;
+        }
+      }
+
+      if (!newStatus || lead.status === newStatus) return;
 
       try {
         const { error } = await supabase
