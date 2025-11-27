@@ -451,9 +451,14 @@ export default function Leads() {
     }
 
     setIsSyncing(true);
+    if (showNotification) {
+      toast.loading("Syncing leads... This may take a few minutes for large sheets.");
+    }
+
     try {
+      // 2 minute timeout for fetching from Google Sheets
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const timeoutId = setTimeout(() => controller.abort(), 120000);
 
       const fetchResponse = await fetch(
         `/api/fetch-google-sheet?spreadsheetId=${SPREADSHEET_ID}&sheetId=${sheetId}`,
@@ -490,96 +495,101 @@ export default function Leads() {
 
       console.log(`Extracted ${extractedDateRows.length} date rows`);
 
-      // Sync all columns dynamically (no parsing, just pass raw data) with 60 second timeout
+      // 5 minute timeout for processing and uploading to Supabase
       const syncController = new AbortController();
-      const syncTimeoutId = setTimeout(() => syncController.abort(), 60000);
+      const syncTimeoutId = setTimeout(() => syncController.abort(), 300000);
 
-      const syncResponse = await fetch("/api/sync-leads-dynamic", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          leads: dataRows,
-          source: "google_sheet",
-          sheetId: sheetId,
-        }),
-        signal: syncController.signal,
-      });
-      clearTimeout(syncTimeoutId);
-
-      const statusOk = syncResponse.ok;
-      let syncData: any = null;
-      let responseText = "";
-
-      // Read response body only once
       try {
-        responseText = await syncResponse.text();
-        if (responseText) {
-          try {
-            syncData = JSON.parse(responseText);
-          } catch (jsonError) {
-            console.error("Failed to parse JSON:", jsonError);
-            console.error("Response text was:", responseText);
-            syncData = { error: "Invalid JSON response from server" };
+        const syncResponse = await fetch("/api/sync-leads-dynamic", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            leads: dataRows,
+            source: "google_sheet",
+            sheetId: sheetId,
+          }),
+          signal: syncController.signal,
+        });
+        clearTimeout(syncTimeoutId);
+
+        const statusOk = syncResponse.ok;
+        let syncData: any = null;
+        let responseText = "";
+
+        // Read response body only once
+        try {
+          responseText = await syncResponse.text();
+          if (responseText) {
+            try {
+              syncData = JSON.parse(responseText);
+            } catch (jsonError) {
+              console.error("Failed to parse JSON:", jsonError);
+              console.error("Response text was:", responseText);
+              syncData = { error: "Invalid JSON response from server" };
+            }
           }
+        } catch (textError) {
+          console.error("Failed to read response body:", textError);
+          syncData = { error: "Failed to read response" };
         }
-      } catch (textError) {
-        console.error("Failed to read response body:", textError);
-        syncData = { error: "Failed to read response" };
-      }
 
-      // Check response status after reading body
-      if (!statusOk) {
-        const errorMessage =
-          syncData?.message ||
-          syncData?.error ||
-          syncData?.hint ||
-          "Failed to sync leads";
-        console.error(
-          "Sync API returned error:",
-          errorMessage,
-          "Status:",
-          syncResponse.status,
+        // Check response status after reading body
+        if (!statusOk) {
+          const errorMessage =
+            syncData?.message ||
+            syncData?.error ||
+            syncData?.hint ||
+            "Failed to sync leads";
+          console.error(
+            "Sync API returned error:",
+            errorMessage,
+            "Status:",
+            syncResponse.status,
+          );
+          throw new Error(errorMessage);
+        }
+
+        if (!syncData) {
+          throw new Error("No response data received from sync");
+        }
+
+        console.log(
+          "Sync response:",
+          syncData.message,
+          "Columns:",
+          syncData.columnsIncluded,
         );
-        throw new Error(errorMessage);
-      }
 
-      if (!syncData) {
-        throw new Error("No response data received from sync");
-      }
+        // Store date rows for display
+        setDateRows(extractedDateRows);
 
-      console.log(
-        "Sync response:",
-        syncData.message,
-        "Columns:",
-        syncData.columnsIncluded,
-      );
+        console.log(`About to reload leads for sheet_id: ${sheetId}`);
+        await loadLeads();
+        console.log("Leads reloaded after sync");
 
-      // Store date rows for display
-      setDateRows(extractedDateRows);
-
-      console.log(`About to reload leads for sheet_id: ${sheetId}`);
-      await loadLeads();
-      console.log("Leads reloaded after sync");
-
-      if (showNotification) {
-        const emptyRowsMsg =
-          syncData.emptyRowsRemoved > 0
-            ? ` (${syncData.emptyRowsRemoved} empty rows removed)`
-            : "";
-        const dateRowsMsg =
-          extractedDateRows.length > 0
-            ? ` (${extractedDateRows.length} date separators)`
-            : "";
-        toast.success(
-          `Synced ${syncData.synced} leads${emptyRowsMsg}${dateRowsMsg} with all columns`,
-        );
+        if (showNotification) {
+          const emptyRowsMsg =
+            syncData.emptyRowsRemoved > 0
+              ? ` (${syncData.emptyRowsRemoved} empty rows removed)`
+              : "";
+          const dateRowsMsg =
+            extractedDateRows.length > 0
+              ? ` (${extractedDateRows.length} date separators)`
+              : "";
+          toast.success(
+            `Synced ${syncData.synced} leads${emptyRowsMsg}${dateRowsMsg} with all columns`,
+          );
+        }
+      } catch (fetchError) {
+        clearTimeout(syncTimeoutId);
+        throw fetchError;
       }
     } catch (error) {
       console.error("Error syncing dynamically from Google Sheet:", error);
       if (showNotification) {
         if (error instanceof Error && error.name === "AbortError") {
           toast.error(
-            "Sync request timed out. Server may be busy. Try again later.",
+            "Sync timed out after 5 minutes. Very large sheets may need multiple sync attempts.",
           );
         } else {
           toast.error(
