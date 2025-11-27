@@ -31,12 +31,10 @@ function expressPlugin(): Plugin {
     apply: "serve",
     configureServer(server) {
       const app = createServer();
-
-      // Return the middleware function which will run before Vite's SPA fallback
-      // This is the proper way to prioritize custom middleware in Vite
-      return () => {
-        server.middlewares.use(app);
-      };
+      // Add Express app as middleware
+      // The Express app's 404 handler will call next() for non-API routes,
+      // allowing them to fall through to Vite's SPA fallback
+      server.middlewares.use(app);
     },
   };
 }
