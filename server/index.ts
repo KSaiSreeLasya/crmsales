@@ -62,5 +62,24 @@ export function createServer() {
   app.post("/api/admin/delete-user", handleDeleteUser);
   app.post("/api/admin/update-password", handleUpdatePassword);
 
+  // Error handler - ensure all errors return JSON
+  app.use((err: any, _req: any, res: any, _next: any) => {
+    console.error("Server error:", err);
+    res.setHeader("Content-Type", "application/json");
+    res.status(err.status || 500).json({
+      error: err.message || "Internal server error",
+      message: err.message || "Unknown error",
+    });
+  });
+
+  // 404 handler
+  app.use((_req: any, res: any) => {
+    res.setHeader("Content-Type", "application/json");
+    res.status(404).json({
+      error: "Not found",
+      message: "The requested endpoint does not exist",
+    });
+  });
+
   return app;
 }
