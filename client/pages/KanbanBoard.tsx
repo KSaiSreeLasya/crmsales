@@ -424,12 +424,6 @@ function KanbanBoardInner({
   onDragEnd,
   onLeadClick,
 }: KanbanBoardInnerProps) {
-  const KANBAN_STATUSES: KanbanStatus[] = [
-    "Quotation sent",
-    "Site visit",
-    "Advance payment",
-  ];
-
   const activeLead = leads.find((l) => l.id === activeId);
 
   return (
