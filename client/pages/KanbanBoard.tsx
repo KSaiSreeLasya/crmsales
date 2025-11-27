@@ -315,20 +315,15 @@ function LeadCard({ lead, onClick }: { lead: Lead; onClick: () => void }) {
           </p>
         )}
         {lead.status === "Advance payment" && (
-          <div
-            onPointerDown={(e) => e.stopPropagation()}
-            onTouchStart={(e) => e.stopPropagation()}
+          <Button
+            onClick={handleDownloadReceipt}
+            variant="outline"
+            size="sm"
+            className="w-full mt-2 text-xs"
           >
-            <Button
-              onClick={handleDownloadReceipt}
-              variant="outline"
-              size="sm"
-              className="w-full mt-2 text-xs"
-            >
-              <Download className="w-3 h-3 mr-1" />
-              Download Receipt
-            </Button>
-          </div>
+            <Download className="w-3 h-3 mr-1" />
+            Download Receipt
+          </Button>
         )}
       </div>
     </div>
