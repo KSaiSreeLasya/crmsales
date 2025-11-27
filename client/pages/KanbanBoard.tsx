@@ -511,12 +511,6 @@ function KanbanBoardContent({
     loadSalespersons();
   }, []);
 
-  const KANBAN_STATUSES: KanbanStatus[] = [
-    "Quotation sent",
-    "Site visit",
-    "Advance payment",
-  ];
-
   const filteredLeads = useMemo(() => {
     return leads.filter(
       (lead) =>
