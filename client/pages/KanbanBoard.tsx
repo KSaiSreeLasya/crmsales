@@ -307,6 +307,9 @@ function LeadCard({ lead, onClick }: { lead: Lead; onClick: () => void }) {
         {lead.status === "Advance payment" && (
           <Button
             onClick={handleDownloadReceipt}
+            onPointerDown={(e) => {
+              e.stopPropagation();
+            }}
             variant="outline"
             size="sm"
             className="w-full mt-2 text-xs"
