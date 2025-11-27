@@ -272,6 +272,11 @@ function LeadCard({ lead, onClick }: { lead: Lead; onClick: () => void }) {
     }
   };
 
+  const handleDownloadReceipt = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    openReceiptInNewTab(lead);
+  };
+
   return (
     <div
       ref={setNodeRef}
@@ -300,6 +305,17 @@ function LeadCard({ lead, onClick }: { lead: Lead; onClick: () => void }) {
           <p className="text-xs text-muted-foreground line-clamp-2 italic">
             {lead.note1}
           </p>
+        )}
+        {lead.status === "Advance payment" && (
+          <Button
+            onClick={handleDownloadReceipt}
+            variant="outline"
+            size="sm"
+            className="w-full mt-2 text-xs"
+          >
+            <Download className="w-3 h-3 mr-1" />
+            Download Receipt
+          </Button>
         )}
       </div>
     </div>
