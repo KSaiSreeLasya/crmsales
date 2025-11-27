@@ -131,8 +131,13 @@ export async function login(email: string, password: string) {
       } else {
         const text = await response.text();
         console.error("Server returned non-JSON response:", text);
+        console.error("Response status:", response.status, response.statusText);
+        console.error("Response headers:", {
+          contentType,
+          cacheControl: response.headers.get("cache-control"),
+        });
         throw new Error(
-          `Server error: ${response.status} ${response.statusText}`,
+          `Server error: ${response.status} - Expected JSON but received ${contentType || "unknown type"}`,
         );
       }
     } catch (e) {
@@ -140,7 +145,7 @@ export async function login(email: string, password: string) {
         throw e;
       }
       console.error("Failed to parse response:", e);
-      throw new Error("Server returned an invalid response. Please try again.");
+      throw new Error("Server returned an invalid response. Please ensure the server is running.");
     }
 
     if (!response.ok) {
