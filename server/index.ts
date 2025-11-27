@@ -108,7 +108,7 @@ export function createServer() {
   });
 
   // 404 handler - only for API routes
-  app.use((req: any, res: any) => {
+  app.use((req: any, res: any, next: any) => {
     if (req.path.startsWith("/api")) {
       res.setHeader("Content-Type", "application/json");
       res.status(404).json({
@@ -116,8 +116,8 @@ export function createServer() {
         message: "The requested endpoint does not exist",
       });
     } else {
-      // Don't handle non-API routes - let the frontend handle them
-      res.status(404).send("Not found");
+      // Don't handle non-API routes - let the next middleware (Vite SPA fallback) handle them
+      next();
     }
   });
 

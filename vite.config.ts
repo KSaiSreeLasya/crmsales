@@ -32,8 +32,9 @@ function expressPlugin(): Plugin {
     configureServer(server) {
       const app = createServer();
 
-      // Add Express app as middleware to Vite dev server
-      server.middlewares.use(app);
+      // Return the Express app as middleware
+      // This ensures it runs BEFORE Vite's SPA fallback
+      return app;
     },
   };
 }
