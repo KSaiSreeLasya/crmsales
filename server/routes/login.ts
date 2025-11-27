@@ -7,6 +7,10 @@ const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || "";
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export const handleLogin: RequestHandler = async (req, res) => {
+  // Ensure JSON response headers are set immediately
+  res.setHeader("Content-Type", "application/json");
+  res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+
   try {
     const { email, password } = req.body;
 
@@ -81,13 +85,11 @@ export const handleLogin: RequestHandler = async (req, res) => {
     };
 
     console.log("✅ Login successful, sending response");
-    res.setHeader("Content-Type", "application/json");
     return res.status(200).json(response);
   } catch (error) {
     console.error("❌ Login error:", error);
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
-    res.setHeader("Content-Type", "application/json");
     return res.status(500).json({
       error: "Internal server error",
       message: errorMessage,
