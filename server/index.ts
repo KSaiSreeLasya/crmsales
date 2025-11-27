@@ -17,6 +17,7 @@ import {
   handleUpdatePassword,
 } from "./routes/admin-users";
 import { handleTestSupabase } from "./routes/test-supabase";
+import { handleDiagnoseGoogleSheet } from "./routes/diagnose-google-sheet";
 
 export function createServer() {
   const app = express();
