@@ -275,14 +275,8 @@ function LeadCard({ lead, onClick }: { lead: Lead; onClick: () => void }) {
     }
   };
 
-  const handleDownloadReceipt = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    try {
-      navigateToProjects();
-    } catch (error) {
-      console.error("Error navigating to projects:", error);
-    }
+  const handleDownloadReceipt = () => {
+    navigateToProjects();
   };
 
   return (
