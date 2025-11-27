@@ -219,21 +219,23 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         }
       }
 
-      // Ensure required fields exist
-      if (!syncData.name) syncData.name = "";
-      if (!syncData.email) syncData.email = "";
-      if (!syncData.phone) syncData.phone = "";
-      if (!syncData.company) syncData.company = "";
-      if (!syncData.status) syncData.status = "Not lifted";
-      if (!syncData.assigned_to) syncData.assigned_to = "Unassigned";
+      // Ensure required fields exist and are not empty
+      syncData.name = (syncData.name || "").trim() || "Unknown";
+      syncData.email = (syncData.email || "").trim();
+      syncData.phone = (syncData.phone || "").trim() || "";
+      syncData.company = (syncData.company || "").trim() || "";
+      syncData.status = syncData.status || "Not lifted";
+      syncData.assigned_to = syncData.assigned_to || "Unassigned";
 
       // Set timestamps to ensure they're properly recorded
       const now = new Date().toISOString();
-      if (!syncData.created_at) syncData.created_at = now;
-      if (!syncData.updated_at) syncData.updated_at = now;
+      syncData.created_at = syncData.created_at || now;
+      syncData.updated_at = syncData.updated_at || now;
 
       // Set sheet_id so leads are associated with correct sheet
       syncData.sheet_id = sheetId || "0";
+
+      console.log("[SYNC DEBUG] Normalized lead:", JSON.stringify(syncData));
 
       return syncData;
     });
