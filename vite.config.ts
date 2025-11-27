@@ -26,39 +26,32 @@ export default defineConfig(({ mode }) => ({
 }));
 
 function expressPlugin(): Plugin {
+  let apiProxy: any;
+
   return {
     name: "express-plugin",
-    apply: "serve", // Only apply during development (serve mode)
+    apply: "serve",
     configureServer(server) {
       const app = createServer();
 
-      // Prepend the Express app to the middleware chain so it runs BEFORE Vite's SPA fallback
-      // We need to add it at the beginning of the middleware stack
-      server.middlewares.stack.unshift(
-        ...server.middlewares.stack.splice(0, server.middlewares.stack.length - 1)
-      );
+      // Store reference for use in resolveId/load hooks
+      apiProxy = app;
 
-      // Add Express app as first-priority middleware
-      const originalUse = server.middlewares.use.bind(server.middlewares);
-      server.middlewares.use = function(fn: any) {
-        // Override to add at beginning instead of end
-        if (fn === app) {
-          // Add this specific app at the very beginning
-          const layer = {
-            handle: fn,
-            name: fn.name || 'expressApp',
-            regexp: /^\//,
-            keys: [],
-            method: undefined,
-            path: undefined
-          };
-          this.stack.unshift(layer);
-        } else {
-          return originalUse(fn);
-        }
-      };
-
-      server.middlewares.use(app);
+      // Manually insert at the beginning of middleware stack
+      if (server.middlewares.stack) {
+        const layer = {
+          handle: app,
+          name: app.name || 'expressApp',
+          regexp: /^\//,
+          keys: [],
+          method: undefined,
+          path: undefined
+        };
+        server.middlewares.stack.unshift(layer);
+      } else {
+        // Fallback if stack doesn't exist
+        server.middlewares.use(app);
+      }
     },
   };
 }
