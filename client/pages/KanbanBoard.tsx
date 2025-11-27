@@ -223,11 +223,8 @@ function generateReceiptHTML(lead: Lead): string {
   `;
 }
 
-function openReceiptInNewTab(lead: Lead): void {
-  const htmlContent = generateReceiptHTML(lead);
-  const blob = new Blob([htmlContent], { type: "text/html" });
-  const url = URL.createObjectURL(blob);
-  window.open(url, "_blank");
+function navigateToProjects(): void {
+  window.open("https://crm.axisogreen.in/#/projects", "_blank");
 }
 
 interface Lead {
