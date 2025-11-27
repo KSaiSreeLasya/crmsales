@@ -66,17 +66,22 @@ export function createServer() {
 
   // Serve static files from dist/spa in production
   const distPath = path.join(__dirname, "../dist/spa");
-  app.use(express.static(distPath, { maxAge: "1h" }));
+  const indexPath = path.join(distPath, "index.html");
 
-  // SPA fallback - serve index.html for all non-API routes
-  app.get(/^(?!\/api)/, (_req, res) => {
-    res.sendFile(path.join(distPath, "index.html"), (err) => {
-      if (err) {
-        console.error("Error serving index.html:", err);
-        res.status(404).send("Not found");
-      }
+  if (fs.existsSync(indexPath)) {
+    // Only serve static files and SPA fallback if dist/spa exists (production mode)
+    app.use(express.static(distPath, { maxAge: "1h" }));
+
+    // SPA fallback - serve index.html for all non-API routes
+    app.get(/^(?!\/api)/, (_req, res) => {
+      res.sendFile(indexPath, (err) => {
+        if (err) {
+          console.error("Error serving index.html:", err);
+          res.status(404).send("Not found");
+        }
+      });
     });
-  });
+  }
 
   // Error handler - ensure API errors return JSON
   app.use((err: any, req: any, res: any, _next: any) => {
