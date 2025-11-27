@@ -65,12 +65,17 @@ export function createServer() {
   app.post("/api/admin/update-password", handleUpdatePassword);
 
   // Serve static files from dist/spa in production
-  const distPath = path.join(__dirname, "../dist/spa");
+  // When running from dist/server/node-build.mjs, we need to go up 2 levels to reach dist/spa
+  const distPath = path.join(__dirname, "../spa");
   const indexPath = path.join(distPath, "index.html");
+
+  console.log("Static files path:", distPath);
+  console.log("Index.html exists:", fs.existsSync(indexPath));
 
   if (fs.existsSync(indexPath)) {
     // Only serve static files and SPA fallback if dist/spa exists (production mode)
     app.use(express.static(distPath, { maxAge: "1h" }));
+    console.log("✅ Serving static files from:", distPath);
 
     // SPA fallback - serve index.html for all non-API routes
     app.get(/^(?!\/api)/, (_req, res) => {
@@ -81,6 +86,8 @@ export function createServer() {
         }
       });
     });
+  } else {
+    console.warn("⚠️ dist/spa not found - serving in dev mode");
   }
 
   // Error handler - ensure API errors return JSON
