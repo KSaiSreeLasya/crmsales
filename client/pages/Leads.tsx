@@ -332,9 +332,9 @@ export default function Leads() {
 
     setIsSyncing(true);
     try {
-      // Fetch from server endpoint (avoids CORS issues) with 30 second timeout
+      // Fetch from server endpoint (avoids CORS issues) with 2 minute timeout for fetching sheet
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const timeoutId = setTimeout(() => controller.abort(), 120000);
 
       const fetchResponse = await fetch(
         `/api/fetch-google-sheet?spreadsheetId=${SPREADSHEET_ID}&sheetId=0`,
@@ -399,9 +399,9 @@ export default function Leads() {
         return;
       }
 
-      // Sync to backend with 60 second timeout
+      // Sync to backend with 5 minute timeout for processing and uploading
       const syncController = new AbortController();
-      const syncTimeoutId = setTimeout(() => syncController.abort(), 60000);
+      const syncTimeoutId = setTimeout(() => syncController.abort(), 300000);
 
       const syncResponse = await fetch("/api/sync-leads", {
         method: "POST",
@@ -428,7 +428,7 @@ export default function Leads() {
       if (showNotification) {
         if (error instanceof Error && error.name === "AbortError") {
           toast.error(
-            "Sync request timed out. Server may be busy. Try again later.",
+            "Sync timed out. Large spreadsheets may take longer. Please wait and try again.",
           );
         } else {
           toast.error("Failed to sync from Google Sheet");
