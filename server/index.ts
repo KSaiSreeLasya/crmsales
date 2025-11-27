@@ -1,6 +1,8 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import path from "path";
+import fs from "fs";
 import { handleDemo } from "./routes/demo";
 import { handleSyncLeads } from "./routes/sync-leads";
 import { handleSyncLeadsDynamic } from "./routes/sync-leads-dynamic";
@@ -62,23 +64,54 @@ export function createServer() {
   app.post("/api/admin/delete-user", handleDeleteUser);
   app.post("/api/admin/update-password", handleUpdatePassword);
 
-  // Error handler - ensure all errors return JSON
-  app.use((err: any, _req: any, res: any, _next: any) => {
-    console.error("Server error:", err);
-    res.setHeader("Content-Type", "application/json");
-    res.status(err.status || 500).json({
-      error: err.message || "Internal server error",
-      message: err.message || "Unknown error",
+  // Serve static files from dist/spa in production
+  const distPath = path.join(__dirname, "../dist/spa");
+  const indexPath = path.join(distPath, "index.html");
+
+  if (fs.existsSync(indexPath)) {
+    // Only serve static files and SPA fallback if dist/spa exists (production mode)
+    app.use(express.static(distPath, { maxAge: "1h" }));
+
+    // SPA fallback - serve index.html for all non-API routes
+    app.get(/^(?!\/api)/, (_req, res) => {
+      res.sendFile(indexPath, (err) => {
+        if (err) {
+          console.error("Error serving index.html:", err);
+          res.status(404).send("Not found");
+        }
+      });
     });
+  }
+
+  // Error handler - ensure API errors return JSON
+  app.use((err: any, req: any, res: any, _next: any) => {
+    console.error("Server error:", err);
+    if (req.path.startsWith("/api")) {
+      res.setHeader("Content-Type", "application/json");
+      res.status(err.status || 500).json({
+        error: err.message || "Internal server error",
+        message: err.message || "Unknown error",
+      });
+    } else {
+      // Let frontend handle non-API routes
+      res
+        .status(err.status || 500)
+        .send(err.message || "Internal server error");
+    }
   });
 
-  // 404 handler
-  app.use((_req: any, res: any) => {
-    res.setHeader("Content-Type", "application/json");
-    res.status(404).json({
-      error: "Not found",
-      message: "The requested endpoint does not exist",
-    });
+  // 404 handler - only for API routes
+  app.use((req: any, res: any) => {
+    if (req.path.startsWith("/api")) {
+      res.setHeader("Content-Type", "application/json");
+      res.status(404).json({
+        error: "Not found",
+        message: "The requested endpoint does not exist",
+      });
+    } else {
+      // Don't handle non-API routes - let the frontend handle them
+      res.status(404).send("Not found");
+    }
   });
 
   return app;
