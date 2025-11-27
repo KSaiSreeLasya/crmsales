@@ -85,7 +85,8 @@ export const handleLogin: RequestHandler = async (req, res) => {
     return res.status(200).json(response);
   } catch (error) {
     console.error("❌ Login error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
     res.setHeader("Content-Type", "application/json");
     return res.status(500).json({
       error: "Internal server error",
