@@ -224,7 +224,13 @@ function generateReceiptHTML(lead: Lead): string {
 }
 
 function navigateToProjects(): void {
-  window.location.href = "https://crm.axisogreen.in/#/projects";
+  const link = document.createElement('a');
+  link.href = "https://crm.axisogreen.in/#/projects";
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
 interface Lead {
