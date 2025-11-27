@@ -63,6 +63,15 @@ export function createServer() {
   app.post("/api/admin/delete-user", handleDeleteUser);
   app.post("/api/admin/update-password", handleUpdatePassword);
 
+  // Serve static files from dist/spa in production
+  const distPath = path.join(__dirname, "../dist/spa");
+  app.use(express.static(distPath, { maxAge: "1h" }));
+
+  // SPA fallback - serve index.html for all non-API routes
+  app.get("*", (_req, res) => {
+    res.sendFile(path.join(distPath, "index.html"));
+  });
+
   // Error handler - ensure API errors return JSON
   app.use((err: any, req: any, res: any, _next: any) => {
     console.error("Server error:", err);
