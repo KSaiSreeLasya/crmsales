@@ -37,7 +37,8 @@ export function CRMLayout({ children }: CRMLayoutProps) {
       await logout();
       toast.success("Logged out successfully");
     } catch (error) {
-      console.error("Logout error:", error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error("Logout error:", errorMessage);
       toast.error("Failed to logout");
     }
   };

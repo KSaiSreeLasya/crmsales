@@ -88,7 +88,8 @@ export default function Salespersons() {
       const data = await getAllUsers();
       setUsers(data);
     } catch (error) {
-      console.error("Error loading users:", error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error("Error loading users:", errorMessage);
       toast.error("Failed to load users");
       setUsers([]);
     } finally {
