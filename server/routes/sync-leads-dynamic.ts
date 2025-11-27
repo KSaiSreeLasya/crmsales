@@ -247,14 +247,20 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     try {
       // First, try to insert new records
       console.log("Inserting leads into Supabase...");
+      console.log("[SYNC DEBUG] Attempting to insert", leadsToSync.length, "leads");
+      console.log("[SYNC DEBUG] Sample lead:", JSON.stringify(leadsToSync[0], null, 2));
+
       const { data, error } = await supabase
         .from("leads")
         .insert(leadsToSync)
         .select();
 
       if (error) {
-        console.error("Supabase insert error:", error);
-        console.error("Full error object:", JSON.stringify(error, null, 2));
+        console.error("[SYNC ERROR] Supabase insert error:", error);
+        console.error("[SYNC ERROR] Full error object:", JSON.stringify(error, null, 2));
+        console.error("[SYNC ERROR] Error code:", (error as any).code);
+        console.error("[SYNC ERROR] Error hint:", (error as any).hint);
+        console.error("[SYNC ERROR] Error details:", (error as any).details);
 
         // If duplicate key error, try update
         if (
