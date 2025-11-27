@@ -32,10 +32,33 @@ function expressPlugin(): Plugin {
     configureServer(server) {
       const app = createServer();
 
-      // Return a middleware function that will run BEFORE Vite's SPA fallback
-      return (req: any, res: any, next: any) => {
-        app(req, res, next);
+      // Prepend the Express app to the middleware chain so it runs BEFORE Vite's SPA fallback
+      // We need to add it at the beginning of the middleware stack
+      server.middlewares.stack.unshift(
+        ...server.middlewares.stack.splice(0, server.middlewares.stack.length - 1)
+      );
+
+      // Add Express app as first-priority middleware
+      const originalUse = server.middlewares.use.bind(server.middlewares);
+      server.middlewares.use = function(fn: any) {
+        // Override to add at beginning instead of end
+        if (fn === app) {
+          // Add this specific app at the very beginning
+          const layer = {
+            handle: fn,
+            name: fn.name || 'expressApp',
+            regexp: /^\//,
+            keys: [],
+            method: undefined,
+            path: undefined
+          };
+          this.stack.unshift(layer);
+        } else {
+          return originalUse(fn);
+        }
       };
+
+      server.middlewares.use(app);
     },
   };
 }
