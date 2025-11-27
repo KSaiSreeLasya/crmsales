@@ -36,6 +36,12 @@ import { Button } from "@/components/ui/button";
 
 type KanbanStatus = "Quotation sent" | "Site visit" | "Advance payment";
 
+const KANBAN_STATUSES: KanbanStatus[] = [
+  "Quotation sent",
+  "Site visit",
+  "Advance payment",
+];
+
 function generateReceiptHTML(lead: Lead): string {
   const receiptDate = new Date().toLocaleDateString("en-IN", {
     year: "numeric",
