@@ -230,7 +230,7 @@ function generateReceiptHTML(lead: Lead): string {
 }
 
 function navigateToProjects(): void {
-  const link = document.createElement('a');
+  const link = document.createElement("a");
   link.href = "https://crm.axisogreen.in/#/projects";
   link.target = "_blank";
   link.rel = "noopener noreferrer";
@@ -497,7 +497,8 @@ function KanbanBoardContent({
           setSalespersons(data.map((s) => s.name));
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
         console.error("Error loading salespersons:", errorMessage);
       }
     };
