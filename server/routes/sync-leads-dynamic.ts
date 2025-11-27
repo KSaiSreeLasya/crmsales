@@ -55,7 +55,8 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           // Look for name column (but not full_name as a strict match, be flexible)
           if (
             !nameValue &&
-            (normalizedKey.includes("name") || normalizedKey.includes("full")) &&
+            (normalizedKey.includes("name") ||
+              normalizedKey.includes("full")) &&
             !normalizedKey.includes("email") &&
             strValue
           ) {
@@ -91,10 +92,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
         // Validation: at least name OR email/phone, and at least 2 fields total
         const isValid =
-          nonEmptyFields >= 2 &&
-          (nameValue ||
-            emailValue ||
-            phoneValue);
+          nonEmptyFields >= 2 && (nameValue || emailValue || phoneValue);
 
         if (!isValid && index < 5) {
           console.log(`[VALIDATION] Row ${index} rejected:`, {
@@ -283,8 +281,15 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     try {
       // First, try to insert new records
       console.log("Inserting leads into Supabase...");
-      console.log("[SYNC DEBUG] Attempting to insert", leadsToSync.length, "leads");
-      console.log("[SYNC DEBUG] Sample lead:", JSON.stringify(leadsToSync[0], null, 2));
+      console.log(
+        "[SYNC DEBUG] Attempting to insert",
+        leadsToSync.length,
+        "leads",
+      );
+      console.log(
+        "[SYNC DEBUG] Sample lead:",
+        JSON.stringify(leadsToSync[0], null, 2),
+      );
 
       const { data, error } = await supabase
         .from("leads")
@@ -293,7 +298,10 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
       if (error) {
         console.error("[SYNC ERROR] Supabase insert error:", error);
-        console.error("[SYNC ERROR] Full error object:", JSON.stringify(error, null, 2));
+        console.error(
+          "[SYNC ERROR] Full error object:",
+          JSON.stringify(error, null, 2),
+        );
         console.error("[SYNC ERROR] Error code:", (error as any).code);
         console.error("[SYNC ERROR] Error hint:", (error as any).hint);
         console.error("[SYNC ERROR] Error details:", (error as any).details);
@@ -388,10 +396,13 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           message: error.message,
           details: (error as any).details,
           code: (error as any).code,
-          hint: (error as any).hint || "Ensure Supabase credentials are configured and RLS is not blocking inserts",
+          hint:
+            (error as any).hint ||
+            "Ensure Supabase credentials are configured and RLS is not blocking inserts",
           troubleshooting: {
             checkUrl: "Visit /api/test-supabase to verify Supabase connection",
-            checkEnv: "Ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set",
+            checkEnv:
+              "Ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set",
             checkRLS: "Verify RLS policies are not blocking INSERT operations",
           },
         });

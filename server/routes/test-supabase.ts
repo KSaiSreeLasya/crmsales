@@ -25,10 +25,7 @@ export const handleTestSupabase: RequestHandler = async (req, res) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Try to fetch tables
-    const { data, error } = await supabase
-      .from("leads")
-      .select("id")
-      .limit(1);
+    const { data, error } = await supabase.from("leads").select("id").limit(1);
 
     if (error) {
       result.status = "error";

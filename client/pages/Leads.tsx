@@ -452,7 +452,9 @@ export default function Leads() {
 
     setIsSyncing(true);
     if (showNotification) {
-      toast.loading("Syncing leads... This may take a few minutes for large sheets.");
+      toast.loading(
+        "Syncing leads... This may take a few minutes for large sheets.",
+      );
     }
 
     try {
@@ -536,13 +538,12 @@ export default function Leads() {
         // Check response status after reading body
         if (!statusOk) {
           const errorMessage =
-            syncData?.message ||
-            syncData?.error ||
-            "Failed to sync leads";
+            syncData?.message || syncData?.error || "Failed to sync leads";
           const fullError = [
             errorMessage,
             syncData?.hint && `Hint: ${syncData.hint}`,
-            syncData?.troubleshooting && `Troubleshooting: Check /api/test-supabase`,
+            syncData?.troubleshooting &&
+              `Troubleshooting: Check /api/test-supabase`,
           ]
             .filter(Boolean)
             .join("\n");

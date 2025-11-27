@@ -1,9 +1,6 @@
 import { Handler } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
-import {
-  fetchGoogleSheet,
-  parseRowDynamic,
-} from "../../shared/googleSheets";
+import { fetchGoogleSheet, parseRowDynamic } from "../../shared/googleSheets";
 
 const SPREADSHEET_ID = "1QY8_Q8-ybLKNVs4hynPZslZDwUfC-PIJrViJfL0-tpM";
 const SHEET_ID = "0"; // Hyderabad Leads sheet
@@ -59,10 +56,7 @@ const normalizeLeadData = (lead: any): any => {
     const strValue = String(value).trim();
 
     // Map common variations
-    if (
-      normalizedKey.includes("full") &&
-      normalizedKey.includes("name")
-    ) {
+    if (normalizedKey.includes("full") && normalizedKey.includes("name")) {
       normalized.name = strValue;
     } else if (normalizedKey.includes("email")) {
       normalized.email = strValue;
@@ -101,15 +95,9 @@ const normalizeLeadData = (lead: any): any => {
       (normalizedKey.includes("bill") && !normalizedKey.includes("monthly"))
     ) {
       normalized.electricity_bill = strValue;
-    } else if (
-      normalizedKey.includes("note") &&
-      normalizedKey.includes("1")
-    ) {
+    } else if (normalizedKey.includes("note") && normalizedKey.includes("1")) {
       normalized.note1 = strValue;
-    } else if (
-      normalizedKey.includes("note") &&
-      normalizedKey.includes("2")
-    ) {
+    } else if (normalizedKey.includes("note") && normalizedKey.includes("2")) {
       normalized.note2 = strValue;
     }
   }
@@ -182,11 +170,12 @@ export const handler: Handler = async (event) => {
       .filter((row) => validateLead(row))
       .map((row) => normalizeLeadData(row));
 
-    console.log(`[SCHEDULED] Valid leads after validation: ${leadsToSync.length}`);
+    console.log(
+      `[SCHEDULED] Valid leads after validation: ${leadsToSync.length}`,
+    );
 
     if (leadsToSync.length === 0) {
-      result.message =
-        "No valid leads found (requires name and phone number)";
+      result.message = "No valid leads found (requires name and phone number)";
       console.warn("[SCHEDULED]", result.message);
       return {
         statusCode: 200,
@@ -195,7 +184,9 @@ export const handler: Handler = async (event) => {
     }
 
     // Attempt to insert leads
-    console.log(`[SCHEDULED] Attempting to insert/update ${leadsToSync.length} leads...`);
+    console.log(
+      `[SCHEDULED] Attempting to insert/update ${leadsToSync.length} leads...`,
+    );
 
     try {
       const { data, error } = await supabase
@@ -260,15 +251,13 @@ export const handler: Handler = async (event) => {
         console.error(`[SCHEDULED] ✗ ${result.message}`);
       }
     } catch (err) {
-      const errorMsg =
-        err instanceof Error ? err.message : String(err);
+      const errorMsg = err instanceof Error ? err.message : String(err);
       result.message = `Error during sync: ${errorMsg}`;
       result.errors = [errorMsg];
       console.error(`[SCHEDULED] ✗ ${result.message}`);
     }
   } catch (error) {
-    const errorMsg =
-      error instanceof Error ? error.message : String(error);
+    const errorMsg = error instanceof Error ? error.message : String(error);
     result.message = `Scheduled sync failed: ${errorMsg}`;
     result.errors = [errorMsg];
     console.error(`[SCHEDULED] ✗ ${result.message}`);
