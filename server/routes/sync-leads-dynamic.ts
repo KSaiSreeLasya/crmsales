@@ -343,12 +343,23 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         }
 
         // For other errors, return details
+        console.error("[SYNC ERROR] Detailed error info:");
+        console.error("  Code:", (error as any).code);
+        console.error("  Hint:", (error as any).hint);
+        console.error("  Details:", (error as any).details);
+        console.error("  Status:", (error as any).status);
+
         res.status(400).json({
           error: "Failed to insert leads",
           message: error.message,
           details: (error as any).details,
           code: (error as any).code,
-          hint: "Ensure all required columns exist in Supabase table",
+          hint: (error as any).hint || "Ensure Supabase credentials are configured and RLS is not blocking inserts",
+          troubleshooting: {
+            checkUrl: "Visit /api/test-supabase to verify Supabase connection",
+            checkEnv: "Ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set",
+            checkRLS: "Verify RLS policies are not blocking INSERT operations",
+          },
         });
         return;
       }
