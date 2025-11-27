@@ -538,15 +538,24 @@ export default function Leads() {
           const errorMessage =
             syncData?.message ||
             syncData?.error ||
-            syncData?.hint ||
             "Failed to sync leads";
+          const fullError = [
+            errorMessage,
+            syncData?.hint && `Hint: ${syncData.hint}`,
+            syncData?.troubleshooting && `Troubleshooting: Check /api/test-supabase`,
+          ]
+            .filter(Boolean)
+            .join("\n");
+
           console.error(
             "Sync API returned error:",
             errorMessage,
+            "Full response:",
+            syncData,
             "Status:",
             syncResponse.status,
           );
-          throw new Error(errorMessage);
+          throw new Error(fullError);
         }
 
         if (!syncData) {
