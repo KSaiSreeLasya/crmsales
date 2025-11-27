@@ -608,7 +608,7 @@ function KanbanBoardContent({
         toast.error("Failed to update lead status");
       }
     },
-    [leads, onLeadsUpdate, KANBAN_STATUSES],
+    [leads, onLeadsUpdate],
   );
 
   if (isLoading) {
