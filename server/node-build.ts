@@ -14,7 +14,9 @@ app.listen(port, host, () => {
   console.log(`🚀 Fusion Starter server running on port ${port}`);
   console.log(`📱 Frontend: http://localhost:${port}`);
   console.log(`🔧 API: http://localhost:${port}/api`);
-  console.log(`✅ Supabase configured: ${process.env.VITE_SUPABASE_URL ? "Yes" : "No"}`);
+  console.log(
+    `✅ Supabase configured: ${process.env.VITE_SUPABASE_URL ? "Yes" : "No"}`,
+  );
 });
 
 // Graceful shutdown
