@@ -275,7 +275,8 @@ function LeadCard({ lead, onClick }: { lead: Lead; onClick: () => void }) {
     }
   };
 
-  const handleDownloadReceipt = () => {
+  const handleDownloadReceipt = (e: React.MouseEvent) => {
+    e.stopPropagation();
     navigateToProjects();
   };
 
