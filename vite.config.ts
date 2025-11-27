@@ -26,32 +26,17 @@ export default defineConfig(({ mode }) => ({
 }));
 
 function expressPlugin(): Plugin {
-  let apiProxy: any;
-
   return {
     name: "express-plugin",
     apply: "serve",
     configureServer(server) {
       const app = createServer();
 
-      // Store reference for use in resolveId/load hooks
-      apiProxy = app;
-
-      // Manually insert at the beginning of middleware stack
-      if (server.middlewares.stack) {
-        const layer = {
-          handle: app,
-          name: app.name || 'expressApp',
-          regexp: /^\//,
-          keys: [],
-          method: undefined,
-          path: undefined
-        };
-        server.middlewares.stack.unshift(layer);
-      } else {
-        // Fallback if stack doesn't exist
+      // Return the middleware function which will run before Vite's SPA fallback
+      // This is the proper way to prioritize custom middleware in Vite
+      return () => {
         server.middlewares.use(app);
-      }
+      };
     },
   };
 }
