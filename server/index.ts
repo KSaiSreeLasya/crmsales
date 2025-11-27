@@ -16,6 +16,8 @@ import {
   handleDeleteUser,
   handleUpdatePassword,
 } from "./routes/admin-users";
+import { handleTestSupabase } from "./routes/test-supabase";
+import { handleDiagnoseGoogleSheet } from "./routes/diagnose-google-sheet";
 
 export function createServer() {
   const app = express();
@@ -38,6 +40,7 @@ export function createServer() {
     });
   });
 
+  app.get("/api/test-supabase", handleTestSupabase);
   app.get("/api/demo", handleDemo);
   app.post("/api/login", handleLogin);
   app.get("/api/user-profile", handleGetUserProfile);
@@ -46,6 +49,7 @@ export function createServer() {
   app.get("/api/fetch-google-sheet", handleFetchGoogleSheet);
   app.get("/api/fetch-google-sheets-metadata", handleFetchGoogleSheetsMetadata);
   app.post("/api/sync-google-sheet", handleSyncGoogleSheet);
+  app.get("/api/diagnose-google-sheet", handleDiagnoseGoogleSheet);
 
   // CRM API routes
   app.post("/api/sync-leads", handleSyncLeads);

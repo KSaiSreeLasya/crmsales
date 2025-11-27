@@ -27,6 +27,8 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       sheetId,
     );
     console.log("Sheet ID received:", sheetId, "Type:", typeof sheetId);
+    console.log("[SYNC DEBUG] Supabase URL configured:", !!supabaseUrl);
+    console.log("[SYNC DEBUG] Supabase Key configured:", !!supabaseKey);
     if (leads.length > 0) {
       console.log("First lead sample:", leads[0]);
       console.log("Available columns:", Object.keys(leads[0]));
@@ -37,43 +39,75 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       return;
     }
 
-    // For dynamic sync, validate that rows have meaningful data and required fields
-    const validLeads = leads.filter((lead) => {
-      let nameValue = "";
-      let phoneValue = "";
+    // For dynamic sync, validate that rows have meaningful data
+    // More lenient validation - just need some basic info
+    const validLeads = leads
+      .map((lead, index) => {
+        let nameValue = "";
+        let emailValue = "";
+        let phoneValue = "";
 
-      for (const [key, value] of Object.entries(lead)) {
-        const normalizedKey = key.toLowerCase().trim().replace(/\s+/g, "_");
-        const strValue = String(value || "").trim();
+        // Find name, email, phone across all columns with flexible matching
+        for (const [key, value] of Object.entries(lead)) {
+          const normalizedKey = key.toLowerCase().trim().replace(/\s+/g, "_");
+          const strValue = String(value || "").trim();
 
-        if (
-          (normalizedKey.includes("full") || normalizedKey.includes("name")) &&
-          strValue &&
-          !normalizedKey.includes("email")
-        ) {
-          nameValue = strValue;
+          // Look for name column (but not full_name as a strict match, be flexible)
+          if (
+            !nameValue &&
+            (normalizedKey.includes("name") ||
+              normalizedKey.includes("full")) &&
+            !normalizedKey.includes("email") &&
+            strValue
+          ) {
+            nameValue = strValue;
+          }
+
+          // Look for email
+          if (
+            !emailValue &&
+            (normalizedKey.includes("email") ||
+              normalizedKey.includes("mail")) &&
+            strValue
+          ) {
+            emailValue = strValue;
+          }
+
+          // Look for phone
+          if (
+            !phoneValue &&
+            (normalizedKey.includes("phone") ||
+              normalizedKey.includes("contact") ||
+              normalizedKey.includes("phone_no") ||
+              normalizedKey.includes("mobile")) &&
+            strValue
+          ) {
+            phoneValue = strValue;
+          }
         }
-        if (
-          (normalizedKey.includes("phone") ||
-            normalizedKey.includes("phone_no") ||
-            normalizedKey.includes("contact")) &&
-          strValue
-        ) {
-          phoneValue = strValue;
+
+        const nonEmptyFields = Object.values(lead).filter(
+          (v) => v !== undefined && v !== null && String(v).trim() !== "",
+        ).length;
+
+        // Validation: at least name OR email/phone, and at least 2 fields total
+        const isValid =
+          nonEmptyFields >= 2 && (nameValue || emailValue || phoneValue);
+
+        if (!isValid && index < 5) {
+          console.log(`[VALIDATION] Row ${index} rejected:`, {
+            nameValue,
+            emailValue,
+            phoneValue,
+            nonEmptyFields,
+            allKeys: Object.keys(lead),
+          });
         }
-      }
 
-      // Must have both name and phone to be valid
-      const hasName = nameValue.length > 0;
-      const hasPhone = phoneValue.length > 0;
-
-      const nonEmptyFields = Object.values(lead).filter(
-        (v) => v !== undefined && v !== null && String(v).trim() !== "",
-      ).length;
-
-      // Must have at least 2 non-empty fields AND valid name and phone
-      return hasName && hasPhone && nonEmptyFields >= 2;
-    });
+        return { lead, isValid, nameValue, emailValue, phoneValue };
+      })
+      .filter((item) => item.isValid)
+      .map((item) => item.lead);
 
     console.log("Valid leads after filtering:", validLeads.length);
     console.log(
@@ -217,21 +251,23 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         }
       }
 
-      // Ensure required fields exist
-      if (!syncData.name) syncData.name = "";
-      if (!syncData.email) syncData.email = "";
-      if (!syncData.phone) syncData.phone = "";
-      if (!syncData.company) syncData.company = "";
-      if (!syncData.status) syncData.status = "Not lifted";
-      if (!syncData.assigned_to) syncData.assigned_to = "Unassigned";
+      // Ensure required fields exist and are not empty
+      syncData.name = (syncData.name || "").trim() || "Unknown";
+      syncData.email = (syncData.email || "").trim();
+      syncData.phone = (syncData.phone || "").trim() || "";
+      syncData.company = (syncData.company || "").trim() || "";
+      syncData.status = syncData.status || "Not lifted";
+      syncData.assigned_to = syncData.assigned_to || "Unassigned";
 
       // Set timestamps to ensure they're properly recorded
       const now = new Date().toISOString();
-      if (!syncData.created_at) syncData.created_at = now;
-      if (!syncData.updated_at) syncData.updated_at = now;
+      syncData.created_at = syncData.created_at || now;
+      syncData.updated_at = syncData.updated_at || now;
 
       // Set sheet_id so leads are associated with correct sheet
       syncData.sheet_id = sheetId || "0";
+
+      console.log("[SYNC DEBUG] Normalized lead:", JSON.stringify(syncData));
 
       return syncData;
     });
@@ -245,14 +281,30 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     try {
       // First, try to insert new records
       console.log("Inserting leads into Supabase...");
+      console.log(
+        "[SYNC DEBUG] Attempting to insert",
+        leadsToSync.length,
+        "leads",
+      );
+      console.log(
+        "[SYNC DEBUG] Sample lead:",
+        JSON.stringify(leadsToSync[0], null, 2),
+      );
+
       const { data, error } = await supabase
         .from("leads")
         .insert(leadsToSync)
         .select();
 
       if (error) {
-        console.error("Supabase insert error:", error);
-        console.error("Full error object:", JSON.stringify(error, null, 2));
+        console.error("[SYNC ERROR] Supabase insert error:", error);
+        console.error(
+          "[SYNC ERROR] Full error object:",
+          JSON.stringify(error, null, 2),
+        );
+        console.error("[SYNC ERROR] Error code:", (error as any).code);
+        console.error("[SYNC ERROR] Error hint:", (error as any).hint);
+        console.error("[SYNC ERROR] Error details:", (error as any).details);
 
         // If duplicate key error, try update
         if (
@@ -333,12 +385,26 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         }
 
         // For other errors, return details
+        console.error("[SYNC ERROR] Detailed error info:");
+        console.error("  Code:", (error as any).code);
+        console.error("  Hint:", (error as any).hint);
+        console.error("  Details:", (error as any).details);
+        console.error("  Status:", (error as any).status);
+
         res.status(400).json({
           error: "Failed to insert leads",
           message: error.message,
           details: (error as any).details,
           code: (error as any).code,
-          hint: "Ensure all required columns exist in Supabase table",
+          hint:
+            (error as any).hint ||
+            "Ensure Supabase credentials are configured and RLS is not blocking inserts",
+          troubleshooting: {
+            checkUrl: "Visit /api/test-supabase to verify Supabase connection",
+            checkEnv:
+              "Ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set",
+            checkRLS: "Verify RLS policies are not blocking INSERT operations",
+          },
         });
         return;
       }
