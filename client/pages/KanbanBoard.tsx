@@ -750,12 +750,6 @@ export default function KanbanBoard() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const KANBAN_STATUSES: KanbanStatus[] = [
-    "Quotation sent",
-    "Site visit",
-    "Advance payment",
-  ];
-
   useEffect(() => {
     const loadLeads = async () => {
       setIsLoading(true);
