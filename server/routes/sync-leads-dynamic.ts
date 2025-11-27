@@ -27,6 +27,8 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       sheetId,
     );
     console.log("Sheet ID received:", sheetId, "Type:", typeof sheetId);
+    console.log("[SYNC DEBUG] Supabase URL configured:", !!supabaseUrl);
+    console.log("[SYNC DEBUG] Supabase Key configured:", !!supabaseKey);
     if (leads.length > 0) {
       console.log("First lead sample:", leads[0]);
       console.log("Available columns:", Object.keys(leads[0]));
