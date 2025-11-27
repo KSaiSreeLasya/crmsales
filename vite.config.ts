@@ -32,9 +32,10 @@ function expressPlugin(): Plugin {
     configureServer(server) {
       const app = createServer();
 
-      // Return the Express app as middleware
-      // This ensures it runs BEFORE Vite's SPA fallback
-      return app;
+      // Return a middleware function that will run BEFORE Vite's SPA fallback
+      return (req: any, res: any, next: any) => {
+        app(req, res, next);
+      };
     },
   };
 }
