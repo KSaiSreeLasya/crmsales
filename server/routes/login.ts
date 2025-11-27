@@ -19,7 +19,8 @@ export const handleLogin: RequestHandler = async (req, res) => {
       console.error("Supabase credentials not configured");
       return res.status(500).json({
         error: "Server configuration error",
-        message: "Supabase credentials are not configured. Please contact your administrator.",
+        message:
+          "Supabase credentials are not configured. Please contact your administrator.",
       });
     }
 
