@@ -39,12 +39,24 @@ export const handleSyncGoogleSheet: RequestHandler = async (req, res) => {
     );
 
     // Fetch from Google Sheets
-    const rows = await fetchGoogleSheet(spreadsheetId, sheetId || "0");
+    let rows;
+    try {
+      rows = await fetchGoogleSheet(spreadsheetId, sheetId || "0");
+    } catch (fetchError) {
+      console.error("Failed to fetch Google Sheet:", fetchError);
+      res.status(400).json({
+        error: "Failed to fetch Google Sheet - ensure the spreadsheet ID is correct and the sheet is publicly shared",
+        message: fetchError instanceof Error ? fetchError.message : String(fetchError),
+        spreadsheetId,
+      });
+      return;
+    }
 
     if (rows.length === 0) {
       res.status(400).json({
-        error: "Google Sheet is empty or no data found",
+        error: "Google Sheet is empty or no data found - ensure the sheet has headers and data rows",
         rows: 0,
+        spreadsheetId,
       });
       return;
     }
