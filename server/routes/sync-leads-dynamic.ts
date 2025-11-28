@@ -90,9 +90,15 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           (v) => v !== undefined && v !== null && String(v).trim() !== "",
         ).length;
 
-        // Validation: at least name OR email/phone, and at least 2 fields total
+        // Validation: require name, email, and phone (email required for upsert constraint)
         const isValid =
-          nonEmptyFields >= 2 && (nameValue || emailValue || phoneValue);
+          nonEmptyFields >= 2 &&
+          nameValue &&
+          nameValue.length > 0 &&
+          emailValue &&
+          emailValue.length > 0 &&
+          phoneValue &&
+          phoneValue.length > 0;
 
         if (!isValid && index < 5) {
           console.log(`[VALIDATION] Row ${index} rejected:`, {
