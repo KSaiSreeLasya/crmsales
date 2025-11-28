@@ -31,12 +31,16 @@ const validateLead = (lead: any): boolean => {
     lead.Phone_No ||
     lead.contact ||
     lead.Contact;
+  const emailValue = lead.email || lead.Email || lead.email_address || lead.Email_Address;
 
+  // Email is required for upsert (unique constraint)
   return (
     nameValue &&
     String(nameValue).trim().length > 0 &&
     phoneValue &&
-    String(phoneValue).trim().length > 0
+    String(phoneValue).trim().length > 0 &&
+    emailValue &&
+    String(emailValue).trim().length > 0
   );
 };
 
