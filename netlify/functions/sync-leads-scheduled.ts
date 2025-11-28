@@ -204,46 +204,44 @@ export const handler: Handler = async (event) => {
         error.message?.includes("duplicate") ||
         (error as any).code === "23505"
       ) {
-        // Duplicate key error - try updating existing records
+        // Duplicate key error - use batch upsert instead of sequential updates
         console.log(
-          `[SCHEDULED] Duplicate key detected, attempting to update existing records...`,
+          `[SCHEDULED] Duplicate key detected, attempting batch upsert...`,
         );
 
-        let updateCount = 0;
-        let failureCount = 0;
+        try {
+          // Prepare data for upsert with updated_at timestamp
+          const upsertData = leadsToSync.map((lead) => ({
+            ...lead,
+            updated_at: new Date().toISOString(),
+          }));
 
-        for (const lead of leadsToSync) {
-          const email = lead.email;
+          // Batch upsert all leads at once (much faster than sequential updates)
+          const { data: upsertResult, error: upsertError } = await supabase
+            .from("leads")
+            .upsert(upsertData, {
+              onConflict: "email",
+              ignoreDuplicates: false,
+            })
+            .select();
 
-          if (email) {
-            const { error: updateError } = await supabase
-              .from("leads")
-              .update({
-                ...lead,
-                updated_at: new Date().toISOString(),
-              })
-              .eq("email", email);
-
-            if (!updateError) {
-              updateCount++;
-            } else {
-              failureCount++;
-              result.errors?.push(
-                `Failed to update lead with email ${email}: ${updateError.message}`,
-              );
-              console.warn(
-                `[SCHEDULED] Failed to update lead with email ${email}:`,
-                updateError,
-              );
-            }
+          if (upsertError) {
+            result.message = `Failed to upsert leads: ${upsertError.message}`;
+            result.errors = [upsertError.message];
+            console.error(`[SCHEDULED] ✗ ${result.message}`);
+          } else {
+            result.success = true;
+            result.updated = upsertResult?.length || leadsToSync.length;
+            result.message = `Successfully upserted ${result.updated} leads`;
+            console.log(`[SCHEDULED] ✓ ${result.message}`);
           }
+        } catch (upsertErr) {
+          const errorMsg =
+            upsertErr instanceof Error ? upsertErr.message : String(upsertErr);
+          result.message = `Error during batch upsert: ${errorMsg}`;
+          result.errors = [errorMsg];
+          console.error(`[SCHEDULED] ✗ ${result.message}`);
         }
-
-        result.success = updateCount > 0;
-        result.updated = updateCount;
-        result.failed = failureCount;
-        result.message = `Updated ${updateCount} existing leads, ${failureCount} failed`;
-        console.log(`[SCHEDULED] ✓ ${result.message}`);
       } else {
         // Other error
         result.message = `Failed to sync leads: ${error.message}`;
