@@ -244,9 +244,7 @@ export const handler: Handler = async (event) => {
                   upsertError.message,
                 );
                 result.failed += leadsToSync.length;
-                result.errors?.push(
-                  `${sheetName}: ${upsertError.message}`,
-                );
+                result.errors?.push(`${sheetName}: ${upsertError.message}`);
               } else {
                 result.success = true;
                 result.updated += upsertResult?.length || leadsToSync.length;
@@ -259,7 +257,10 @@ export const handler: Handler = async (event) => {
                 upsertErr instanceof Error
                   ? upsertErr.message
                   : String(upsertErr);
-              console.error(`[SCHEDULED] Upsert error for ${sheetName}:`, errorMsg);
+              console.error(
+                `[SCHEDULED] Upsert error for ${sheetName}:`,
+                errorMsg,
+              );
               result.failed += leadsToSync.length;
               result.errors?.push(`${sheetName} upsert error: ${errorMsg}`);
             }
@@ -284,7 +285,10 @@ export const handler: Handler = async (event) => {
       } catch (sheetError) {
         const errorMsg =
           sheetError instanceof Error ? sheetError.message : String(sheetError);
-        console.error(`[SCHEDULED] Error processing ${sheetName} sheet:`, errorMsg);
+        console.error(
+          `[SCHEDULED] Error processing ${sheetName} sheet:`,
+          errorMsg,
+        );
         result.errors?.push(`${sheetName} sheet error: ${errorMsg}`);
       }
     }
@@ -303,7 +307,8 @@ export const handler: Handler = async (event) => {
     console.error(`[SCHEDULED] ✗ ${result.message}`);
   }
 
-  const statusCode = result.success || result.synced > 0 || result.updated > 0 ? 200 : 500;
+  const statusCode =
+    result.success || result.synced > 0 || result.updated > 0 ? 200 : 500;
   return {
     statusCode,
     body: JSON.stringify(result),
