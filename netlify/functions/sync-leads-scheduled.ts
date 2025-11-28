@@ -31,7 +31,8 @@ const validateLead = (lead: any): boolean => {
     lead.Phone_No ||
     lead.contact ||
     lead.Contact;
-  const emailValue = lead.email || lead.Email || lead.email_address || lead.Email_Address;
+  const emailValue =
+    lead.email || lead.Email || lead.email_address || lead.Email_Address;
 
   // Email is required for upsert (unique constraint)
   return (

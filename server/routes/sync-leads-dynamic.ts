@@ -317,9 +317,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           error.message?.includes("duplicate") ||
           (error as any).code === "23505"
         ) {
-          console.log(
-            "Duplicate key detected, updating existing records...",
-          );
+          console.log("Duplicate key detected, updating existing records...");
 
           try {
             let updateCount = 0;
