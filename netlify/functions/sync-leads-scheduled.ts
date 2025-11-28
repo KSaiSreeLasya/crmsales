@@ -3,7 +3,10 @@ import { createClient } from "@supabase/supabase-js";
 import { fetchGoogleSheet, parseRowDynamic } from "../../shared/googleSheets";
 
 const SPREADSHEET_ID = "1QY8_Q8-ybLKNVs4hynPZslZDwUfC-PIJrViJfL0-tpM";
-const SHEET_ID = "0"; // Hyderabad Leads sheet
+const SHEETS_TO_SYNC = [
+  { id: "0", name: "October" },
+  { id: "1892152973", name: "November" },
+];
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || "";
 const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || "";
