@@ -306,65 +306,49 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         console.error("[SYNC ERROR] Error hint:", (error as any).hint);
         console.error("[SYNC ERROR] Error details:", (error as any).details);
 
-        // If duplicate key error, try update
+        // If duplicate key error, try batch upsert
         if (
           error.message?.includes("duplicate") ||
           (error as any).code === "23505"
         ) {
           console.log(
-            "Duplicate key detected, attempting to update existing records...",
+            "Duplicate key detected, attempting batch upsert operation...",
           );
 
           try {
-            let updateCount = 0;
-            for (const lead of leadsToSync) {
-              // Find a unique identifier to match on (email or name)
-              const email = lead.email || lead.Email || lead.EMAIL;
-              const name = lead.name || lead.Name || lead.NAME;
+            // Prepare data for upsert with updated_at timestamp
+            const upsertData = leadsToSync.map((lead) => ({
+              ...lead,
+              updated_at: new Date().toISOString(),
+            }));
 
-              // Update timestamp when updating existing records
-              const updateData = {
-                ...lead,
-                updated_at: new Date().toISOString(),
-              };
+            // Use upsert with onConflict on email (much faster than sequential updates)
+            const { data: upsertResult, error: upsertError } = await supabase
+              .from("leads")
+              .upsert(upsertData, {
+                onConflict: "email",
+                ignoreDuplicates: false,
+              })
+              .select();
 
-              if (email) {
-                const { error: updateError } = await supabase
-                  .from("leads")
-                  .update(updateData)
-                  .eq("email", email);
-                if (!updateError) {
-                  updateCount++;
-                } else {
-                  console.warn(
-                    `Failed to update lead with email ${email}:`,
-                    updateError,
-                  );
-                }
-              } else if (name) {
-                const { error: updateError } = await supabase
-                  .from("leads")
-                  .update(updateData)
-                  .eq("name", name);
-                if (!updateError) {
-                  updateCount++;
-                } else {
-                  console.warn(
-                    `Failed to update lead with name ${name}:`,
-                    updateError,
-                  );
-                }
-              }
+            if (upsertError) {
+              console.error("Error during upsert operation:", upsertError);
+              res.status(500).json({
+                error: "Failed to upsert leads",
+                message: upsertError.message,
+                details: (upsertError as any).details,
+              });
+              return;
             }
 
             console.log(
-              `Updated ${updateCount} out of ${leadsToSync.length} leads`,
+              `✓ Batch upserted ${upsertResult?.length || leadsToSync.length} leads successfully`,
             );
 
             res.json({
               success: true,
-              message: `Successfully updated ${updateCount} existing leads (${leads.length - leadsToSync.length} empty rows removed)`,
-              synced: updateCount,
+              message: `Successfully synced ${upsertResult?.length || leadsToSync.length} leads via batch upsert (${leads.length - leadsToSync.length} empty rows removed)`,
+              synced: upsertResult?.length || leadsToSync.length,
               totalFetched: leads.length,
               emptyRowsRemoved: leads.length - leadsToSync.length,
               source: source,
@@ -372,9 +356,9 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
             });
             return;
           } catch (updateErr) {
-            console.error("Error during update operation:", updateErr);
+            console.error("Error during upsert operation:", updateErr);
             res.status(500).json({
-              error: "Failed to update duplicate leads",
+              error: "Failed to upsert leads",
               message:
                 updateErr instanceof Error
                   ? updateErr.message
