@@ -45,8 +45,10 @@ export const handleSyncGoogleSheet: RequestHandler = async (req, res) => {
     } catch (fetchError) {
       console.error("Failed to fetch Google Sheet:", fetchError);
       res.status(400).json({
-        error: "Failed to fetch Google Sheet - ensure the spreadsheet ID is correct and the sheet is publicly shared",
-        message: fetchError instanceof Error ? fetchError.message : String(fetchError),
+        error:
+          "Failed to fetch Google Sheet - ensure the spreadsheet ID is correct and the sheet is publicly shared",
+        message:
+          fetchError instanceof Error ? fetchError.message : String(fetchError),
         spreadsheetId,
       });
       return;
@@ -54,7 +56,8 @@ export const handleSyncGoogleSheet: RequestHandler = async (req, res) => {
 
     if (rows.length === 0) {
       res.status(400).json({
-        error: "Google Sheet is empty or no data found - ensure the sheet has headers and data rows",
+        error:
+          "Google Sheet is empty or no data found - ensure the sheet has headers and data rows",
         rows: 0,
         spreadsheetId,
       });
@@ -79,7 +82,16 @@ export const handleSyncGoogleSheet: RequestHandler = async (req, res) => {
             return parseLeadRow(row);
           } catch (parseError) {
             console.error("Error parsing row:", parseError, row);
-            return { name: "", email: "", phone: "", company: "", status: "Not lifted" as const, assignedTo: "Unassigned", note1: "", note2: "" };
+            return {
+              name: "",
+              email: "",
+              phone: "",
+              company: "",
+              status: "Not lifted" as const,
+              assignedTo: "Unassigned",
+              note1: "",
+              note2: "",
+            };
           }
         })
         .filter((lead) => lead.name && lead.email);
@@ -95,7 +107,9 @@ export const handleSyncGoogleSheet: RequestHandler = async (req, res) => {
         return;
       }
 
-      console.log(`Found ${leadsToSync.length} valid leads from ${rows.length} rows`);
+      console.log(
+        `Found ${leadsToSync.length} valid leads from ${rows.length} rows`,
+      );
 
       const leadsData = leadsToSync.map((lead) => ({
         name: lead.name,
@@ -136,7 +150,10 @@ export const handleSyncGoogleSheet: RequestHandler = async (req, res) => {
             console.log("Duplicate key, updating existing records...");
             let updateCount = 0;
             for (const lead of leadsData) {
-              const { error: updateErr } = await supabase.from("leads").update(lead).eq("email", lead.email);
+              const { error: updateErr } = await supabase
+                .from("leads")
+                .update(lead)
+                .eq("email", lead.email);
               if (!updateErr) updateCount++;
             }
 
@@ -165,9 +182,13 @@ export const handleSyncGoogleSheet: RequestHandler = async (req, res) => {
         console.error("Error inserting leads:", err);
         const errorMessage = err instanceof Error ? err.message : String(err);
 
-        if (errorMessage.includes("relation") || errorMessage.includes("table")) {
+        if (
+          errorMessage.includes("relation") ||
+          errorMessage.includes("table")
+        ) {
           res.status(500).json({
-            error: "Database table 'leads' does not exist - please ensure Supabase tables are created",
+            error:
+              "Database table 'leads' does not exist - please ensure Supabase tables are created",
             message: errorMessage,
             processed: rows.length,
             help: "Run the SQL setup from SUPABASE_TABLES.sql in your Supabase dashboard",
@@ -189,7 +210,8 @@ export const handleSyncGoogleSheet: RequestHandler = async (req, res) => {
 
       if (salespersonsToSync.length === 0) {
         res.status(400).json({
-          error: "No valid salespersons found in Google Sheet (requires name). Please ensure your sheet has a Name column",
+          error:
+            "No valid salespersons found in Google Sheet (requires name). Please ensure your sheet has a Name column",
           processed: rows.length,
           valid: 0,
           sample_row: rows[0] || {},
@@ -208,7 +230,9 @@ export const handleSyncGoogleSheet: RequestHandler = async (req, res) => {
       }));
 
       try {
-        console.log(`Inserting ${salespersonsData.length} salespersons into Supabase...`);
+        console.log(
+          `Inserting ${salespersonsData.length} salespersons into Supabase...`,
+        );
         const { data, error } = await supabase
           .from("salespersons")
           .insert(salespersonsData)
@@ -246,7 +270,9 @@ export const handleSyncGoogleSheet: RequestHandler = async (req, res) => {
           throw error;
         }
 
-        console.log(`✓ Successfully synced ${salespersonsData.length} salespersons`);
+        console.log(
+          `✓ Successfully synced ${salespersonsData.length} salespersons`,
+        );
         res.json({
           success: true,
           message: `Successfully synced ${salespersonsData.length} salespersons from Google Sheet`,
@@ -258,9 +284,13 @@ export const handleSyncGoogleSheet: RequestHandler = async (req, res) => {
         console.error("Error inserting salespersons:", err);
         const errorMessage = err instanceof Error ? err.message : String(err);
 
-        if (errorMessage.includes("relation") || errorMessage.includes("table")) {
+        if (
+          errorMessage.includes("relation") ||
+          errorMessage.includes("table")
+        ) {
           res.status(500).json({
-            error: "Database table 'salespersons' does not exist - please ensure Supabase tables are created",
+            error:
+              "Database table 'salespersons' does not exist - please ensure Supabase tables are created",
             message: errorMessage,
             processed: rows.length,
             help: "Run the SQL setup from SUPABASE_TABLES.sql in your Supabase dashboard",
