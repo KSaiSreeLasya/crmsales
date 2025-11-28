@@ -116,6 +116,7 @@ export const handleSyncGoogleSheet: RequestHandler = async (req, res) => {
       }));
 
       try {
+        console.log(`Inserting ${leadsData.length} leads into Supabase...`);
         const { data, error } = await supabase
           .from("leads")
           .insert(leadsData)
@@ -123,6 +124,9 @@ export const handleSyncGoogleSheet: RequestHandler = async (req, res) => {
 
         if (error) {
           console.error("Supabase error:", error);
+          console.error("Error code:", (error as any).code);
+          console.error("Error message:", error.message);
+          console.error("Sample lead being inserted:", leadsData[0]);
 
           // Try updating if duplicate
           if (
@@ -130,14 +134,16 @@ export const handleSyncGoogleSheet: RequestHandler = async (req, res) => {
             (error as any).code === "23505"
           ) {
             console.log("Duplicate key, updating existing records...");
+            let updateCount = 0;
             for (const lead of leadsData) {
-              await supabase.from("leads").update(lead).eq("email", lead.email);
+              const { error: updateErr } = await supabase.from("leads").update(lead).eq("email", lead.email);
+              if (!updateErr) updateCount++;
             }
 
             res.json({
               success: true,
-              message: "Updated existing leads from Google Sheet",
-              synced: leadsData.length,
+              message: `Updated ${updateCount} existing leads from Google Sheet`,
+              synced: updateCount,
               processed: rows.length,
               type: "leads",
             });
@@ -147,6 +153,7 @@ export const handleSyncGoogleSheet: RequestHandler = async (req, res) => {
           throw error;
         }
 
+        console.log(`✓ Successfully synced ${leadsData.length} leads`);
         res.json({
           success: true,
           message: `Successfully synced ${leadsData.length} leads from Google Sheet`,
@@ -156,11 +163,22 @@ export const handleSyncGoogleSheet: RequestHandler = async (req, res) => {
         });
       } catch (err) {
         console.error("Error inserting leads:", err);
-        res.status(500).json({
-          error: "Failed to sync leads to database",
-          message: err instanceof Error ? err.message : "Unknown error",
-          processed: rows.length,
-        });
+        const errorMessage = err instanceof Error ? err.message : String(err);
+
+        if (errorMessage.includes("relation") || errorMessage.includes("table")) {
+          res.status(500).json({
+            error: "Database table 'leads' does not exist - please ensure Supabase tables are created",
+            message: errorMessage,
+            processed: rows.length,
+            help: "Run the SQL setup from SUPABASE_TABLES.sql in your Supabase dashboard",
+          });
+        } else {
+          res.status(500).json({
+            error: "Failed to sync leads to database",
+            message: errorMessage,
+            processed: rows.length,
+          });
+        }
       }
     } else {
       // Sync salespersons
