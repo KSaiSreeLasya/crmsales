@@ -3,6 +3,11 @@ import express from "express";
 import cors from "cors";
 import path from "path";
 import fs from "fs";
+import { fileURLToPath } from "url";
+
+// Define __dirname for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 import { handleDemo } from "./routes/demo";
 import { handleSyncLeads } from "./routes/sync-leads";
 import { handleSyncLeadsDynamic } from "./routes/sync-leads-dynamic";
