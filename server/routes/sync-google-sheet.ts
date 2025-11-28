@@ -72,19 +72,30 @@ export const handleSyncGoogleSheet: RequestHandler = async (req, res) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     if (type === "leads") {
+      console.log(`Processing ${rows.length} rows from Google Sheet...`);
       const leadsToSync = rows
-        .map(parseLeadRow)
+        .map((row) => {
+          try {
+            return parseLeadRow(row);
+          } catch (parseError) {
+            console.error("Error parsing row:", parseError, row);
+            return { name: "", email: "", phone: "", company: "", status: "Not lifted" as const, assignedTo: "Unassigned", note1: "", note2: "" };
+          }
+        })
         .filter((lead) => lead.name && lead.email);
 
       if (leadsToSync.length === 0) {
         res.status(400).json({
           error:
-            "No valid leads found in Google Sheet (requires name and email)",
+            "No valid leads found in Google Sheet (requires name and email). Please ensure your sheet has columns for: Name, Email, Phone, Company",
           processed: rows.length,
           valid: 0,
+          sample_row: rows[0] || {},
         });
         return;
       }
+
+      console.log(`Found ${leadsToSync.length} valid leads from ${rows.length} rows`);
 
       const leadsData = leadsToSync.map((lead) => ({
         name: lead.name,
