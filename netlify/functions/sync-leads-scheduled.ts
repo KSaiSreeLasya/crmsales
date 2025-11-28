@@ -221,52 +221,59 @@ export const handler: Handler = async (event) => {
             error.message?.includes("duplicate") ||
             (error as any).code === "23505"
           ) {
-            // Duplicate key error - use batch upsert
+            // Duplicate key error - update existing records
             console.log(
-              `[SCHEDULED] Duplicate key detected in ${sheetName}, attempting batch upsert...`,
+              `[SCHEDULED] Duplicate key detected in ${sheetName}, updating existing records...`,
             );
 
             try {
-              // Prepare data for upsert with updated_at timestamp
-              const upsertData = leadsToSync.map((lead) => ({
-                ...lead,
-                updated_at: new Date().toISOString(),
-              }));
+              let updateCount = 0;
+              let failureCount = 0;
 
-              // Batch upsert all leads at once
-              const { data: upsertResult, error: upsertError } = await supabase
-                .from("leads")
-                .upsert(upsertData, {
-                  onConflict: "email",
-                  ignoreDuplicates: false,
-                })
-                .select();
+              // Update each lead by email
+              for (const lead of leadsToSync) {
+                const email = lead.email;
 
-              if (upsertError) {
-                console.error(
-                  `[SCHEDULED] Failed to upsert ${sheetName} leads:`,
-                  upsertError.message,
-                );
-                result.failed += leadsToSync.length;
-                result.errors?.push(`${sheetName}: ${upsertError.message}`);
-              } else {
-                result.success = true;
-                result.updated += upsertResult?.length || leadsToSync.length;
-                console.log(
-                  `[SCHEDULED] ✓ Upserted ${upsertResult?.length || leadsToSync.length} leads from ${sheetName}`,
-                );
+                if (email && String(email).trim()) {
+                  const updateData = {
+                    ...lead,
+                    updated_at: new Date().toISOString(),
+                  };
+
+                  const { error: updateError } = await supabase
+                    .from("leads")
+                    .update(updateData)
+                    .eq("email", email);
+
+                  if (!updateError) {
+                    updateCount++;
+                  } else {
+                    failureCount++;
+                    console.warn(
+                      `[SCHEDULED] Failed to update lead with email ${email}:`,
+                      updateError,
+                    );
+                  }
+                }
               }
-            } catch (upsertErr) {
+
+              result.success = updateCount > 0;
+              result.updated += updateCount;
+              result.failed += failureCount;
+              console.log(
+                `[SCHEDULED] ✓ Updated ${updateCount} existing leads from ${sheetName}, ${failureCount} failed`,
+              );
+            } catch (updateErr) {
               const errorMsg =
-                upsertErr instanceof Error
-                  ? upsertErr.message
-                  : String(upsertErr);
+                updateErr instanceof Error
+                  ? updateErr.message
+                  : String(updateErr);
               console.error(
-                `[SCHEDULED] Upsert error for ${sheetName}:`,
+                `[SCHEDULED] Update error for ${sheetName}:`,
                 errorMsg,
               );
               result.failed += leadsToSync.length;
-              result.errors?.push(`${sheetName} upsert error: ${errorMsg}`);
+              result.errors?.push(`${sheetName} update error: ${errorMsg}`);
             }
           } else {
             // Other error
