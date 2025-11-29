@@ -14,6 +14,13 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
+interface Lead {
+  id: string;
+  name: string;
+  assigned_to: string;
+  next_reminder?: string;
+}
+
 interface DashboardStats {
   totalLeads: number;
   activeLeads: number;
@@ -21,6 +28,7 @@ interface DashboardStats {
   totalSalespersons: number;
   leadsByStatus: Record<string, number>;
   leadsBySalesperson: Array<{ name: string; count: number }>;
+  upcomingReminders: Lead[];
 }
 
 export default function Index() {
