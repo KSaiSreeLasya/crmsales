@@ -52,6 +52,7 @@ interface Lead {
   avg_monthly_bill?: string;
   sheet_id?: string;
   source?: string;
+  next_reminder?: string;
   created_at?: string;
   updated_at?: string;
 }
