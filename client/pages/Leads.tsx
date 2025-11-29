@@ -380,9 +380,12 @@ export default function Leads() {
           };
         })
         .filter((lead) => {
-          const isValid = lead.name && lead.email && lead.phone;
+          const isValid = lead.name && lead.email;
           if (!isValid) {
-            console.log("Filtering out invalid lead:", lead);
+            console.log(
+              "Filtering out invalid lead (missing name or email):",
+              lead,
+            );
           }
           return isValid;
         });
