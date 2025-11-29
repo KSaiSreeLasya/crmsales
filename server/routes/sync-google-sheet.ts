@@ -107,12 +107,26 @@ export const handleSyncGoogleSheet: RequestHandler = async (req, res) => {
         });
 
       if (leadsToSync.length === 0) {
+        const sampleInvalidRows = rows
+          .filter((row) => {
+            const parsed = parseLeadRow(row);
+            return !parsed.name || !parsed.email;
+          })
+          .slice(0, 3);
+
+        console.error("No valid leads after filtering:", {
+          totalRows: rows.length,
+          sampleInvalidRows: sampleInvalidRows.slice(0, 2),
+          requiredFields: "name and email",
+        });
+
         res.status(400).json({
           error:
-            "No valid leads found in Google Sheet (requires name and email). Please ensure your sheet has columns for: Name, Email, Phone, Company",
+            "No valid leads found in Google Sheet (requires name and email). Phone is optional.",
           processed: rows.length,
           valid: 0,
           sample_row: rows[0] || {},
+          hint: "Each row must have a Name (or Full Name) and Email address. Phone is optional.",
         });
         return;
       }
