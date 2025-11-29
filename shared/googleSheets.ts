@@ -352,14 +352,13 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
       }
     });
 
-    // Count non-empty cells
+    // Only skip completely empty rows (no non-empty cells at all)
+    // Don't filter based on field count - let the sync process validate required fields
     const nonEmptyCount = Object.values(row).filter(
       (val) => val && String(val).trim() !== "",
     ).length;
 
-    // Only add row if it has at least one non-empty cell AND at least 2 fields populated
-    // This filters out completely empty rows and sparse rows
-    if (nonEmptyCount >= 2) {
+    if (nonEmptyCount > 0) {
       rows.push(row);
     }
   }
