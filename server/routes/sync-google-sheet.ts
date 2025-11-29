@@ -79,7 +79,8 @@ export const handleSyncGoogleSheet: RequestHandler = async (req, res) => {
       const leadsToSync = rows
         .map((row) => {
           try {
-            return parseLeadRow(row);
+            const parsed = parseLeadRow(row);
+            return parsed;
           } catch (parseError) {
             console.error("Error parsing row:", parseError, row);
             return {
@@ -94,7 +95,16 @@ export const handleSyncGoogleSheet: RequestHandler = async (req, res) => {
             };
           }
         })
-        .filter((lead) => lead.name && lead.email);
+        .filter((lead) => {
+          const isValid = lead.name && lead.email;
+          if (!isValid) {
+            console.log(
+              "Filtering out invalid lead (missing name or email):",
+              lead,
+            );
+          }
+          return isValid;
+        });
 
       if (leadsToSync.length === 0) {
         res.status(400).json({
