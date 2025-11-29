@@ -600,6 +600,36 @@ export function LeadDetailsModal({
               </div>
             </div>
 
+            {/* Next Reminder */}
+            <Card className="p-3 border">
+              <Label className="text-xs font-semibold">Next Reminder to Contact</Label>
+              <Input
+                type="datetime-local"
+                value={
+                  formData.next_reminder
+                    ? new Date(formData.next_reminder).toISOString().slice(0, 16)
+                    : ""
+                }
+                onChange={(e) => {
+                  const dateValue = e.target.value
+                    ? new Date(e.target.value).toISOString()
+                    : null;
+                  setFormData({ ...formData, next_reminder: dateValue || undefined });
+                }}
+                onBlur={() => {
+                  if (formData.next_reminder) {
+                    handleSaveField("next_reminder", formData.next_reminder);
+                  }
+                }}
+                className="mt-2 text-xs"
+              />
+              {formData.next_reminder && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  {formatDateIST(formData.next_reminder)}
+                </p>
+              )}
+            </Card>
+
             {/* Note 1 */}
             <Card className="p-3 border">
               <Label className="text-xs font-semibold">Note 1</Label>
