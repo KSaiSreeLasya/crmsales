@@ -39,6 +39,7 @@ export default function Index() {
     totalSalespersons: 0,
     leadsByStatus: {},
     leadsBySalesperson: [],
+    upcomingReminders: [],
   });
   const [isLoading, setIsLoading] = useState(true);
 
