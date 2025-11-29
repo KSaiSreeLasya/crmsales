@@ -90,15 +90,13 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           (v) => v !== undefined && v !== null && String(v).trim() !== "",
         ).length;
 
-        // Validation: require name, email, and phone (email required for upsert constraint)
+        // Validation: require name and email (email required for upsert constraint, phone is optional)
         const isValid =
           nonEmptyFields >= 2 &&
           nameValue &&
           nameValue.length > 0 &&
           emailValue &&
-          emailValue.length > 0 &&
-          phoneValue &&
-          phoneValue.length > 0;
+          emailValue.length > 0;
 
         if (!isValid && index < 5) {
           console.log(`[VALIDATION] Row ${index} rejected:`, {
@@ -126,10 +124,24 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     }
 
     if (validLeads.length === 0) {
+      // Provide detailed debugging info
+      const sampleRows = leads.slice(0, 3).map((lead) => ({
+        keys: Object.keys(lead),
+        sampleValues: Object.fromEntries(Object.entries(lead).slice(0, 3)),
+      }));
+
+      console.error("No valid leads after filtering:", {
+        totalRows: leads.length,
+        sampleRows,
+        requiredFields: "name and email (phone is optional)",
+      });
+
       res.status(400).json({
         error:
-          "No valid leads found - all rows appear to be empty or contain only dates",
+          "No valid leads found - ensure rows have Name and Email columns. Phone is optional.",
         totalRowsFetched: leads.length,
+        sampleDebug: sampleRows.length > 0 ? sampleRows[0] : null,
+        hint: "Each row must have a Name (or Full Name) and Email address. Check your Google Sheet structure.",
       });
       return;
     }
