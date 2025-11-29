@@ -96,6 +96,22 @@ export default function Index() {
         .map(([name, count]) => ({ name, count }))
         .sort((a, b) => b.count - a.count);
 
+      // Get upcoming reminders (next 7 days or overdue)
+      const now = new Date();
+      const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      const upcomingReminders = leadsList
+        .filter((lead) => {
+          if (!lead.next_reminder) return false;
+          const reminderDate = new Date(lead.next_reminder);
+          return reminderDate <= sevenDaysFromNow;
+        })
+        .sort((a, b) => {
+          const dateA = new Date(a.next_reminder || "").getTime();
+          const dateB = new Date(b.next_reminder || "").getTime();
+          return dateA - dateB;
+        })
+        .slice(0, 5);
+
       setStats({
         totalLeads,
         activeLeads,
@@ -103,6 +119,7 @@ export default function Index() {
         totalSalespersons: salespersonsList.length,
         leadsByStatus,
         leadsBySalesperson,
+        upcomingReminders,
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
