@@ -1309,6 +1309,9 @@ export default function Leads() {
                           NOTE2
                         </TableHead>
                         <TableHead className="whitespace-nowrap font-bold text-[11px]">
+                          NEXT REMINDER
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap font-bold text-[11px]">
                           STATUS
                         </TableHead>
                         <TableHead className="whitespace-nowrap font-bold text-[11px]">
@@ -1322,7 +1325,7 @@ export default function Leads() {
                     <TableBody>
                       {filteredLeads.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={14} className="py-8 text-center">
+                          <TableCell colSpan={15} className="py-8 text-center">
                             <p className="text-muted-foreground">
                               No leads found.{" "}
                               {displayRows.length === 0 &&
@@ -1339,7 +1342,7 @@ export default function Leads() {
                                 className="border-b border-border bg-blue-50 hover:bg-blue-100"
                               >
                                 <TableCell
-                                  colSpan={14}
+                                  colSpan={15}
                                   className="py-3 text-center font-semibold text-blue-700"
                                 >
                                   📅 {row._dateValue}
@@ -1474,6 +1477,20 @@ export default function Leads() {
                                     )}
                                   </div>
                                 )}
+                              </TableCell>
+                              <TableCell
+                                className="text-muted-foreground text-xs whitespace-nowrap cursor-pointer hover:bg-blue-100"
+                                onClick={() => handleOpenLeadDetails(lead)}
+                              >
+                                {lead.next_reminder
+                                  ? new Date(
+                                      lead.next_reminder,
+                                    ).toLocaleDateString("en-IN", {
+                                      year: "numeric",
+                                      month: "2-digit",
+                                      day: "2-digit",
+                                    })
+                                  : "-"}
                               </TableCell>
                               <TableCell className="whitespace-nowrap">
                                 <select
@@ -1760,6 +1777,20 @@ export default function Leads() {
                                   )}
                                 </div>
                               )}
+                            </TableCell>
+                            <TableCell
+                              className="text-muted-foreground text-xs whitespace-nowrap cursor-pointer hover:bg-blue-100"
+                              onClick={() => handleOpenLeadDetails(lead)}
+                            >
+                              {lead.next_reminder
+                                ? new Date(
+                                    lead.next_reminder,
+                                  ).toLocaleDateString("en-IN", {
+                                    year: "numeric",
+                                    month: "2-digit",
+                                    day: "2-digit",
+                                  })
+                                : "-"}
                             </TableCell>
                             <TableCell className="text-xs whitespace-nowrap">
                               <select

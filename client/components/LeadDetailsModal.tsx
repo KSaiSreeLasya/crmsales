@@ -52,6 +52,7 @@ interface Lead {
   avg_monthly_bill?: string;
   sheet_id?: string;
   source?: string;
+  next_reminder?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -412,7 +413,8 @@ export function LeadDetailsModal({
         await loadActivityNotes();
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       console.error("Error adding note:", errorMessage);
       toast.error("Failed to add note");
     } finally {
@@ -499,7 +501,8 @@ export function LeadDetailsModal({
         await loadActivityLogs();
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       console.error(`Error updating ${field}:`, errorMessage);
       toast.error(`Failed to update ${field}`);
     }
@@ -518,10 +521,9 @@ export function LeadDetailsModal({
         </DialogHeader>
 
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="notes">Notes</TabsTrigger>
-            <TabsTrigger value="activity">Activity</TabsTrigger>
             <TabsTrigger value="status">Status</TabsTrigger>
           </TabsList>
 
@@ -599,6 +601,43 @@ export function LeadDetailsModal({
                 <p className="text-sm text-foreground">{formData.status}</p>
               </div>
             </div>
+
+            {/* Next Reminder */}
+            <Card className="p-3 border">
+              <Label className="text-xs font-semibold">
+                Next Reminder to Contact
+              </Label>
+              <Input
+                type="datetime-local"
+                value={
+                  formData.next_reminder
+                    ? new Date(formData.next_reminder)
+                        .toISOString()
+                        .slice(0, 16)
+                    : ""
+                }
+                onChange={(e) => {
+                  const dateValue = e.target.value
+                    ? new Date(e.target.value).toISOString()
+                    : null;
+                  setFormData({
+                    ...formData,
+                    next_reminder: dateValue || undefined,
+                  });
+                }}
+                onBlur={() => {
+                  if (formData.next_reminder) {
+                    handleSaveField("next_reminder", formData.next_reminder);
+                  }
+                }}
+                className="mt-2 text-xs"
+              />
+              {formData.next_reminder && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  {formatDateIST(formData.next_reminder)}
+                </p>
+              )}
+            </Card>
 
             {/* Note 1 */}
             <Card className="p-3 border">
@@ -681,56 +720,6 @@ export function LeadDetailsModal({
                 </div>
               )}
             </div>
-          </TabsContent>
-
-          {/* Activity Log Tab */}
-          <TabsContent value="activity" className="space-y-4">
-            {isLoadingActivityLogs ? (
-              <p className="text-xs text-muted-foreground">
-                Loading activity...
-              </p>
-            ) : activityLogs.length === 0 ? (
-              <Card className="p-4 text-center border">
-                <p className="text-xs text-muted-foreground italic">
-                  No activity recorded yet
-                </p>
-              </Card>
-            ) : (
-              <div className="space-y-2">
-                {activityLogs.map((log) => (
-                  <Card key={log.id} className="p-3 border">
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <p className="text-xs font-semibold capitalize">
-                          {log.action.replace(/_/g, " ")}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatDateIST(log.created_at)}
-                        </p>
-                      </div>
-                      {log.old_value && log.new_value && (
-                        <p className="text-xs text-foreground">
-                          <span className="text-red-600 line-through">
-                            {log.old_value}
-                          </span>
-                          {" → "}
-                          <span className="text-green-600 font-semibold">
-                            {log.new_value}
-                          </span>
-                        </p>
-                      )}
-                      {log.new_value && !log.old_value && (
-                        <p className="text-xs text-foreground">
-                          <span className="text-green-600 font-semibold">
-                            {log.new_value}
-                          </span>
-                        </p>
-                      )}
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            )}
           </TabsContent>
 
           {/* Status Tab */}
