@@ -393,10 +393,27 @@ export default function Leads() {
       console.log("Valid leads after filtering:", leadsToSync.length);
 
       if (leadsToSync.length === 0) {
+        const totalRows = rows.length;
+        const invalidLeads = rows
+          .map((row: any) => {
+            const parsed = parseLeadRow(row);
+            return {
+              name: parsed.name,
+              email: parsed.email,
+            };
+          })
+          .filter((lead) => !lead.name || !lead.email);
+
+        const errorMsg = `No valid leads found. Of ${totalRows} rows, ${invalidLeads.length} are missing required fields (Name and Email). Check browser console for details.`;
+
+        console.error("Sync failure details:", {
+          totalRows,
+          invalidRowsCount: invalidLeads.length,
+          sampleInvalidRows: invalidLeads.slice(0, 5),
+        });
+
         if (showNotification) {
-          toast.error(
-            "No valid leads found in Google Sheet. Check browser console for details.",
-          );
+          toast.error(errorMsg);
         }
         setIsSyncing(false);
         return;
