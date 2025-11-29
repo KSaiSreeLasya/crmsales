@@ -98,7 +98,9 @@ export default function Index() {
 
       // Get upcoming reminders (next 7 days or overdue)
       const now = new Date();
-      const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      const sevenDaysFromNow = new Date(
+        now.getTime() + 7 * 24 * 60 * 60 * 1000,
+      );
       const upcomingReminders = leadsList
         .filter((lead) => {
           if (!lead.next_reminder) return false;
@@ -122,7 +124,8 @@ export default function Index() {
         upcomingReminders,
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       console.error("Error loading dashboard stats:", errorMessage);
       toast.error("Failed to load dashboard stats");
       setStats({
@@ -322,7 +325,10 @@ export default function Index() {
               <Clock className="h-5 w-5" />
               Upcoming Reminders (Next 7 Days)
             </h3>
-            <Link to="/leads" className="text-sm text-orange-600 hover:text-orange-700 font-medium flex items-center gap-1">
+            <Link
+              to="/leads"
+              className="text-sm text-orange-600 hover:text-orange-700 font-medium flex items-center gap-1"
+            >
               View All <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
@@ -347,19 +353,27 @@ export default function Index() {
                     }`}
                   >
                     <div className="flex-1">
-                      <p className={`font-semibold text-sm ${isOverdue ? "text-red-800" : "text-foreground"}`}>
+                      <p
+                        className={`font-semibold text-sm ${isOverdue ? "text-red-800" : "text-foreground"}`}
+                      >
                         {reminder.name}
                       </p>
-                      <p className={`text-xs ${isOverdue ? "text-red-600" : "text-muted-foreground"}`}>
+                      <p
+                        className={`text-xs ${isOverdue ? "text-red-600" : "text-muted-foreground"}`}
+                      >
                         Assigned to: {reminder.assigned_to || "Unassigned"}
                       </p>
                     </div>
-                    <div className={`text-right text-xs font-semibold px-3 py-1 rounded ${
-                      isOverdue
-                        ? "bg-red-200 text-red-800"
-                        : "bg-orange-200 text-orange-800"
-                    }`}>
-                      {isOverdue ? "OVERDUE" : reminderDate.toLocaleDateString('en-IN')}
+                    <div
+                      className={`text-right text-xs font-semibold px-3 py-1 rounded ${
+                        isOverdue
+                          ? "bg-red-200 text-red-800"
+                          : "bg-orange-200 text-orange-800"
+                      }`}
+                    >
+                      {isOverdue
+                        ? "OVERDUE"
+                        : reminderDate.toLocaleDateString("en-IN")}
                     </div>
                   </div>
                 );

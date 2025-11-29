@@ -1478,8 +1478,19 @@ export default function Leads() {
                                   </div>
                                 )}
                               </TableCell>
-                              <TableCell className="text-muted-foreground text-xs whitespace-nowrap cursor-pointer hover:bg-blue-100" onClick={() => handleOpenLeadDetails(lead)}>
-                                {lead.next_reminder ? new Date(lead.next_reminder).toLocaleDateString('en-IN', {year: 'numeric', month: '2-digit', day: '2-digit'}) : "-"}
+                              <TableCell
+                                className="text-muted-foreground text-xs whitespace-nowrap cursor-pointer hover:bg-blue-100"
+                                onClick={() => handleOpenLeadDetails(lead)}
+                              >
+                                {lead.next_reminder
+                                  ? new Date(
+                                      lead.next_reminder,
+                                    ).toLocaleDateString("en-IN", {
+                                      year: "numeric",
+                                      month: "2-digit",
+                                      day: "2-digit",
+                                    })
+                                  : "-"}
                               </TableCell>
                               <TableCell className="whitespace-nowrap">
                                 <select
@@ -1767,8 +1778,19 @@ export default function Leads() {
                                 </div>
                               )}
                             </TableCell>
-                            <TableCell className="text-muted-foreground text-xs whitespace-nowrap cursor-pointer hover:bg-blue-100" onClick={() => handleOpenLeadDetails(lead)}>
-                              {lead.next_reminder ? new Date(lead.next_reminder).toLocaleDateString('en-IN', {year: 'numeric', month: '2-digit', day: '2-digit'}) : "-"}
+                            <TableCell
+                              className="text-muted-foreground text-xs whitespace-nowrap cursor-pointer hover:bg-blue-100"
+                              onClick={() => handleOpenLeadDetails(lead)}
+                            >
+                              {lead.next_reminder
+                                ? new Date(
+                                    lead.next_reminder,
+                                  ).toLocaleDateString("en-IN", {
+                                    year: "numeric",
+                                    month: "2-digit",
+                                    day: "2-digit",
+                                  })
+                                : "-"}
                             </TableCell>
                             <TableCell className="text-xs whitespace-nowrap">
                               <select

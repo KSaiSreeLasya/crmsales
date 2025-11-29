@@ -413,7 +413,8 @@ export function LeadDetailsModal({
         await loadActivityNotes();
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       console.error("Error adding note:", errorMessage);
       toast.error("Failed to add note");
     } finally {
@@ -500,7 +501,8 @@ export function LeadDetailsModal({
         await loadActivityLogs();
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       console.error(`Error updating ${field}:`, errorMessage);
       toast.error(`Failed to update ${field}`);
     }
@@ -602,19 +604,26 @@ export function LeadDetailsModal({
 
             {/* Next Reminder */}
             <Card className="p-3 border">
-              <Label className="text-xs font-semibold">Next Reminder to Contact</Label>
+              <Label className="text-xs font-semibold">
+                Next Reminder to Contact
+              </Label>
               <Input
                 type="datetime-local"
                 value={
                   formData.next_reminder
-                    ? new Date(formData.next_reminder).toISOString().slice(0, 16)
+                    ? new Date(formData.next_reminder)
+                        .toISOString()
+                        .slice(0, 16)
                     : ""
                 }
                 onChange={(e) => {
                   const dateValue = e.target.value
                     ? new Date(e.target.value).toISOString()
                     : null;
-                  setFormData({ ...formData, next_reminder: dateValue || undefined });
+                  setFormData({
+                    ...formData,
+                    next_reminder: dateValue || undefined,
+                  });
                 }}
                 onBlur={() => {
                   if (formData.next_reminder) {
