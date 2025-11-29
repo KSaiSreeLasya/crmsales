@@ -683,56 +683,6 @@ export function LeadDetailsModal({
             </div>
           </TabsContent>
 
-          {/* Activity Log Tab */}
-          <TabsContent value="activity" className="space-y-4">
-            {isLoadingActivityLogs ? (
-              <p className="text-xs text-muted-foreground">
-                Loading activity...
-              </p>
-            ) : activityLogs.length === 0 ? (
-              <Card className="p-4 text-center border">
-                <p className="text-xs text-muted-foreground italic">
-                  No activity recorded yet
-                </p>
-              </Card>
-            ) : (
-              <div className="space-y-2">
-                {activityLogs.map((log) => (
-                  <Card key={log.id} className="p-3 border">
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <p className="text-xs font-semibold capitalize">
-                          {log.action.replace(/_/g, " ")}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatDateIST(log.created_at)}
-                        </p>
-                      </div>
-                      {log.old_value && log.new_value && (
-                        <p className="text-xs text-foreground">
-                          <span className="text-red-600 line-through">
-                            {log.old_value}
-                          </span>
-                          {" → "}
-                          <span className="text-green-600 font-semibold">
-                            {log.new_value}
-                          </span>
-                        </p>
-                      )}
-                      {log.new_value && !log.old_value && (
-                        <p className="text-xs text-foreground">
-                          <span className="text-green-600 font-semibold">
-                            {log.new_value}
-                          </span>
-                        </p>
-                      )}
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-
           {/* Status Tab */}
           <TabsContent value="status" className="space-y-4">
             <Card className="p-4 border bg-muted/30">
