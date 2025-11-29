@@ -315,6 +315,59 @@ export default function Index() {
           </Card>
         </div>
 
+        {/* Upcoming Reminders */}
+        <Card className="border border-orange-200 bg-orange-50 p-6 hover:shadow-lg transition-all duration-300">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-bold flex items-center gap-2 text-orange-800">
+              <Clock className="h-5 w-5" />
+              Upcoming Reminders (Next 7 Days)
+            </h3>
+            <Link to="/leads" className="text-sm text-orange-600 hover:text-orange-700 font-medium flex items-center gap-1">
+              View All <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+          <div className="space-y-3">
+            {isLoading ? (
+              <p className="text-center text-muted-foreground">Loading...</p>
+            ) : stats.upcomingReminders.length === 0 ? (
+              <p className="text-center text-muted-foreground py-4">
+                No reminders for the next 7 days
+              </p>
+            ) : (
+              stats.upcomingReminders.map((reminder) => {
+                const reminderDate = new Date(reminder.next_reminder || "");
+                const isOverdue = reminderDate < new Date();
+                return (
+                  <div
+                    key={reminder.id}
+                    className={`flex items-center justify-between p-3 rounded-lg border ${
+                      isOverdue
+                        ? "bg-red-100 border-red-300"
+                        : "bg-white border-orange-200"
+                    }`}
+                  >
+                    <div className="flex-1">
+                      <p className={`font-semibold text-sm ${isOverdue ? "text-red-800" : "text-foreground"}`}>
+                        {reminder.name}
+                      </p>
+                      <p className={`text-xs ${isOverdue ? "text-red-600" : "text-muted-foreground"}`}>
+                        Assigned to: {reminder.assigned_to || "Unassigned"}
+                      </p>
+                    </div>
+                    <div className={`text-right text-xs font-semibold px-3 py-1 rounded ${
+                      isOverdue
+                        ? "bg-red-200 text-red-800"
+                        : "bg-orange-200 text-orange-800"
+                    }`}>
+                      {isOverdue ? "OVERDUE" : reminderDate.toLocaleDateString('en-IN')}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </Card>
+
         {/* Quick Actions */}
         <div className="grid gap-6 md:grid-cols-2">
           <Card className="border border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5 p-8 hover:shadow-lg transition-all duration-300">
