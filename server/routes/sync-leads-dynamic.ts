@@ -124,10 +124,26 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     }
 
     if (validLeads.length === 0) {
+      // Provide detailed debugging info
+      const sampleRows = leads.slice(0, 3).map((lead) => ({
+        keys: Object.keys(lead),
+        sampleValues: Object.fromEntries(
+          Object.entries(lead).slice(0, 3),
+        ),
+      }));
+
+      console.error("No valid leads after filtering:", {
+        totalRows: leads.length,
+        sampleRows,
+        requiredFields: "name and email (phone is optional)",
+      });
+
       res.status(400).json({
         error:
-          "No valid leads found - all rows appear to be empty or contain only dates",
+          "No valid leads found - ensure rows have Name and Email columns. Phone is optional.",
         totalRowsFetched: leads.length,
+        sampleDebug: sampleRows.length > 0 ? sampleRows[0] : null,
+        hint: "Each row must have a Name (or Full Name) and Email address. Check your Google Sheet structure.",
       });
       return;
     }
