@@ -132,6 +132,7 @@ export default function Index() {
         totalSalespersons: 0,
         leadsByStatus: {},
         leadsBySalesperson: [],
+        upcomingReminders: [],
       });
     } finally {
       setIsLoading(false);
