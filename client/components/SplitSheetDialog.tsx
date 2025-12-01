@@ -46,10 +46,10 @@ export function SplitSheetDialog({
 
   // Fetch actual lead count from sheet when dialog opens
   useEffect(() => {
-    if (open && spreadsheetId && sheetName && actualLeadCount === totalLeads) {
+    if (open && spreadsheetId && sheetName) {
       fetchActualLeadCount();
     }
-  }, [open]);
+  }, [open, spreadsheetId, sheetName]);
 
   const fetchActualLeadCount = async () => {
     setIsLoadingCount(true);
