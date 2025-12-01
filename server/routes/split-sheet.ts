@@ -20,24 +20,31 @@ interface SheetRow {
   [key: string]: string | number | undefined;
 }
 
-async function fetchSheetValues(
+async function fetchSheetValuesWithPagination(
   spreadsheetId: string,
   sheetName: string,
   apiKey: string,
 ): Promise<any[][]> {
   const url = `${SHEETS_API_URL}/${spreadsheetId}/values/${encodeURIComponent(
     sheetName,
-  )}?key=${apiKey}&valueRenderOption=FORMATTED_VALUE`;
+  )}?key=${apiKey}&valueRenderOption=FORMATTED_VALUE&majorDimension=ROWS`;
 
   try {
     const response = await fetch(url);
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch sheet: ${response.statusText}`);
+      const errorData = await response.json();
+      throw new Error(
+        `Failed to fetch sheet: ${response.statusText} - ${JSON.stringify(errorData)}`,
+      );
     }
 
     const data = await response.json();
-    return data.values || [];
+    const values = data.values || [];
+    console.log(
+      `✓ Fetched ${values.length} total rows from sheet "${sheetName}" (includes header)`,
+    );
+    return values;
   } catch (error) {
     console.error("Error fetching sheet values:", error);
     throw error;
@@ -147,8 +154,9 @@ export const handleSplitSheet: RequestHandler = async (req, res) => {
       `Starting sheet split for: ${sheetName} (ID: ${sheetId}) in spreadsheet ${spreadsheetId}`,
     );
 
-    // Fetch all data from the sheet
-    const allRows = await fetchSheetValues(
+    // Fetch all data from the sheet using proper API v4
+    console.log("Fetching sheet data using Google Sheets API v4...");
+    const allRows = await fetchSheetValuesWithPagination(
       spreadsheetId,
       sheetName,
       GOOGLE_SHEETS_API_KEY,
