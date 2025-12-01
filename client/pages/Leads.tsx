@@ -45,6 +45,7 @@ import { parseLeadRow } from "@shared/googleSheets";
 import { useAuth } from "@/context/AuthContext";
 import { getAssignedLeads } from "@/lib/auth";
 import { LeadDetailsModal } from "@/components/LeadDetailsModal";
+import { SplitSheetDialog } from "@/components/SplitSheetDialog";
 
 type LeadStatus =
   | "New"
@@ -1181,6 +1182,20 @@ export default function Leads() {
               />
               {isSyncing ? "Syncing..." : "Sync"}
             </Button>
+            <SplitSheetDialog
+              sheetName={
+                availableSheets.find((s) => s.id === selectedSheetId)?.name ||
+                "Sheet1"
+              }
+              totalLeads={leads.length}
+              spreadsheetId={SPREADSHEET_ID}
+              sheetId={selectedSheetId}
+              onSplitComplete={() => {
+                setTimeout(() => {
+                  loadAvailableSheets();
+                }, 1500);
+              }}
+            />
             <Dialog open={openDialog} onOpenChange={setOpenDialog}>
               <DialogTrigger asChild>
                 <Button
