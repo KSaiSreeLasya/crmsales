@@ -324,7 +324,7 @@ function LeadCard({ lead, onClick }: { lead: Lead; onClick: () => void }) {
         )}
         {lead.status === "Advance payment" && (
           <Button
-            onClick={handleDownloadReceipt}
+            onClick={(e) => handleDownloadReceipt(e)}
             variant="outline"
             size="sm"
             className="w-full mt-2 text-xs"
