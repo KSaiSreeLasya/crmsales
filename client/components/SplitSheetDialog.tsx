@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,7 +20,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Split } from "lucide-react";
+import { Split, Loader2 } from "lucide-react";
 
 interface SplitSheetDialogProps {
   sheetName: string;
@@ -40,7 +40,42 @@ export function SplitSheetDialog({
   const [open, setOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [isSplitting, setIsSplitting] = useState(false);
+  const [isLoadingCount, setIsLoadingCount] = useState(false);
+  const [actualLeadCount, setActualLeadCount] = useState(totalLeads);
   const [splitPoint, setSplitPoint] = useState(Math.ceil(totalLeads / 2));
+
+  // Fetch actual lead count from sheet when dialog opens
+  useEffect(() => {
+    if (open && spreadsheetId && sheetName && actualLeadCount === totalLeads) {
+      fetchActualLeadCount();
+    }
+  }, [open]);
+
+  const fetchActualLeadCount = async () => {
+    setIsLoadingCount(true);
+    try {
+      const response = await fetch(
+        `/api/fetch-google-sheet-api?spreadsheetId=${encodeURIComponent(
+          spreadsheetId,
+        )}&sheetName=${encodeURIComponent(sheetName)}`,
+      );
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        const count = data.count || 0;
+        console.log(`Sheet "${sheetName}" has ${count} leads total`);
+        setActualLeadCount(count);
+        setSplitPoint(Math.ceil(count / 2));
+      }
+    } catch (error) {
+      console.error("Error fetching lead count:", error);
+      // Fall back to totalLeads
+      setActualLeadCount(totalLeads);
+      setSplitPoint(Math.ceil(totalLeads / 2));
+    } finally {
+      setIsLoadingCount(false);
+    }
+  };
 
   const handleSplit = async () => {
     if (splitPoint <= 0 || splitPoint >= totalLeads) {
