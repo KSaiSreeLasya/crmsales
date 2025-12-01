@@ -29,6 +29,16 @@ export function CRMLayout({ children }: CRMLayoutProps) {
       href: "/team",
       icon: UserCheck,
     },
+    // Admin-only page for managing salespersons (CRUD operations)
+    ...(user?.role === "admin"
+      ? [
+          {
+            label: "Manage Salespersons",
+            href: "/salespersons",
+            icon: Users,
+          },
+        ]
+      : []),
     { label: "Settings", href: "/settings", icon: Settings },
   ];
 
@@ -37,7 +47,8 @@ export function CRMLayout({ children }: CRMLayoutProps) {
       await logout();
       toast.success("Logged out successfully");
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       console.error("Logout error:", errorMessage);
       toast.error("Failed to logout");
     }
