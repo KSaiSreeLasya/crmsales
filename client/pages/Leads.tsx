@@ -634,6 +634,184 @@ export default function Leads() {
     }
   };
 
+  const syncFromGoogleSheetApiV4 = async (
+    sheetId: string,
+    sheetName: string,
+    showNotification = false,
+  ) => {
+    if (isSyncing) {
+      if (showNotification) {
+        toast.info("Sync already in progress...");
+      }
+      return;
+    }
+
+    setIsSyncing(true);
+    if (showNotification) {
+      toast.loading(
+        "Syncing leads using Google Sheets API... This works for 500+ leads.",
+      );
+    }
+
+    try {
+      // 3 minute timeout for fetching from Google Sheets API
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 180000);
+
+      const fetchResponse = await fetch(
+        `/api/fetch-google-sheet-api?spreadsheetId=${SPREADSHEET_ID}&sheetName=${encodeURIComponent(
+          sheetName,
+        )}`,
+        { signal: controller.signal },
+      );
+      clearTimeout(timeoutId);
+
+      if (!fetchResponse.ok) {
+        throw new Error("Failed to fetch from Google Sheet API");
+      }
+
+      const fetchData = await fetchResponse.json();
+      const rows = fetchData.rows;
+
+      console.log(`Fetched ${rows.length} rows from sheet ${sheetName} via API`);
+
+      if (rows.length === 0) {
+        if (showNotification) {
+          toast.error("Selected sheet is empty");
+        }
+        setIsSyncing(false);
+        return;
+      }
+
+      // Extract date rows and regular rows
+      const extractedDateRows: DateRowMarker[] = [];
+      const dataRows = rows.filter((row: any) => {
+        if (row._isDateRow === "true" || row._isDateRow === true) {
+          extractedDateRows.push(row as DateRowMarker);
+          return false;
+        }
+        return true;
+      });
+
+      console.log(`Extracted ${extractedDateRows.length} date rows`);
+
+      // 5 minute timeout for processing and uploading to Supabase
+      const syncController = new AbortController();
+      const syncTimeoutId = setTimeout(() => syncController.abort(), 300000);
+
+      try {
+        const syncResponse = await fetch("/api/sync-leads-dynamic", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            leads: dataRows,
+            source: "google_sheet_api",
+            sheetId: sheetId,
+          }),
+          signal: syncController.signal,
+        });
+        clearTimeout(syncTimeoutId);
+
+        const statusOk = syncResponse.ok;
+        let syncData: any = null;
+        let responseText = "";
+
+        // Read response body only once
+        try {
+          responseText = await syncResponse.text();
+          if (responseText) {
+            try {
+              syncData = JSON.parse(responseText);
+            } catch (jsonError) {
+              console.error("Failed to parse JSON:", jsonError);
+              console.error("Response text was:", responseText);
+              syncData = { error: "Invalid JSON response from server" };
+            }
+          }
+        } catch (textError) {
+          console.error("Failed to read response body:", textError);
+          syncData = { error: "Failed to read response" };
+        }
+
+        // Check response status after reading body
+        if (!statusOk) {
+          const errorMessage =
+            syncData?.message || syncData?.error || "Failed to sync leads";
+          const fullError = [
+            errorMessage,
+            syncData?.hint && `Hint: ${syncData.hint}`,
+            syncData?.troubleshooting &&
+              `Troubleshooting: Check /api/test-supabase`,
+          ]
+            .filter(Boolean)
+            .join("\n");
+
+          console.error(
+            "Sync API returned error:",
+            errorMessage,
+            "Full response:",
+            syncData,
+            "Status:",
+            syncResponse.status,
+          );
+          throw new Error(fullError);
+        }
+
+        if (!syncData) {
+          throw new Error("No response data received from sync");
+        }
+
+        console.log(
+          "Sync response:",
+          syncData.message,
+          "Columns:",
+          syncData.columnsIncluded,
+        );
+
+        // Store date rows for display
+        setDateRows(extractedDateRows);
+
+        console.log(`About to reload leads for sheet_id: ${sheetId}`);
+        await loadLeads();
+        console.log("Leads reloaded after sync");
+
+        if (showNotification) {
+          const emptyRowsMsg =
+            syncData.emptyRowsRemoved > 0
+              ? ` (${syncData.emptyRowsRemoved} empty rows removed)`
+              : "";
+          const dateRowsMsg =
+            extractedDateRows.length > 0
+              ? ` (${extractedDateRows.length} date separators)`
+              : "";
+          toast.success(
+            `Synced ${syncData.synced} leads from Google Sheets API${emptyRowsMsg}${dateRowsMsg}`,
+          );
+        }
+      } catch (fetchError) {
+        clearTimeout(syncTimeoutId);
+        throw fetchError;
+      }
+    } catch (error) {
+      console.error("Error syncing via Google Sheets API:", error);
+      if (showNotification) {
+        if (error instanceof Error && error.name === "AbortError") {
+          toast.error(
+            "Sync timed out after 5 minutes. Please try again or check sheet size.",
+          );
+        } else {
+          toast.error(
+            error instanceof Error
+              ? error.message
+              : "Failed to sync from sheet",
+          );
+        }
+      }
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const handleAutoAssign = async () => {
     if (salespersons.length === 0) {
       toast.error("No salespersons available for assignment");
