@@ -647,8 +647,9 @@ export default function Leads() {
     }
 
     setIsSyncing(true);
+    let loadingToastId: string | number | undefined;
     if (showNotification) {
-      toast.loading(
+      loadingToastId = toast.loading(
         "Syncing leads using Google Sheets API... This works for 500+ leads.",
       );
     }
@@ -679,6 +680,7 @@ export default function Leads() {
 
       if (rows.length === 0) {
         if (showNotification) {
+          if (loadingToastId !== undefined) toast.dismiss(loadingToastId);
           toast.error("Selected sheet is empty");
         }
         setIsSyncing(false);
@@ -707,7 +709,7 @@ export default function Leads() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             leads: dataRows,
-            source: "google_sheet_api",
+            source: "api",
             sheetId: sheetId,
           }),
           signal: syncController.signal,
@@ -778,6 +780,7 @@ export default function Leads() {
         console.log("Leads reloaded after sync");
 
         if (showNotification) {
+          if (loadingToastId !== undefined) toast.dismiss(loadingToastId);
           const emptyRowsMsg =
             syncData.emptyRowsRemoved > 0
               ? ` (${syncData.emptyRowsRemoved} empty rows removed)`
@@ -797,6 +800,7 @@ export default function Leads() {
     } catch (error) {
       console.error("Error syncing via Google Sheets API:", error);
       if (showNotification) {
+        if (loadingToastId !== undefined) toast.dismiss(loadingToastId);
         if (error instanceof Error && error.name === "AbortError") {
           toast.error(
             "Sync timed out after 5 minutes. Please try again or check sheet size.",
