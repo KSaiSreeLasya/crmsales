@@ -1160,7 +1160,14 @@ export default function Leads() {
             <Button
               variant="outline"
               className="gap-1 h-8 text-xs px-2"
-              onClick={() => syncFromGoogleSheetDynamic(selectedSheetId, true)}
+              onClick={() => {
+                const selectedSheet = availableSheets.find(
+                  (s) => s.id === selectedSheetId,
+                );
+                const sheetName = selectedSheet?.name || "Sheet1";
+                // Use API v4 for better handling of large sheets (500+ leads)
+                syncFromGoogleSheetApiV4(selectedSheetId, sheetName, true);
+              }}
               disabled={isSyncing}
             >
               <RefreshCw
