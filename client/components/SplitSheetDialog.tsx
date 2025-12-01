@@ -79,7 +79,9 @@ export function SplitSheetDialog({
 
   const handleSplit = async () => {
     if (splitPoint <= 0 || splitPoint >= actualLeadCount) {
-      toast.error(`Split point must be between 1 and ${actualLeadCount - 1} leads`);
+      toast.error(
+        `Split point must be between 1 and ${actualLeadCount - 1} leads`,
+      );
       return;
     }
 
