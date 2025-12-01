@@ -56,7 +56,9 @@ type LeadStatus =
   | "Site visit"
   | "Advance payment"
   | "Lead finished"
-  | "Contacted";
+  | "Contacted"
+  | "Busy"
+  | "Call Back";
 
 interface Lead {
   id: string;
@@ -100,6 +102,8 @@ const STATUS_OPTIONS: LeadStatus[] = [
   "Advance payment",
   "Lead finished",
   "Contacted",
+  "Busy",
+  "Call Back",
 ];
 
 const SPREADSHEET_ID = "1QY8_Q8-ybLKNVs4hynPZslZDwUfC-PIJrViJfL0-tpM";
