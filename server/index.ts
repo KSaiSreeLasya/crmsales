@@ -26,6 +26,7 @@ import {
 } from "./routes/admin-users";
 import { handleTestSupabase } from "./routes/test-supabase";
 import { handleDiagnoseGoogleSheet } from "./routes/diagnose-google-sheet";
+import { handleSplitSheet } from "./routes/split-sheet";
 
 export function createServer() {
   const app = express();
