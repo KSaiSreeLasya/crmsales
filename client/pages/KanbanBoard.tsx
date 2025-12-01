@@ -229,14 +229,21 @@ function generateReceiptHTML(lead: Lead): string {
   `;
 }
 
-function navigateToProjects(): void {
+function downloadReceiptAndNavigate(lead: Lead): void {
+  const receiptHTML = generateReceiptHTML(lead);
+  const blob = new Blob([receiptHTML], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
-  link.href = "https://crm.axisogreen.in/#/projects";
-  link.target = "_blank";
-  link.rel = "noopener noreferrer";
+  link.href = url;
+  link.download = `receipt-${lead.id}.html`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+
+  setTimeout(() => {
+    window.location.href = "https://crm.axisogreen.in/#/projects";
+  }, 500);
 }
 
 interface Lead {
