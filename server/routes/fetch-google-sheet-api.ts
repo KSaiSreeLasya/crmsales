@@ -38,7 +38,10 @@ async function fetchSheetValues(
   }
 }
 
-function convertRowsToObjects(headers: string[], rows: any[][]): GoogleSheetRow[] {
+function convertRowsToObjects(
+  headers: string[],
+  rows: any[][],
+): GoogleSheetRow[] {
   const result: GoogleSheetRow[] = [];
 
   for (let i = 0; i < rows.length; i++) {
@@ -129,9 +132,7 @@ export const handleFetchGoogleSheetApi: RequestHandler = async (req, res) => {
       return nonEmptyCount > 0;
     });
 
-    console.log(
-      `Valid rows after filtering empty rows: ${validRows.length}`,
-    );
+    console.log(`Valid rows after filtering empty rows: ${validRows.length}`);
 
     if (validRows.length > 0) {
       console.log("Sample row:", validRows[0]);

@@ -673,7 +673,9 @@ export default function Leads() {
       const fetchData = await fetchResponse.json();
       const rows = fetchData.rows;
 
-      console.log(`Fetched ${rows.length} rows from sheet ${sheetName} via API`);
+      console.log(
+        `Fetched ${rows.length} rows from sheet ${sheetName} via API`,
+      );
 
       if (rows.length === 0) {
         if (showNotification) {
