@@ -55,6 +55,7 @@ export function createServer() {
 
   // Google Sheets API routes
   app.get("/api/fetch-google-sheet", handleFetchGoogleSheet);
+  app.get("/api/fetch-google-sheet-api", handleFetchGoogleSheetApi);
   app.get("/api/fetch-google-sheets-metadata", handleFetchGoogleSheetsMetadata);
   app.post("/api/sync-google-sheet", handleSyncGoogleSheet);
   app.get("/api/diagnose-google-sheet", handleDiagnoseGoogleSheet);
