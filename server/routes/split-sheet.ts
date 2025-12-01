@@ -125,12 +125,8 @@ async function appendDataToSheet(
 
 export const handleSplitSheet: RequestHandler = async (req, res) => {
   try {
-    const {
-      spreadsheetId,
-      sheetId,
-      sheetName,
-      splitPoint,
-    } = req.body as SplitSheetRequest;
+    const { spreadsheetId, sheetId, sheetName, splitPoint } =
+      req.body as SplitSheetRequest;
 
     if (!spreadsheetId || !sheetName) {
       res.status(400).json({
@@ -187,7 +183,9 @@ export const handleSplitSheet: RequestHandler = async (req, res) => {
     const firstPart = dataRows.slice(0, calculatedSplitPoint);
     const secondPart = dataRows.slice(calculatedSplitPoint);
 
-    console.log(`Splitting into: ${firstPart.length} + ${secondPart.length} rows`);
+    console.log(
+      `Splitting into: ${firstPart.length} + ${secondPart.length} rows`,
+    );
 
     // Create new sheet names
     const timestamp = new Date().toLocaleString("en-US", {

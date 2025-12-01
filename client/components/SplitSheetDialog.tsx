@@ -44,9 +44,7 @@ export function SplitSheetDialog({
 
   const handleSplit = async () => {
     if (splitPoint <= 0 || splitPoint >= totalLeads) {
-      toast.error(
-        `Split point must be between 1 and ${totalLeads - 1} leads`,
-      );
+      toast.error(`Split point must be between 1 and ${totalLeads - 1} leads`);
       return;
     }
 
@@ -178,9 +176,7 @@ export function SplitSheetDialog({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="flex gap-3">
-            <AlertDialogCancel disabled={isSplitting}>
-              Cancel
-            </AlertDialogCancel>
+            <AlertDialogCancel disabled={isSplitting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleSplit}
               disabled={isSplitting}
