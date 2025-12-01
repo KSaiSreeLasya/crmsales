@@ -41,69 +41,58 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function AppRoutes() {
   const { user } = useAuth();
 
-  // Redirect to home if already logged in and trying to access login
-  if (user) {
-    return (
-      <Routes>
-        <Route path="/login" element={<Navigate to="/" replace />} />
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <Index />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/leads"
-          element={
-            <ProtectedRoute>
-              <Leads />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/kanban"
-          element={
-            <ProtectedRoute>
-              <KanbanBoard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/team"
-          element={
-            <ProtectedRoute>
-              <Team />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/salespersons"
-          element={
-            <AdminRoute>
-              <Salespersons />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="/settings"
-          element={
-            <ProtectedRoute>
-              <Settings />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    );
-  }
-
-  // Show login if not logged in
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <Index />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/leads"
+        element={
+          <ProtectedRoute>
+            <Leads />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/kanban"
+        element={
+          <ProtectedRoute>
+            <KanbanBoard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/team"
+        element={
+          <ProtectedRoute>
+            <Team />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/salespersons"
+        element={
+          <AdminRoute>
+            <Salespersons />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <Settings />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="*" element={user ? <NotFound /> : <Navigate to="/login" replace />} />
     </Routes>
   );
 }
