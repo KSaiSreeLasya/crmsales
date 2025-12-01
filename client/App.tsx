@@ -92,7 +92,10 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
-      <Route path="*" element={user ? <NotFound /> : <Navigate to="/login" replace />} />
+      <Route
+        path="*"
+        element={user ? <NotFound /> : <Navigate to="/login" replace />}
+      />
     </Routes>
   );
 }
