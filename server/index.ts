@@ -13,6 +13,7 @@ import { handleSyncLeads } from "./routes/sync-leads";
 import { handleSyncLeadsDynamic } from "./routes/sync-leads-dynamic";
 import { handleSyncSalespersons } from "./routes/sync-salespersons";
 import { handleFetchGoogleSheet } from "./routes/fetch-google-sheet";
+import { handleFetchGoogleSheetApi } from "./routes/fetch-google-sheet-api";
 import { handleFetchGoogleSheetsMetadata } from "./routes/fetch-google-sheets-metadata";
 import { handleSyncGoogleSheet } from "./routes/sync-google-sheet";
 import { handleGetUserProfile } from "./routes/get-user-profile";
@@ -54,6 +55,7 @@ export function createServer() {
 
   // Google Sheets API routes
   app.get("/api/fetch-google-sheet", handleFetchGoogleSheet);
+  app.get("/api/fetch-google-sheet-api", handleFetchGoogleSheetApi);
   app.get("/api/fetch-google-sheets-metadata", handleFetchGoogleSheetsMetadata);
   app.post("/api/sync-google-sheet", handleSyncGoogleSheet);
   app.get("/api/diagnose-google-sheet", handleDiagnoseGoogleSheet);
