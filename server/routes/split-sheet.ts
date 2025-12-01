@@ -154,8 +154,9 @@ export const handleSplitSheet: RequestHandler = async (req, res) => {
       `Starting sheet split for: ${sheetName} (ID: ${sheetId}) in spreadsheet ${spreadsheetId}`,
     );
 
-    // Fetch all data from the sheet
-    const allRows = await fetchSheetValues(
+    // Fetch all data from the sheet using proper API v4
+    console.log("Fetching sheet data using Google Sheets API v4...");
+    const allRows = await fetchSheetValuesWithPagination(
       spreadsheetId,
       sheetName,
       GOOGLE_SHEETS_API_KEY,
