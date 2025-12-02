@@ -385,6 +385,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           try {
             let updateCount = 0;
             let failureCount = 0;
+            let insertCount = 0;
 
             // First, fetch existing leads to preserve assigned_to
             const { data: existingLeads, error: fetchError } = await supabase
