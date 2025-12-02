@@ -74,7 +74,8 @@ export function MonthlyBreakdown({
                   }}
                   formatter={(value, name) => {
                     if (name === "leads") return [value, "Leads"];
-                    if (name === "percentage") return [`${value}%`, "Percentage"];
+                    if (name === "percentage")
+                      return [`${value}%`, "Percentage"];
                     return value;
                   }}
                 />
