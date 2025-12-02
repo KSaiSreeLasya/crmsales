@@ -122,8 +122,8 @@ const normalizeLeadData = (lead: any, sheetId: string): any => {
 };
 
 export const handler: Handler = async (event) => {
-  console.log("[SCHEDULED] Starting Google Sheets sync (every 2 minutes)...");
-  console.log(`[SCHEDULED] Timestamp: ${new Date().toISOString()}`);
+  console.log("[SCHEDULED] Starting Google Sheets sync (daily at 2:00 AM UTC)...");
+  console.log(`[SCHEDULED] Execution timestamp: ${new Date().toISOString()}`);
 
   const result: SyncResult = {
     success: false,
