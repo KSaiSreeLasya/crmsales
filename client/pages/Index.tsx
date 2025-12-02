@@ -13,6 +13,8 @@ import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { MonthlyBreakdown } from "@/components/MonthlyBreakdown";
+import { analyzeLeadsByMonth, LeadAnalysis } from "@/lib/leadAnalysis";
 
 interface Lead {
   id: string;
@@ -40,6 +42,11 @@ export default function Index() {
     leadsByStatus: {},
     leadsBySalesperson: [],
     upcomingReminders: [],
+  });
+  const [monthlyAnalysis, setMonthlyAnalysis] = useState<LeadAnalysis>({
+    totalLeads: 0,
+    monthlyData: [],
+    dateRange: { earliest: null, latest: null },
   });
   const [isLoading, setIsLoading] = useState(true);
 
