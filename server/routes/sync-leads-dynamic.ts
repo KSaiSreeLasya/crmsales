@@ -60,9 +60,16 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     console.log("Sheet ID received:", sheetId, "Type:", typeof sheetId);
     console.log("[SYNC DEBUG] Supabase URL configured:", !!supabaseUrl);
     console.log("[SYNC DEBUG] Supabase Key configured:", !!supabaseKey);
+    if (dateRows && dateRows.length > 0) {
+      console.log("[SYNC DEBUG] Date rows received:", dateRows.length);
+      console.log("[SYNC DEBUG] Sample date rows:", dateRows.slice(0, 3));
+    }
     if (leads.length > 0) {
       console.log("First lead sample:", leads[0]);
       console.log("Available columns:", Object.keys(leads[0]));
+      if (leads[0].created_at) {
+        console.log("[SYNC DEBUG] First lead has created_at:", leads[0].created_at);
+      }
     }
 
     if (!Array.isArray(leads) || leads.length === 0) {
