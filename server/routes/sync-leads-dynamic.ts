@@ -93,24 +93,24 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           const normalizedKey = key.toLowerCase().trim().replace(/\s+/g, "_");
           const strValue = String(value || "").trim();
 
-          // Look for name column (but not full_name as a strict match, be flexible)
-          if (
-            !nameValue &&
-            (normalizedKey.includes("name") ||
-              normalizedKey.includes("full")) &&
-            !normalizedKey.includes("email") &&
-            strValue
-          ) {
-            nameValue = strValue;
+          if (!strValue) continue; // Skip empty values
+
+          // Look for name column - be very flexible with matching
+          if (!nameValue && !normalizedKey.includes("email") && !normalizedKey.includes("phone") && !normalizedKey.includes("bill") && !normalizedKey.includes("address") && !normalizedKey.includes("code") && !normalizedKey.includes("status") && !normalizedKey.includes("note")) {
+            // If key contains "name" or "full" or is just a generic first column, treat as name
+            if (
+              normalizedKey.includes("name") ||
+              normalizedKey.includes("full") ||
+              normalizedKey === "c" ||
+              normalizedKey === "c:" ||
+              key.trim().match(/^[A-Z]$/) // Single letter column
+            ) {
+              nameValue = strValue;
+            }
           }
 
-          // Look for email
-          if (
-            !emailValue &&
-            (normalizedKey.includes("email") ||
-              normalizedKey.includes("mail")) &&
-            strValue
-          ) {
+          // Look for email - prioritize columns with "email"
+          if (!emailValue && (normalizedKey.includes("email") || normalizedKey.includes("mail")) && strValue) {
             emailValue = strValue;
           }
 
@@ -120,7 +120,8 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
             (normalizedKey.includes("phone") ||
               normalizedKey.includes("contact") ||
               normalizedKey.includes("phone_no") ||
-              normalizedKey.includes("mobile")) &&
+              normalizedKey.includes("mobile") ||
+              normalizedKey.includes("telephone")) &&
             strValue
           ) {
             phoneValue = strValue;
@@ -132,22 +133,12 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         ).length;
 
         // Validation: require name and email (email required for upsert constraint, phone is optional)
+        // Be more lenient - if it has a name and email, it's valid
         const isValid =
-          nonEmptyFields >= 2 &&
           nameValue &&
           nameValue.length > 0 &&
           emailValue &&
           emailValue.length > 0;
-
-        if (!isValid && index < 5) {
-          console.log(`[VALIDATION] Row ${index} rejected:`, {
-            nameValue,
-            emailValue,
-            phoneValue,
-            nonEmptyFields,
-            allKeys: Object.keys(lead),
-          });
-        }
 
         return { lead, isValid, nameValue, emailValue, phoneValue };
       })
