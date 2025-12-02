@@ -252,7 +252,8 @@ export const handler: Handler = async (event) => {
               // Fetch existing assignments to preserve them during update
               const { data: existingLeads } = await supabase
                 .from("leads")
-                .select("email, assigned_to");
+                .select("email, assigned_to, sheet_id")
+                .eq("sheet_id", sheetId);
 
               const existingAssignments = new Map(
                 (existingLeads || []).map((lead: any) => [
@@ -269,8 +270,9 @@ export const handler: Handler = async (event) => {
                 const email = lead.email;
 
                 if (email && String(email).trim()) {
+                  const { sheet_id, ...leadWithoutSheetId } = lead;
                   const updateData = {
-                    ...lead,
+                    ...leadWithoutSheetId,
                     // Preserve existing assignment if it exists
                     assigned_to:
                       existingAssignments.get(email) || lead.assigned_to,
@@ -280,14 +282,15 @@ export const handler: Handler = async (event) => {
                   const { error: updateError } = await supabase
                     .from("leads")
                     .update(updateData)
-                    .eq("email", email);
+                    .eq("email", email)
+                    .eq("sheet_id", sheetId);
 
                   if (!updateError) {
                     updateCount++;
                   } else {
                     failureCount++;
                     console.warn(
-                      `[SCHEDULED] Failed to update lead with email ${email}:`,
+                      `[SCHEDULED] Failed to update lead with email ${email} in sheet ${sheetId}:`,
                       updateError,
                     );
                   }
