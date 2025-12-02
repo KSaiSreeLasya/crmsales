@@ -1,7 +1,7 @@
 /**
  * API Route: POST /api/sync-leads-dynamic
  * Syncs leads with ALL columns from Google Sheets to Supabase database
- * Preserves exact column names from the sheet
+ * Preserves exact column names from the sheet and existing assignments
  */
 
 import { RequestHandler } from "express";
@@ -346,7 +346,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       syncData.phone = (syncData.phone || "").trim() || "";
       syncData.company = (syncData.company || "").trim() || "";
       syncData.status = syncData.status || "Not lifted";
-      syncData.assigned_to = syncData.assigned_to || "Unassigned";
+      // Note: Don't set assigned_to here - we'll preserve it from existing records
 
       // Set timestamps to ensure they're properly recorded
       const now = new Date().toISOString();
@@ -369,7 +369,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       return syncData;
     });
 
-    console.log("Attempting to insert leads to Supabase...");
+    console.log("Attempting to sync leads to Supabase...");
     console.log("Total leads to sync:", leadsToSync.length);
     console.log("Sample lead:", leadsToSync[0]);
     console.log("Sample lead sheet_id:", leadsToSync[0].sheet_id);
@@ -378,7 +378,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     try {
       // Pre-check: Fetch existing leads to preserve assignments
       console.log("Checking for existing leads to preserve assignments...");
-      const { data: existingLeads, error: fetchError } = await supabase
+      const { data: existingLeads } = await supabase
         .from("leads")
         .select("email, assigned_to, id");
 
@@ -402,195 +402,90 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         existingEmails.has(lead.email),
       );
 
-      console.log(`${newLeads.length} new leads, ${existingLeadsToUpdate.length} leads to update`);
+      console.log(
+        `${newLeads.length} new leads, ${existingLeadsToUpdate.length} leads to update`,
+      );
 
       // Preserve existing assignments for leads that are being updated
-      const leadsToUpdateWithPreservedAssignments = existingLeadsToUpdate.map((lead) => ({
-        ...lead,
-        assigned_to: existingAssignments.get(lead.email) || lead.assigned_to,
-      }));
+      const leadsToUpdateWithPreservedAssignments = existingLeadsToUpdate.map(
+        (lead) => ({
+          ...lead,
+          assigned_to: existingAssignments.get(lead.email) || "Unassigned",
+        }),
+      );
 
       let insertCount = 0;
       let updateCount = 0;
       let failureCount = 0;
 
       // First, try to insert new records
-      console.log("Inserting leads into Supabase...");
-      console.log(
-        "[SYNC DEBUG] Attempting to insert",
-        newLeads.length,
-        "new leads",
-      );
+      if (newLeads.length > 0) {
+        console.log("Inserting new leads into Supabase...");
+        const { data, error } = await supabase
+          .from("leads")
+          .insert(newLeads)
+          .select();
 
-      const { data, error } = await supabase
-        .from("leads")
-        .insert(newLeads)
-        .select();
-
-      if (error) {
-        console.error("[SYNC ERROR] Supabase insert error:", error);
-        console.error(
-          "[SYNC ERROR] Full error object:",
-          JSON.stringify(error, null, 2),
-        );
-        console.error("[SYNC ERROR] Error code:", (error as any).code);
-        console.error("[SYNC ERROR] Error hint:", (error as any).hint);
-        console.error("[SYNC ERROR] Error details:", (error as any).details);
-
-        // If duplicate key error, try updating existing records
-        if (
-          error.message?.includes("duplicate") ||
-          (error as any).code === "23505"
-        ) {
-          console.log("Duplicate key detected, updating existing records...");
-
-          try {
-            let updateCount = 0;
-            let failureCount = 0;
-            let insertCount = 0;
-
-            // First, fetch existing leads to preserve assigned_to
-            const { data: existingLeads, error: fetchError } = await supabase
-              .from("leads")
-              .select("email, assigned_to");
-
-            const existingEmails = new Set(
-              (existingLeads || []).map((lead: any) => lead.email),
-            );
-            const existingAssignments = new Map(
-              (existingLeads || []).map((lead: any) => [
-                lead.email,
-                lead.assigned_to,
-              ]),
-            );
-
-            // Separate leads into new and existing
-            const newLeads = leadsToSync.filter(
-              (lead) => !existingEmails.has(lead.email),
-            );
-            const existingLeadsToUpdate = leadsToSync.filter((lead) =>
-              existingEmails.has(lead.email),
-            );
-
-            // Try to insert new leads first
-            if (newLeads.length > 0) {
-              const { error: insertError } = await supabase
-                .from("leads")
-                .insert(newLeads)
-                .select();
-
-              if (!insertError) {
-                insertCount = newLeads.length;
-                console.log(`✓ Inserted ${insertCount} new leads`);
-              } else {
-                console.warn(
-                  `Failed to insert ${newLeads.length} new leads:`,
-                  insertError,
-                );
-                failureCount += newLeads.length;
-              }
-            }
-
-            // Update each lead by email
-            for (const lead of existingLeadsToUpdate) {
-              const email = lead.email;
-
-              if (email && String(email).trim()) {
-                const updateData = {
-                  ...lead,
-                  // Preserve existing assigned_to if the lead already has one
-                  assigned_to:
-                    existingAssignments.get(email) || lead.assigned_to,
-                  updated_at: new Date().toISOString(),
-                };
-
-                const { error: updateError } = await supabase
-                  .from("leads")
-                  .update(updateData)
-                  .eq("email", email);
-
-                if (!updateError) {
-                  updateCount++;
-                } else {
-                  failureCount++;
-                  console.warn(
-                    `Failed to update lead with email ${email}:`,
-                    updateError,
-                  );
-                }
-              }
-            }
-
-            console.log(
-              `Sync complete: ${insertCount} new, ${updateCount} updated, ${failureCount} failed��� Updated ${updateCount} leads successfully, ${failureCount} failed`,
-            );
-
-            res.json({
-              success: true,
-              message: `Successfully synced ${updateCount + insertCount} leads (${leads.length - leadsToSync.length} empty rows removed)`,
-              synced: updateCount + insertCount,
-              newLeads: insertCount,
-              updatedLeads: updateCount,
-              totalFetched: leads.length,
-              emptyRowsRemoved: leads.length - leadsToSync.length,
-              source: source,
-              columnsIncluded: Object.keys(leadsToSync[0]),
-            });
-            return;
-          } catch (updateErr) {
-            console.error("Error during sync operation:", updateErr);
-            res.status(500).json({
-              error: "Failed to sync leads",
-              message:
-                updateErr instanceof Error
-                  ? updateErr.message
-                  : String(updateErr),
-            });
-            return;
-          }
+        if (!error) {
+          insertCount = data?.length || newLeads.length;
+          console.log(`✓ Inserted ${insertCount} new leads`);
+        } else {
+          console.warn(
+            `Failed to insert ${newLeads.length} new leads:`,
+            error,
+          );
+          failureCount += newLeads.length;
         }
-
-        // For other errors, return details
-        console.error("[SYNC ERROR] Detailed error info:");
-        console.error("  Code:", (error as any).code);
-        console.error("  Hint:", (error as any).hint);
-        console.error("  Details:", (error as any).details);
-        console.error("  Status:", (error as any).status);
-
-        res.status(400).json({
-          error: "Failed to insert leads",
-          message: error.message,
-          details: (error as any).details,
-          code: (error as any).code,
-          hint:
-            (error as any).hint ||
-            "Ensure Supabase credentials are configured and RLS is not blocking inserts",
-          troubleshooting: {
-            checkUrl: "Visit /api/test-supabase to verify Supabase connection",
-            checkEnv:
-              "Ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set",
-            checkRLS: "Verify RLS policies are not blocking INSERT operations",
-          },
-        });
-        return;
       }
 
-      console.log("Successfully inserted", data?.length, "leads");
+      // Update each existing lead (preserving assignments)
+      console.log("Updating existing leads...");
+      for (const lead of leadsToUpdateWithPreservedAssignments) {
+        const email = lead.email;
+
+        if (email && String(email).trim()) {
+          const updateData = {
+            ...lead,
+            updated_at: new Date().toISOString(),
+          };
+
+          const { error: updateError } = await supabase
+            .from("leads")
+            .update(updateData)
+            .eq("email", email);
+
+          if (!updateError) {
+            updateCount++;
+          } else {
+            failureCount++;
+            console.warn(
+              `Failed to update lead with email ${email}:`,
+              updateError,
+            );
+          }
+        }
+      }
+
+      console.log(
+        `Sync complete: ${insertCount} new, ${updateCount} updated, ${failureCount} failed`,
+      );
+
       res.json({
         success: true,
-        message: `${leadsToSync.length} new leads synced successfully (${leads.length - leadsToSync.length} empty rows removed)`,
-        synced: leadsToSync.length,
-        newLeads: leadsToSync.length,
-        updatedLeads: 0,
+        message: `Successfully synced ${updateCount + insertCount} leads${failureCount > 0 ? ` (${failureCount} failed)` : ""} (${leads.length - leadsToSync.length} empty rows removed)`,
+        synced: updateCount + insertCount,
+        newLeads: insertCount,
+        updatedLeads: updateCount,
+        failed: failureCount,
         totalFetched: leads.length,
         emptyRowsRemoved: leads.length - leadsToSync.length,
         source: source,
         columnsIncluded: Object.keys(leadsToSync[0]),
       });
     } catch (err) {
-      console.error("Unexpected error during sync:", err);
+      console.error("Error during sync operation:", err);
       res.status(500).json({
-        error: "Unexpected error syncing leads",
+        error: "Failed to sync leads",
         message: err instanceof Error ? err.message : String(err),
       });
     }
