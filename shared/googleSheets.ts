@@ -321,12 +321,14 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
 
     headers.forEach((header, index) => {
       if (header && header.trim()) {
-        row[header] = dataValues[index] || "";
+        const value = dataValues[index] || "";
+        // Store all values, even empty ones, to preserve column structure
+        row[header] = value;
       }
     });
 
-    // Only skip completely empty rows (no non-empty cells at all)
-    // Don't filter based on field count - let the sync process validate required fields
+    // Include all rows with at least one non-empty cell
+    // The sync process will validate required fields (name and email)
     const nonEmptyCount = Object.values(row).filter(
       (val) => val && String(val).trim() !== "",
     ).length;
