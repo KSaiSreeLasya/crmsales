@@ -93,18 +93,32 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           const normalizedKey = key.toLowerCase().trim().replace(/\s+/g, "_");
           const strValue = String(value || "").trim();
 
-          // Look for name column (but not full_name as a strict match, be flexible)
+          if (!strValue) continue; // Skip empty values
+
+          // Look for name column - be very flexible with matching
           if (
             !nameValue &&
-            (normalizedKey.includes("name") ||
-              normalizedKey.includes("full")) &&
             !normalizedKey.includes("email") &&
-            strValue
+            !normalizedKey.includes("phone") &&
+            !normalizedKey.includes("bill") &&
+            !normalizedKey.includes("address") &&
+            !normalizedKey.includes("code") &&
+            !normalizedKey.includes("status") &&
+            !normalizedKey.includes("note")
           ) {
-            nameValue = strValue;
+            // If key contains "name" or "full" or is just a generic first column, treat as name
+            if (
+              normalizedKey.includes("name") ||
+              normalizedKey.includes("full") ||
+              normalizedKey === "c" ||
+              normalizedKey === "c:" ||
+              key.trim().match(/^[A-Z]$/) // Single letter column
+            ) {
+              nameValue = strValue;
+            }
           }
 
-          // Look for email
+          // Look for email - prioritize columns with "email"
           if (
             !emailValue &&
             (normalizedKey.includes("email") ||
@@ -120,7 +134,8 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
             (normalizedKey.includes("phone") ||
               normalizedKey.includes("contact") ||
               normalizedKey.includes("phone_no") ||
-              normalizedKey.includes("mobile")) &&
+              normalizedKey.includes("mobile") ||
+              normalizedKey.includes("telephone")) &&
             strValue
           ) {
             phoneValue = strValue;
@@ -132,22 +147,12 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         ).length;
 
         // Validation: require name and email (email required for upsert constraint, phone is optional)
+        // Be more lenient - if it has a name and email, it's valid
         const isValid =
-          nonEmptyFields >= 2 &&
           nameValue &&
           nameValue.length > 0 &&
           emailValue &&
           emailValue.length > 0;
-
-        if (!isValid && index < 5) {
-          console.log(`[VALIDATION] Row ${index} rejected:`, {
-            nameValue,
-            emailValue,
-            phoneValue,
-            nonEmptyFields,
-            allKeys: Object.keys(lead),
-          });
-        }
 
         return { lead, isValid, nameValue, emailValue, phoneValue };
       })
@@ -166,10 +171,13 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
     if (validLeads.length === 0) {
       // Provide detailed debugging info
-      const sampleRows = leads.slice(0, 3).map((lead) => ({
-        keys: Object.keys(lead),
-        sampleValues: Object.fromEntries(Object.entries(lead).slice(0, 3)),
-      }));
+      const sampleRows = leads.slice(0, 3).map((lead) => {
+        const cleaned: any = {};
+        for (const [k, v] of Object.entries(lead)) {
+          if (v && String(v).trim()) cleaned[k] = String(v).substring(0, 50);
+        }
+        return cleaned;
+      });
 
       console.error("No valid leads after filtering:", {
         totalRows: leads.length,
@@ -232,7 +240,12 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         sheet_id: sheetId || "0",
       };
 
-      // Normalize column names and map to Supabase schema
+      // First pass: find critical fields (name, email, phone)
+      let foundName = false;
+      let foundEmail = false;
+      let foundPhone = false;
+
+      // Second pass: assign column values
       for (const [key, value] of Object.entries(lead)) {
         const normalizedKey = key
           .toLowerCase()
@@ -240,14 +253,37 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           .replace(/\s+/g, "_")
           .replace(/[?]/g, "");
 
+        // Ensure all values are properly formatted
+        let formattedValue = "";
+        if (value !== undefined && value !== null) {
+          formattedValue = String(value).trim();
+        }
+
+        if (!formattedValue) continue;
+
         // Map common column name variations
-        let dbColumn = normalizedKey;
-        if (normalizedKey.includes("full") && normalizedKey.includes("name")) {
+        let dbColumn = "";
+
+        if (
+          !foundName &&
+          (normalizedKey.includes("full_name") ||
+            normalizedKey.includes("fullname") ||
+            (normalizedKey.includes("name") &&
+              !normalizedKey.includes("email")))
+        ) {
           dbColumn = "name";
-        } else if (normalizedKey.includes("email")) {
+          foundName = true;
+        } else if (!foundEmail && normalizedKey.includes("email")) {
           dbColumn = "email";
-        } else if (normalizedKey.includes("phone")) {
+          foundEmail = true;
+        } else if (
+          !foundPhone &&
+          (normalizedKey.includes("phone") ||
+            normalizedKey.includes("contact") ||
+            normalizedKey.includes("mobile"))
+        ) {
           dbColumn = "phone";
+          foundPhone = true;
         } else if (normalizedKey.includes("company")) {
           dbColumn = "company";
         } else if (
@@ -258,7 +294,8 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         } else if (
           normalizedKey.includes("post") ||
           normalizedKey.includes("postal") ||
-          normalizedKey.includes("zip")
+          normalizedKey.includes("zip") ||
+          normalizedKey.includes("code")
         ) {
           dbColumn = "post_code";
         } else if (
@@ -272,40 +309,33 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         ) {
           dbColumn = "type_of_property";
         } else if (
-          normalizedKey.includes("avg") &&
-          normalizedKey.includes("monthly")
+          normalizedKey.includes("avg") ||
+          (normalizedKey.includes("current") &&
+            normalizedKey.includes("electricity")) ||
+          (normalizedKey.includes("monthly") && normalizedKey.includes("bill"))
         ) {
           dbColumn = "avg_monthly_bill";
         } else if (
           normalizedKey.includes("electricity") ||
-          (normalizedKey.includes("bill") && !normalizedKey.includes("monthly"))
+          (normalizedKey.includes("bill") &&
+            !normalizedKey.includes("monthly") &&
+            !normalizedKey.includes("avg"))
         ) {
           dbColumn = "electricity_bill";
         } else if (
           normalizedKey.includes("note") &&
-          normalizedKey.includes("1")
+          (normalizedKey.includes("1") || normalizedKey.endsWith("_1"))
         ) {
           dbColumn = "note1";
         } else if (
           normalizedKey.includes("note") &&
-          normalizedKey.includes("2")
+          (normalizedKey.includes("2") || normalizedKey.endsWith("_2"))
         ) {
           dbColumn = "note2";
         }
 
-        // Only add column if it exists in Supabase schema
-        if (!allowedColumns.has(dbColumn)) {
-          console.log(`Skipping unknown column: ${key} -> ${dbColumn}`);
-          continue;
-        }
-
-        // Ensure all values are properly formatted
-        let formattedValue = "";
-        if (value !== undefined && value !== null) {
-          formattedValue = String(value).trim();
-        }
-
-        if (formattedValue) {
+        // Only add column if it exists in Supabase schema and has a mapped name
+        if (dbColumn && allowedColumns.has(dbColumn)) {
           syncData[dbColumn] = formattedValue;
         }
       }
@@ -383,12 +413,16 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           try {
             let updateCount = 0;
             let failureCount = 0;
+            let insertCount = 0;
 
             // First, fetch existing leads to preserve assigned_to
             const { data: existingLeads, error: fetchError } = await supabase
               .from("leads")
               .select("email, assigned_to");
 
+            const existingEmails = new Set(
+              (existingLeads || []).map((lead: any) => lead.email),
+            );
             const existingAssignments = new Map(
               (existingLeads || []).map((lead: any) => [
                 lead.email,
@@ -396,8 +430,35 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
               ]),
             );
 
+            // Separate leads into new and existing
+            const newLeads = leadsToSync.filter(
+              (lead) => !existingEmails.has(lead.email),
+            );
+            const existingLeadsToUpdate = leadsToSync.filter((lead) =>
+              existingEmails.has(lead.email),
+            );
+
+            // Try to insert new leads first
+            if (newLeads.length > 0) {
+              const { error: insertError } = await supabase
+                .from("leads")
+                .insert(newLeads)
+                .select();
+
+              if (!insertError) {
+                insertCount = newLeads.length;
+                console.log(`✓ Inserted ${insertCount} new leads`);
+              } else {
+                console.warn(
+                  `Failed to insert ${newLeads.length} new leads:`,
+                  insertError,
+                );
+                failureCount += newLeads.length;
+              }
+            }
+
             // Update each lead by email
-            for (const lead of leadsToSync) {
+            for (const lead of existingLeadsToUpdate) {
               const email = lead.email;
 
               if (email && String(email).trim()) {
@@ -427,13 +488,15 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
             }
 
             console.log(
-              `��� Updated ${updateCount} leads successfully, ${failureCount} failed`,
+              `Sync complete: ${insertCount} new, ${updateCount} updated, ${failureCount} failed��� Updated ${updateCount} leads successfully, ${failureCount} failed`,
             );
 
             res.json({
               success: true,
-              message: `Successfully updated ${updateCount} existing leads (${leads.length - leadsToSync.length} empty rows removed)`,
-              synced: updateCount,
+              message: `Successfully synced ${updateCount + insertCount} leads (${leads.length - leadsToSync.length} empty rows removed)`,
+              synced: updateCount + insertCount,
+              newLeads: insertCount,
+              updatedLeads: updateCount,
               totalFetched: leads.length,
               emptyRowsRemoved: leads.length - leadsToSync.length,
               source: source,
@@ -441,9 +504,9 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
             });
             return;
           } catch (updateErr) {
-            console.error("Error during update operation:", updateErr);
+            console.error("Error during sync operation:", updateErr);
             res.status(500).json({
-              error: "Failed to update leads",
+              error: "Failed to sync leads",
               message:
                 updateErr instanceof Error
                   ? updateErr.message
@@ -481,8 +544,10 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       console.log("Successfully inserted", data?.length, "leads");
       res.json({
         success: true,
-        message: `${leadsToSync.length} leads synced successfully (${leads.length - leadsToSync.length} empty rows removed)`,
+        message: `${leadsToSync.length} new leads synced successfully (${leads.length - leadsToSync.length} empty rows removed)`,
         synced: leadsToSync.length,
+        newLeads: leadsToSync.length,
+        updatedLeads: 0,
         totalFetched: leads.length,
         emptyRowsRemoved: leads.length - leadsToSync.length,
         source: source,

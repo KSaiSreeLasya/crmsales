@@ -68,14 +68,6 @@ export function parseLeadRow(row: GoogleSheetRow) {
     columnMap[normalizedKey] = trimmedValue;
   }
 
-  // Debug: Log all available columns on first few rows
-  if (Object.values(columnMap).some((v) => v)) {
-    console.log("=== COLUMN MAPPING DEBUG ===");
-    console.log("Raw keys:", allKeys);
-    console.log("Normalized keys:", Object.keys(columnMap));
-    console.log("Full column map:", columnMap);
-  }
-
   // Helper function to find a column value by searching for key patterns
   const findColumnValue = (patterns: string[]): string => {
     // Try exact matches first
@@ -187,25 +179,6 @@ export function parseLeadRow(row: GoogleSheetRow) {
     note1: note1 || "",
     note2: note2 || "",
   };
-
-  if (name && email) {
-    console.log("✓ Valid lead found:", {
-      name,
-      email,
-      phone,
-      type_of_property,
-      avg_monthly_bill,
-    });
-  } else {
-    console.log("✗ Invalid lead (missing name or email):");
-    console.log("  Row keys:", allKeys);
-    console.log(
-      "  Available values:",
-      Object.keys(columnMap)
-        .filter((k) => columnMap[k])
-        .map((k) => `${k}=${columnMap[k]}`),
-    );
-  }
 
   return parsed;
 }
@@ -348,12 +321,14 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
 
     headers.forEach((header, index) => {
       if (header && header.trim()) {
-        row[header] = dataValues[index] || "";
+        const value = dataValues[index] || "";
+        // Store all values, even empty ones, to preserve column structure
+        row[header] = value;
       }
     });
 
-    // Only skip completely empty rows (no non-empty cells at all)
-    // Don't filter based on field count - let the sync process validate required fields
+    // Include all rows with at least one non-empty cell
+    // The sync process will validate required fields (name and email)
     const nonEmptyCount = Object.values(row).filter(
       (val) => val && String(val).trim() !== "",
     ).length;

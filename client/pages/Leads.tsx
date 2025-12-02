@@ -195,7 +195,6 @@ export default function Leads() {
       if (error) {
         const errorMsg = error.message || JSON.stringify(error);
         console.error("Error loading leads with sheet_id filter:", errorMsg);
-        console.error("Full error:", error);
 
         // Only fall back if sheet_id column truly doesn't exist
         if (
@@ -221,25 +220,29 @@ export default function Leads() {
           }
         } else {
           console.error("Cannot filter by sheet_id:", errorMsg);
-          toast.error("Failed to load leads for selected sheet");
-          setLeads([]);
+          // Try loading all leads as fallback
+          const { data: fallbackData, error: fallbackError } = await supabase
+            .from("leads")
+            .select("*")
+            .order("created_at", { ascending: false })
+            .order("id", { ascending: false });
+
+          if (!fallbackError && fallbackData) {
+            console.log(
+              `Loaded ${fallbackData.length} leads as fallback (sheet_id filter failed)`,
+            );
+            setLeads(fallbackData);
+          } else {
+            toast.error("Failed to load leads");
+            setLeads([]);
+          }
         }
       } else {
         console.log(
           `✓ Successfully loaded ${data?.length || 0} leads for sheet ${selectedSheetId}`,
         );
-        if (data && data.length > 0) {
-          console.log("Sample lead:", data[0]);
-          console.log(
-            "Sample lead sheet_id:",
-            data[0].sheet_id,
-            "type:",
-            typeof data[0].sheet_id,
-          );
-        }
 
-        // If no leads found for selected sheet but leads exist in database,
-        // load all leads as fallback (sheet_id might not be set correctly)
+        // If no leads found for selected sheet, try loading all leads
         if ((!data || data.length === 0) && selectedSheetId !== "all") {
           console.log(
             `No leads found for sheet ${selectedSheetId}, trying to load all leads...`,
