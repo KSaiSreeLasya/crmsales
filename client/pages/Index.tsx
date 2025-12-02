@@ -121,6 +121,10 @@ export default function Index() {
         })
         .slice(0, 5);
 
+      // Analyze leads by month
+      const analysis = analyzeLeadsByMonth(leadsList);
+      setMonthlyAnalysis(analysis);
+
       setStats({
         totalLeads,
         activeLeads,
@@ -220,6 +224,9 @@ export default function Index() {
             color="bg-gradient-to-br from-orange-500 to-red-600"
           />
         </div>
+
+        {/* Monthly Breakdown */}
+        <MonthlyBreakdown analysis={monthlyAnalysis} isLoading={isLoading} />
 
         {/* Metrics by Salesperson and Status */}
         <div className="grid gap-6 md:grid-cols-2">
