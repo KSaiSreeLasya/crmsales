@@ -10,15 +10,46 @@ import { createClient } from "@supabase/supabase-js";
 const supabaseUrl = process.env.VITE_SUPABASE_URL || "";
 const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || "";
 
+interface DateRowMarker {
+  _isDateRow: string | boolean;
+  _dateValue: string;
+}
+
 interface DynamicLeadRequest {
   leads: Array<{ [key: string]: string | number | undefined }>;
+  dateRows?: DateRowMarker[];
   source: string;
   sheetId?: string;
 }
 
+/**
+ * Parse date string and return ISO format or null if invalid
+ */
+function parseDate(dateStr: string): string | null {
+  if (!dateStr) return null;
+
+  // Handle ISO format (YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss)
+  const isoMatch = dateStr.match(/^\d{4}-\d{2}-\d{2}/);
+  if (isoMatch) {
+    // If only date part provided, add midnight time
+    if (dateStr.length === 10) {
+      return `${dateStr}T00:00:00.000Z`;
+    }
+    // If full ISO string, use as-is
+    if (dateStr.includes('T')) {
+      const date = new Date(dateStr);
+      if (!isNaN(date.getTime())) {
+        return date.toISOString();
+      }
+    }
+  }
+
+  return null;
+}
+
 export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
   try {
-    const { leads, source, sheetId } = req.body as DynamicLeadRequest;
+    const { leads, dateRows, source, sheetId } = req.body as DynamicLeadRequest;
 
     console.log(
       "Dynamic sync request received with leads:",
