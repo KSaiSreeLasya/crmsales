@@ -34,8 +34,9 @@ export const handleFetchGoogleSheetsMetadata: RequestHandler = async (
       res.json({
         success: true,
         sheets: [
-          { id: "0", name: "Hyderabad Leads" },
+          { id: "0", name: "October" },
           { id: "1892152973", name: "November" },
+          { id: "1355430272", name: "December" },
         ],
         warning:
           "Using fallback sheets - set GOOGLE_SHEETS_API_KEY for auto-detection",
