@@ -122,5 +122,5 @@ export function getMonthLabel(monthKey: string): string {
     "Nov",
     "Dec",
   ];
-  return `${monthNames[month]} ${year}`;
+  return `${monthNames[month - 1]} ${year}`;
 }
