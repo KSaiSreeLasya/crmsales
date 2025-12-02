@@ -430,10 +430,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           insertCount = data?.length || newLeads.length;
           console.log(`✓ Inserted ${insertCount} new leads`);
         } else {
-          console.warn(
-            `Failed to insert ${newLeads.length} new leads:`,
-            error,
-          );
+          console.warn(`Failed to insert ${newLeads.length} new leads:`, error);
           failureCount += newLeads.length;
         }
       }

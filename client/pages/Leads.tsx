@@ -1757,7 +1757,8 @@ export default function Leads() {
                                 <select
                                   value={lead.status}
                                   onChange={async (e) => {
-                                    const newStatus = e.target.value as LeadStatus;
+                                    const newStatus = e.target
+                                      .value as LeadStatus;
                                     try {
                                       const { error } = await supabase
                                         .from("leads")
@@ -1769,18 +1770,25 @@ export default function Leads() {
 
                                       if (error) {
                                         console.error("Supabase error:", error);
-                                        toast.error(`Failed to update status: ${error.message}`);
+                                        toast.error(
+                                          `Failed to update status: ${error.message}`,
+                                        );
                                         return;
                                       }
 
                                       await loadLeads();
-                                      toast.success(`Status changed to ${newStatus}`);
+                                      toast.success(
+                                        `Status changed to ${newStatus}`,
+                                      );
                                     } catch (error) {
-                                      console.error("Error updating status:", error);
+                                      console.error(
+                                        "Error updating status:",
+                                        error,
+                                      );
                                       toast.error(
                                         error instanceof Error
                                           ? error.message
-                                          : "Failed to update status"
+                                          : "Failed to update status",
                                       );
                                     }
                                   }}
@@ -1809,19 +1817,26 @@ export default function Leads() {
 
                                       if (error) {
                                         console.error("Supabase error:", error);
-                                        toast.error(`Failed to update assignment: ${error.message}`);
+                                        toast.error(
+                                          `Failed to update assignment: ${error.message}`,
+                                        );
                                         return;
                                       }
 
                                       await loadLeads();
                                       await loadAssignedLeads();
-                                      toast.success(`Lead assigned to ${newAssignment}`);
+                                      toast.success(
+                                        `Lead assigned to ${newAssignment}`,
+                                      );
                                     } catch (error) {
-                                      console.error("Error updating owner:", error);
+                                      console.error(
+                                        "Error updating owner:",
+                                        error,
+                                      );
                                       toast.error(
                                         error instanceof Error
                                           ? error.message
-                                          : "Failed to update owner"
+                                          : "Failed to update owner",
                                       );
                                     }
                                   }}
@@ -2078,7 +2093,8 @@ export default function Leads() {
                               <select
                                 value={lead.status}
                                 onChange={async (e) => {
-                                  const newStatus = e.target.value as LeadStatus;
+                                  const newStatus = e.target
+                                    .value as LeadStatus;
                                   try {
                                     const { error } = await supabase
                                       .from("leads")
@@ -2090,19 +2106,26 @@ export default function Leads() {
 
                                     if (error) {
                                       console.error("Supabase error:", error);
-                                      toast.error(`Failed to update status: ${error.message}`);
+                                      toast.error(
+                                        `Failed to update status: ${error.message}`,
+                                      );
                                       return;
                                     }
 
                                     await loadAssignedLeads();
                                     await loadLeads();
-                                    toast.success(`Status changed to ${newStatus}`);
+                                    toast.success(
+                                      `Status changed to ${newStatus}`,
+                                    );
                                   } catch (error) {
-                                    console.error("Error updating status:", error);
+                                    console.error(
+                                      "Error updating status:",
+                                      error,
+                                    );
                                     toast.error(
                                       error instanceof Error
                                         ? error.message
-                                        : "Failed to update status"
+                                        : "Failed to update status",
                                     );
                                   }
                                 }}
