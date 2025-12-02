@@ -364,7 +364,11 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       syncData.updated_at = syncData.updated_at || now;
 
       // Set sheet_id so leads are associated with correct sheet
-      syncData.sheet_id = sheetId || "0";
+      // Ensure we use the actual sheetId, not default to "0"
+      if (!sheetId || sheetId === "undefined") {
+        console.warn("[SYNC DEBUG] WARNING: sheetId is missing or undefined!");
+      }
+      syncData.sheet_id = String(sheetId || "0");
 
       return syncData;
     });
