@@ -731,6 +731,7 @@ export default function Leads() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             leads: dataRows,
+            dateRows: extractedDateRows,
             source: "api",
             sheetId: sheetId,
           }),
