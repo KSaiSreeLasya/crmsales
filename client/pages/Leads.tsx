@@ -523,17 +523,34 @@ export default function Leads() {
         return;
       }
 
-      // Extract date rows and regular rows
+      // Extract date rows and apply them to following leads
       const extractedDateRows: DateRowMarker[] = [];
-      const dataRows = rows.filter((row: any) => {
-        if (row._isDateRow === "true" || row._isDateRow === true) {
-          extractedDateRows.push(row as DateRowMarker);
-          return false;
-        }
-        return true;
-      });
+      let currentDate: string | null = null;
+      const dataRows = rows
+        .map((row: any, index: number) => {
+          if (row._isDateRow === "true" || row._isDateRow === true) {
+            extractedDateRows.push(row as DateRowMarker);
+            // Parse date from the marker - it's in YYYY-MM-DD format
+            const dateStr = row._dateValue;
+            if (dateStr && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+              currentDate = `${dateStr}T00:00:00.000Z`;
+              console.log(`✓ Date marker found: ${dateStr}`);
+            }
+            return null;
+          }
 
-      console.log(`Extracted ${extractedDateRows.length} date rows`);
+          // Apply current date to this lead if it doesn't have created_at
+          if (currentDate && !row.created_at) {
+            row.created_at = currentDate;
+          }
+
+          return row;
+        })
+        .filter((row): row is any => row !== null);
+
+      console.log(
+        `Extracted ${extractedDateRows.length} date rows, applied to ${dataRows.length} leads`,
+      );
 
       // 5 minute timeout for processing and uploading to Supabase
       const syncController = new AbortController();
@@ -708,17 +725,34 @@ export default function Leads() {
         return;
       }
 
-      // Extract date rows and regular rows
+      // Extract date rows and apply them to following leads
       const extractedDateRows: DateRowMarker[] = [];
-      const dataRows = rows.filter((row: any) => {
-        if (row._isDateRow === "true" || row._isDateRow === true) {
-          extractedDateRows.push(row as DateRowMarker);
-          return false;
-        }
-        return true;
-      });
+      let currentDate: string | null = null;
+      const dataRows = rows
+        .map((row: any, index: number) => {
+          if (row._isDateRow === "true" || row._isDateRow === true) {
+            extractedDateRows.push(row as DateRowMarker);
+            // Parse date from the marker - it's in YYYY-MM-DD format
+            const dateStr = row._dateValue;
+            if (dateStr && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+              currentDate = `${dateStr}T00:00:00.000Z`;
+              console.log(`✓ Date marker found: ${dateStr}`);
+            }
+            return null;
+          }
 
-      console.log(`Extracted ${extractedDateRows.length} date rows`);
+          // Apply current date to this lead if it doesn't have created_at
+          if (currentDate && !row.created_at) {
+            row.created_at = currentDate;
+          }
+
+          return row;
+        })
+        .filter((row): row is any => row !== null);
+
+      console.log(
+        `Extracted ${extractedDateRows.length} date rows, applied to ${dataRows.length} leads`,
+      );
 
       // 5 minute timeout for processing and uploading to Supabase
       const syncController = new AbortController();

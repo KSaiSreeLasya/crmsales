@@ -10,15 +10,46 @@ import { createClient } from "@supabase/supabase-js";
 const supabaseUrl = process.env.VITE_SUPABASE_URL || "";
 const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || "";
 
+interface DateRowMarker {
+  _isDateRow: string | boolean;
+  _dateValue: string;
+}
+
 interface DynamicLeadRequest {
   leads: Array<{ [key: string]: string | number | undefined }>;
+  dateRows?: DateRowMarker[];
   source: string;
   sheetId?: string;
 }
 
+/**
+ * Parse date string and return ISO format or null if invalid
+ */
+function parseDate(dateStr: string): string | null {
+  if (!dateStr) return null;
+
+  // Handle ISO format (YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss)
+  const isoMatch = dateStr.match(/^\d{4}-\d{2}-\d{2}/);
+  if (isoMatch) {
+    // If only date part provided, add midnight time
+    if (dateStr.length === 10) {
+      return `${dateStr}T00:00:00.000Z`;
+    }
+    // If full ISO string, use as-is
+    if (dateStr.includes("T")) {
+      const date = new Date(dateStr);
+      if (!isNaN(date.getTime())) {
+        return date.toISOString();
+      }
+    }
+  }
+
+  return null;
+}
+
 export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
   try {
-    const { leads, source, sheetId } = req.body as DynamicLeadRequest;
+    const { leads, dateRows, source, sheetId } = req.body as DynamicLeadRequest;
 
     console.log(
       "Dynamic sync request received with leads:",
@@ -29,9 +60,19 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     console.log("Sheet ID received:", sheetId, "Type:", typeof sheetId);
     console.log("[SYNC DEBUG] Supabase URL configured:", !!supabaseUrl);
     console.log("[SYNC DEBUG] Supabase Key configured:", !!supabaseKey);
+    if (dateRows && dateRows.length > 0) {
+      console.log("[SYNC DEBUG] Date rows received:", dateRows.length);
+      console.log("[SYNC DEBUG] Sample date rows:", dateRows.slice(0, 3));
+    }
     if (leads.length > 0) {
       console.log("First lead sample:", leads[0]);
       console.log("Available columns:", Object.keys(leads[0]));
+      if (leads[0].created_at) {
+        console.log(
+          "[SYNC DEBUG] First lead has created_at:",
+          leads[0].created_at,
+        );
+      }
     }
 
     if (!Array.isArray(leads) || leads.length === 0) {
@@ -279,13 +320,21 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
       // Set timestamps to ensure they're properly recorded
       const now = new Date().toISOString();
-      syncData.created_at = syncData.created_at || now;
+
+      // If created_at was provided (e.g., from date row), preserve it
+      if (!syncData.created_at) {
+        syncData.created_at = now;
+      } else {
+        console.log(
+          "[SYNC DEBUG] Lead already has created_at:",
+          syncData.created_at,
+        );
+      }
+
       syncData.updated_at = syncData.updated_at || now;
 
       // Set sheet_id so leads are associated with correct sheet
       syncData.sheet_id = sheetId || "0";
-
-      console.log("[SYNC DEBUG] Normalized lead:", JSON.stringify(syncData));
 
       return syncData;
     });
