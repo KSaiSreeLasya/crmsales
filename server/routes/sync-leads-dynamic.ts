@@ -376,21 +376,55 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     console.log("Columns:", Object.keys(leadsToSync[0]));
 
     try {
+      // Pre-check: Fetch existing leads to preserve assignments
+      console.log("Checking for existing leads to preserve assignments...");
+      const { data: existingLeads, error: fetchError } = await supabase
+        .from("leads")
+        .select("email, assigned_to, id");
+
+      const existingEmails = new Set(
+        (existingLeads || []).map((lead: any) => lead.email),
+      );
+      const existingAssignments = new Map(
+        (existingLeads || []).map((lead: any) => [
+          lead.email,
+          lead.assigned_to,
+        ]),
+      );
+
+      console.log(`Found ${existingEmails.size} existing leads in database`);
+
+      // Separate leads into new and existing
+      const newLeads = leadsToSync.filter(
+        (lead) => !existingEmails.has(lead.email),
+      );
+      const existingLeadsToUpdate = leadsToSync.filter((lead) =>
+        existingEmails.has(lead.email),
+      );
+
+      console.log(`${newLeads.length} new leads, ${existingLeadsToUpdate.length} leads to update`);
+
+      // Preserve existing assignments for leads that are being updated
+      const leadsToUpdateWithPreservedAssignments = existingLeadsToUpdate.map((lead) => ({
+        ...lead,
+        assigned_to: existingAssignments.get(lead.email) || lead.assigned_to,
+      }));
+
+      let insertCount = 0;
+      let updateCount = 0;
+      let failureCount = 0;
+
       // First, try to insert new records
       console.log("Inserting leads into Supabase...");
       console.log(
         "[SYNC DEBUG] Attempting to insert",
-        leadsToSync.length,
-        "leads",
-      );
-      console.log(
-        "[SYNC DEBUG] Sample lead:",
-        JSON.stringify(leadsToSync[0], null, 2),
+        newLeads.length,
+        "new leads",
       );
 
       const { data, error } = await supabase
         .from("leads")
-        .insert(leadsToSync)
+        .insert(newLeads)
         .select();
 
       if (error) {
