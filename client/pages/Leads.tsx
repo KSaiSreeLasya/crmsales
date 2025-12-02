@@ -606,6 +606,9 @@ export default function Leads() {
             `Synced ${syncData.synced} leads${emptyRowsMsg}${dateRowsMsg} with all columns`,
           );
         }
+
+        // Reload leads to display synced data
+        await loadLeads();
       } catch (fetchError) {
         clearTimeout(syncTimeoutId);
         throw fetchError;
