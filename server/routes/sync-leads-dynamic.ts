@@ -462,14 +462,15 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           const { error: updateError } = await supabase
             .from("leads")
             .update(updateData)
-            .eq("email", email);
+            .eq("email", email)
+            .eq("sheet_id", sheetId);
 
           if (!updateError) {
             updateCount++;
           } else {
             failureCount++;
             console.warn(
-              `Failed to update lead with email ${email}:`,
+              `Failed to update lead with email ${email} in sheet ${sheetId}:`,
               updateError,
             );
           }
