@@ -223,7 +223,12 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         sheet_id: sheetId || "0",
       };
 
-      // Normalize column names and map to Supabase schema
+      // First pass: find critical fields (name, email, phone)
+      let foundName = false;
+      let foundEmail = false;
+      let foundPhone = false;
+
+      // Second pass: assign column values
       for (const [key, value] of Object.entries(lead)) {
         const normalizedKey = key
           .toLowerCase()
@@ -231,14 +236,26 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           .replace(/\s+/g, "_")
           .replace(/[?]/g, "");
 
+        // Ensure all values are properly formatted
+        let formattedValue = "";
+        if (value !== undefined && value !== null) {
+          formattedValue = String(value).trim();
+        }
+
+        if (!formattedValue) continue;
+
         // Map common column name variations
-        let dbColumn = normalizedKey;
-        if (normalizedKey.includes("full") && normalizedKey.includes("name")) {
+        let dbColumn = "";
+
+        if (!foundName && (normalizedKey.includes("full_name") || normalizedKey.includes("fullname") || (normalizedKey.includes("name") && !normalizedKey.includes("email")))) {
           dbColumn = "name";
-        } else if (normalizedKey.includes("email")) {
+          foundName = true;
+        } else if (!foundEmail && normalizedKey.includes("email")) {
           dbColumn = "email";
-        } else if (normalizedKey.includes("phone")) {
+          foundEmail = true;
+        } else if (!foundPhone && (normalizedKey.includes("phone") || normalizedKey.includes("contact") || normalizedKey.includes("mobile"))) {
           dbColumn = "phone";
+          foundPhone = true;
         } else if (normalizedKey.includes("company")) {
           dbColumn = "company";
         } else if (
@@ -249,7 +266,8 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         } else if (
           normalizedKey.includes("post") ||
           normalizedKey.includes("postal") ||
-          normalizedKey.includes("zip")
+          normalizedKey.includes("zip") ||
+          normalizedKey.includes("code")
         ) {
           dbColumn = "post_code";
         } else if (
@@ -263,40 +281,30 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         ) {
           dbColumn = "type_of_property";
         } else if (
-          normalizedKey.includes("avg") &&
-          normalizedKey.includes("monthly")
+          normalizedKey.includes("avg") ||
+          (normalizedKey.includes("current") && normalizedKey.includes("electricity")) ||
+          (normalizedKey.includes("monthly") && normalizedKey.includes("bill"))
         ) {
           dbColumn = "avg_monthly_bill";
         } else if (
           normalizedKey.includes("electricity") ||
-          (normalizedKey.includes("bill") && !normalizedKey.includes("monthly"))
+          (normalizedKey.includes("bill") && !normalizedKey.includes("monthly") && !normalizedKey.includes("avg"))
         ) {
           dbColumn = "electricity_bill";
         } else if (
           normalizedKey.includes("note") &&
-          normalizedKey.includes("1")
+          (normalizedKey.includes("1") || normalizedKey.endsWith("_1"))
         ) {
           dbColumn = "note1";
         } else if (
           normalizedKey.includes("note") &&
-          normalizedKey.includes("2")
+          (normalizedKey.includes("2") || normalizedKey.endsWith("_2"))
         ) {
           dbColumn = "note2";
         }
 
-        // Only add column if it exists in Supabase schema
-        if (!allowedColumns.has(dbColumn)) {
-          console.log(`Skipping unknown column: ${key} -> ${dbColumn}`);
-          continue;
-        }
-
-        // Ensure all values are properly formatted
-        let formattedValue = "";
-        if (value !== undefined && value !== null) {
-          formattedValue = String(value).trim();
-        }
-
-        if (formattedValue) {
+        // Only add column if it exists in Supabase schema and has a mapped name
+        if (dbColumn && allowedColumns.has(dbColumn)) {
           syncData[dbColumn] = formattedValue;
         }
       }
