@@ -473,9 +473,9 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
             });
             return;
           } catch (updateErr) {
-            console.error("Error during update operation:", updateErr);
+            console.error("Error during sync operation:", updateErr);
             res.status(500).json({
-              error: "Failed to update leads",
+              error: "Failed to sync leads",
               message:
                 updateErr instanceof Error
                   ? updateErr.message
