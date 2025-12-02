@@ -68,7 +68,7 @@ export function analyzeLeadsByMonth(
 
     const year = date.getFullYear();
     const month = date.getMonth();
-    const monthKey = `${year}-${String(month).padStart(2, "0")}`;
+    const monthKey = `${year}-${String(month + 1).padStart(2, "0")}`;
     const monthName = monthNames[month];
 
     monthMap.set(monthKey, (monthMap.get(monthKey) || 0) + 1);
@@ -80,7 +80,7 @@ export function analyzeLeadsByMonth(
   const monthlyData: MonthlyLeadStats[] = Array.from(monthMap.entries())
     .map(([monthKey, count]) => {
       const [year, month] = monthKey.split("-").map(Number);
-      const monthName = monthNames[month];
+      const monthName = monthNames[month - 1];
 
       return {
         month: `${monthName.substring(0, 3)} ${year}`,
@@ -91,9 +91,9 @@ export function analyzeLeadsByMonth(
       };
     })
     .sort((a, b) => {
-      const dateA = new Date(a.monthKey);
-      const dateB = new Date(b.monthKey);
-      return dateA.getTime() - dateB.getTime();
+      const [yearA, monthA] = a.monthKey.split("-").map(Number);
+      const [yearB, monthB] = b.monthKey.split("-").map(Number);
+      return yearA !== yearB ? yearA - yearB : monthA - monthB;
     });
 
   return {
@@ -122,5 +122,5 @@ export function getMonthLabel(monthKey: string): string {
     "Nov",
     "Dec",
   ];
-  return `${monthNames[month]} ${year}`;
+  return `${monthNames[month - 1]} ${year}`;
 }
