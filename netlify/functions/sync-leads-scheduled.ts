@@ -225,16 +225,31 @@ export const handler: Handler = async (event) => {
             );
 
             try {
+              // Fetch existing assignments to preserve them during update
+              const { data: existingLeads } = await supabase
+                .from("leads")
+                .select("email, assigned_to");
+
+              const existingAssignments = new Map(
+                (existingLeads || []).map((lead: any) => [
+                  lead.email,
+                  lead.assigned_to,
+                ]),
+              );
+
               let updateCount = 0;
               let failureCount = 0;
 
-              // Update each lead by email
+              // Update each lead by email while preserving assignments
               for (const lead of leadsToSync) {
                 const email = lead.email;
 
                 if (email && String(email).trim()) {
                   const updateData = {
                     ...lead,
+                    // Preserve existing assignment if it exists
+                    assigned_to:
+                      existingAssignments.get(email) || lead.assigned_to,
                     updated_at: new Date().toISOString(),
                   };
 
