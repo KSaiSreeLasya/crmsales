@@ -26,8 +26,8 @@ import { fetchGoogleSheet, parseRowDynamic } from "../../shared/googleSheets";
 const SPREADSHEET_ID = "1QY8_Q8-ybLKNVs4hynPZslZDwUfC-PIJrViJfL0-tpM";
 const SHEETS_TO_SYNC = [
   { id: "0", name: "October" },
-  { id: "1355430272", name: "November" },
-  { id: "1892152973", name: "December" },
+  { id: "1892152973", name: "November" },
+  { id: "1355430272", name: "December" },
 ];
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || "";
