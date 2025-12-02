@@ -36,7 +36,7 @@ function parseDate(dateStr: string): string | null {
       return `${dateStr}T00:00:00.000Z`;
     }
     // If full ISO string, use as-is
-    if (dateStr.includes('T')) {
+    if (dateStr.includes("T")) {
       const date = new Date(dateStr);
       if (!isNaN(date.getTime())) {
         return date.toISOString();
@@ -68,7 +68,10 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       console.log("First lead sample:", leads[0]);
       console.log("Available columns:", Object.keys(leads[0]));
       if (leads[0].created_at) {
-        console.log("[SYNC DEBUG] First lead has created_at:", leads[0].created_at);
+        console.log(
+          "[SYNC DEBUG] First lead has created_at:",
+          leads[0].created_at,
+        );
       }
     }
 
@@ -322,7 +325,10 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       if (!syncData.created_at) {
         syncData.created_at = now;
       } else {
-        console.log("[SYNC DEBUG] Lead already has created_at:", syncData.created_at);
+        console.log(
+          "[SYNC DEBUG] Lead already has created_at:",
+          syncData.created_at,
+        );
       }
 
       syncData.updated_at = syncData.updated_at || now;
