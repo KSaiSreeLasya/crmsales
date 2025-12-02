@@ -43,6 +43,11 @@ export default function Index() {
     leadsBySalesperson: [],
     upcomingReminders: [],
   });
+  const [monthlyAnalysis, setMonthlyAnalysis] = useState<LeadAnalysis>({
+    totalLeads: 0,
+    monthlyData: [],
+    dateRange: { earliest: null, latest: null },
+  });
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
