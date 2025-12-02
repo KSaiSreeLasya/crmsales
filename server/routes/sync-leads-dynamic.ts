@@ -376,11 +376,12 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     console.log("Columns:", Object.keys(leadsToSync[0]));
 
     try {
-      // Pre-check: Fetch existing leads to preserve assignments
+      // Pre-check: Fetch existing leads for this sheet to preserve assignments
       console.log("Checking for existing leads to preserve assignments...");
       const { data: existingLeads } = await supabase
         .from("leads")
-        .select("email, assigned_to, id");
+        .select("email, assigned_to, id, sheet_id")
+        .eq("sheet_id", sheetId);
 
       const existingEmails = new Set(
         (existingLeads || []).map((lead: any) => lead.email),
@@ -392,9 +393,11 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         ]),
       );
 
-      console.log(`Found ${existingEmails.size} existing leads in database`);
+      console.log(
+        `Found ${existingEmails.size} existing leads for sheet ${sheetId}`,
+      );
 
-      // Separate leads into new and existing
+      // Separate leads into new and existing (for this sheet only)
       const newLeads = leadsToSync.filter(
         (lead) => !existingEmails.has(lead.email),
       );
