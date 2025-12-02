@@ -2078,21 +2078,32 @@ export default function Leads() {
                               <select
                                 value={lead.status}
                                 onChange={async (e) => {
+                                  const newStatus = e.target.value as LeadStatus;
                                   try {
-                                    await supabase
+                                    const { error } = await supabase
                                       .from("leads")
                                       .update({
-                                        status: e.target.value as LeadStatus,
+                                        status: newStatus,
                                         updated_at: new Date().toISOString(),
                                       })
                                       .eq("id", lead.id);
+
+                                    if (error) {
+                                      console.error("Supabase error:", error);
+                                      toast.error(`Failed to update status: ${error.message}`);
+                                      return;
+                                    }
+
                                     await loadAssignedLeads();
+                                    await loadLeads();
+                                    toast.success(`Status changed to ${newStatus}`);
                                   } catch (error) {
-                                    console.error(
-                                      "Error updating status:",
-                                      error,
+                                    console.error("Error updating status:", error);
+                                    toast.error(
+                                      error instanceof Error
+                                        ? error.message
+                                        : "Failed to update status"
                                     );
-                                    toast.error("Failed to update status");
                                   }
                                 }}
                                 className="rounded border border-border bg-background px-1.5 py-0.5 text-xs"
