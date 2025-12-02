@@ -225,6 +225,9 @@ export default function Index() {
           />
         </div>
 
+        {/* Monthly Breakdown */}
+        <MonthlyBreakdown analysis={monthlyAnalysis} isLoading={isLoading} />
+
         {/* Metrics by Salesperson and Status */}
         <div className="grid gap-6 md:grid-cols-2">
           {/* Leads by Salesperson */}
