@@ -68,7 +68,7 @@ export function analyzeLeadsByMonth(
 
     const year = date.getFullYear();
     const month = date.getMonth();
-    const monthKey = `${year}-${String(month).padStart(2, "0")}`;
+    const monthKey = `${year}-${String(month + 1).padStart(2, "0")}`;
     const monthName = monthNames[month];
 
     monthMap.set(monthKey, (monthMap.get(monthKey) || 0) + 1);
