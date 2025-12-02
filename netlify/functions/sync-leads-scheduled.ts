@@ -320,10 +320,14 @@ export const handler: Handler = async (event) => {
     result.totalFetched = result.synced + result.updated;
     result.message =
       result.synced > 0 || result.updated > 0
-        ? `Synced ${result.synced} new, updated ${result.updated} existing leads from all sheets`
-        : "No new leads found in any sheets";
+        ? `✓ Synced ${result.synced} new, updated ${result.updated} existing leads (${result.failed} failed)`
+        : "ℹ No new leads found in any sheets";
 
-    console.log(`[SCHEDULED] ✓ Sync complete: ${result.message}`);
+    if (result.failed > 0) {
+      result.message += ` - Some errors occurred: ${result.errors?.join("; ") || "See logs"}`;
+    }
+
+    console.log(`[SCHEDULED] ${result.message}`);
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     result.message = `Scheduled sync failed: ${errorMsg}`;
