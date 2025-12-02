@@ -121,6 +121,10 @@ export default function Index() {
         })
         .slice(0, 5);
 
+      // Analyze leads by month
+      const analysis = analyzeLeadsByMonth(leadsList);
+      setMonthlyAnalysis(analysis);
+
       setStats({
         totalLeads,
         activeLeads,
