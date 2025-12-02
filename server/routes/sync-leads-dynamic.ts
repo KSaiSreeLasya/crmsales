@@ -457,7 +457,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
             }
 
             console.log(
-              `��� Updated ${updateCount} leads successfully, ${failureCount} failed`,
+              `Sync complete: ${insertCount} new, ${updateCount} updated, ${failureCount} failed��� Updated ${updateCount} leads successfully, ${failureCount} failed`,
             );
 
             res.json({
