@@ -157,10 +157,13 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
     if (validLeads.length === 0) {
       // Provide detailed debugging info
-      const sampleRows = leads.slice(0, 3).map((lead) => ({
-        keys: Object.keys(lead),
-        sampleValues: Object.fromEntries(Object.entries(lead).slice(0, 3)),
-      }));
+      const sampleRows = leads.slice(0, 3).map((lead) => {
+        const cleaned: any = {};
+        for (const [k, v] of Object.entries(lead)) {
+          if (v && String(v).trim()) cleaned[k] = String(v).substring(0, 50);
+        }
+        return cleaned;
+      });
 
       console.error("No valid leads after filtering:", {
         totalRows: leads.length,
