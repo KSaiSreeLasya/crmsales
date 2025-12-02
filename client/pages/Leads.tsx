@@ -1089,13 +1089,7 @@ export default function Leads() {
     return "hover:bg-gray-50";
   };
 
-  const filteredLeads = displayRows.filter((row) => {
-    // Always show date rows
-    if (isDateRow(row)) {
-      return true;
-    }
-
-    const lead = row as Lead;
+  const filteredLeads = displayRows.filter((lead) => {
     const matchesSearch =
       lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
