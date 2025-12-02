@@ -1757,21 +1757,39 @@ export default function Leads() {
                                 <select
                                   value={lead.status}
                                   onChange={async (e) => {
+                                    const newStatus = e.target
+                                      .value as LeadStatus;
                                     try {
-                                      await supabase
+                                      const { error } = await supabase
                                         .from("leads")
                                         .update({
-                                          status: e.target.value as LeadStatus,
+                                          status: newStatus,
                                           updated_at: new Date().toISOString(),
                                         })
                                         .eq("id", lead.id);
+
+                                      if (error) {
+                                        console.error("Supabase error:", error);
+                                        toast.error(
+                                          `Failed to update status: ${error.message}`,
+                                        );
+                                        return;
+                                      }
+
                                       await loadLeads();
+                                      toast.success(
+                                        `Status changed to ${newStatus}`,
+                                      );
                                     } catch (error) {
                                       console.error(
                                         "Error updating status:",
                                         error,
                                       );
-                                      toast.error("Failed to update status");
+                                      toast.error(
+                                        error instanceof Error
+                                          ? error.message
+                                          : "Failed to update status",
+                                      );
                                     }
                                   }}
                                   className="rounded border border-border bg-background px-1.5 py-0.5 text-xs"
@@ -1787,21 +1805,39 @@ export default function Leads() {
                                 <select
                                   value={lead.assigned_to || "Unassigned"}
                                   onChange={async (e) => {
+                                    const newAssignment = e.target.value;
                                     try {
-                                      await supabase
+                                      const { error } = await supabase
                                         .from("leads")
                                         .update({
-                                          assigned_to: e.target.value,
+                                          assigned_to: newAssignment,
                                           updated_at: new Date().toISOString(),
                                         })
                                         .eq("id", lead.id);
+
+                                      if (error) {
+                                        console.error("Supabase error:", error);
+                                        toast.error(
+                                          `Failed to update assignment: ${error.message}`,
+                                        );
+                                        return;
+                                      }
+
                                       await loadLeads();
+                                      await loadAssignedLeads();
+                                      toast.success(
+                                        `Lead assigned to ${newAssignment}`,
+                                      );
                                     } catch (error) {
                                       console.error(
                                         "Error updating owner:",
                                         error,
                                       );
-                                      toast.error("Failed to update owner");
+                                      toast.error(
+                                        error instanceof Error
+                                          ? error.message
+                                          : "Failed to update owner",
+                                      );
                                     }
                                   }}
                                   className="rounded border border-border bg-background px-1.5 py-0.5 text-xs"
@@ -2057,21 +2093,40 @@ export default function Leads() {
                               <select
                                 value={lead.status}
                                 onChange={async (e) => {
+                                  const newStatus = e.target
+                                    .value as LeadStatus;
                                   try {
-                                    await supabase
+                                    const { error } = await supabase
                                       .from("leads")
                                       .update({
-                                        status: e.target.value as LeadStatus,
+                                        status: newStatus,
                                         updated_at: new Date().toISOString(),
                                       })
                                       .eq("id", lead.id);
+
+                                    if (error) {
+                                      console.error("Supabase error:", error);
+                                      toast.error(
+                                        `Failed to update status: ${error.message}`,
+                                      );
+                                      return;
+                                    }
+
                                     await loadAssignedLeads();
+                                    await loadLeads();
+                                    toast.success(
+                                      `Status changed to ${newStatus}`,
+                                    );
                                   } catch (error) {
                                     console.error(
                                       "Error updating status:",
                                       error,
                                     );
-                                    toast.error("Failed to update status");
+                                    toast.error(
+                                      error instanceof Error
+                                        ? error.message
+                                        : "Failed to update status",
+                                    );
                                   }
                                 }}
                                 className="rounded border border-border bg-background px-1.5 py-0.5 text-xs"
