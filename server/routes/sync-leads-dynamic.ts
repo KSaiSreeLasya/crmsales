@@ -317,13 +317,18 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
       // Set timestamps to ensure they're properly recorded
       const now = new Date().toISOString();
-      syncData.created_at = syncData.created_at || now;
+
+      // If created_at was provided (e.g., from date row), preserve it
+      if (!syncData.created_at) {
+        syncData.created_at = now;
+      } else {
+        console.log("[SYNC DEBUG] Lead already has created_at:", syncData.created_at);
+      }
+
       syncData.updated_at = syncData.updated_at || now;
 
       // Set sheet_id so leads are associated with correct sheet
       syncData.sheet_id = sheetId || "0";
-
-      console.log("[SYNC DEBUG] Normalized lead:", JSON.stringify(syncData));
 
       return syncData;
     });
