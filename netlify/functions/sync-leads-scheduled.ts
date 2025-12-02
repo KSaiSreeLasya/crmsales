@@ -1,3 +1,24 @@
+/**
+ * Scheduled Lead Sync Function
+ *
+ * Runs daily at 2:00 AM UTC to sync leads from Google Sheets to Supabase
+ * Schedule: 0 2 * * * (cron format)
+ *
+ * To change the time, update netlify.toml:
+ * - Change "0 2 * * *" to your desired cron expression
+ * - Common examples:
+ *   - "0 6 * * *" = 6:00 AM UTC (India Standard Time: 11:30 AM IST)
+ *   - "30 5 * * *" = 5:30 AM UTC (India Standard Time: 11:00 AM IST)
+ *   - "0 23 * * *" = 11:00 PM UTC (India Standard Time: 4:30 AM IST next day)
+ *
+ * Features:
+ * - Syncs both October and November sheets from Google Sheets
+ * - Preserves existing lead assignments during sync
+ * - Handles duplicate leads by updating existing records
+ * - Logs all sync operations for debugging
+ * - Returns detailed sync report with success/failure counts
+ */
+
 import { Handler } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
 import { fetchGoogleSheet, parseRowDynamic } from "../../shared/googleSheets";
@@ -45,11 +66,11 @@ const validateLead = (lead: any): boolean => {
   );
 };
 
-const normalizeLeadData = (lead: any): any => {
+const normalizeLeadData = (lead: any, sheetId: string): any => {
   // Create normalized keys mapping
   const normalized: any = {
     source: "google_sheet",
-    sheet_id: SHEET_ID,
+    sheet_id: sheetId,
   };
 
   // Normalize column names to match Supabase schema
@@ -122,8 +143,10 @@ const normalizeLeadData = (lead: any): any => {
 };
 
 export const handler: Handler = async (event) => {
-  console.log("[SCHEDULED] Starting Google Sheets sync (every 2 minutes)...");
-  console.log(`[SCHEDULED] Timestamp: ${new Date().toISOString()}`);
+  console.log(
+    "[SCHEDULED] Starting Google Sheets sync (daily at 2:00 AM UTC)...",
+  );
+  console.log(`[SCHEDULED] Execution timestamp: ${new Date().toISOString()}`);
 
   const result: SyncResult = {
     success: false,
@@ -184,10 +207,7 @@ export const handler: Handler = async (event) => {
         // Validate and normalize leads
         const leadsToSync = dataRows
           .filter((row) => validateLead(row))
-          .map((row) => ({
-            ...normalizeLeadData(row),
-            sheet_id: sheetId, // Ensure sheet_id is set correctly
-          }));
+          .map((row) => normalizeLeadData(row, sheetId));
 
         console.log(
           `[SCHEDULED] Valid leads from ${sheetName}: ${leadsToSync.length}`,
@@ -228,16 +248,31 @@ export const handler: Handler = async (event) => {
             );
 
             try {
+              // Fetch existing assignments to preserve them during update
+              const { data: existingLeads } = await supabase
+                .from("leads")
+                .select("email, assigned_to");
+
+              const existingAssignments = new Map(
+                (existingLeads || []).map((lead: any) => [
+                  lead.email,
+                  lead.assigned_to,
+                ]),
+              );
+
               let updateCount = 0;
               let failureCount = 0;
 
-              // Update each lead by email
+              // Update each lead by email while preserving assignments
               for (const lead of leadsToSync) {
                 const email = lead.email;
 
                 if (email && String(email).trim()) {
                   const updateData = {
                     ...lead,
+                    // Preserve existing assignment if it exists
+                    assigned_to:
+                      existingAssignments.get(email) || lead.assigned_to,
                     updated_at: new Date().toISOString(),
                   };
 
@@ -308,10 +343,14 @@ export const handler: Handler = async (event) => {
     result.totalFetched = result.synced + result.updated;
     result.message =
       result.synced > 0 || result.updated > 0
-        ? `Synced ${result.synced} new, updated ${result.updated} existing leads from all sheets`
-        : "No new leads found in any sheets";
+        ? `✓ Synced ${result.synced} new, updated ${result.updated} existing leads (${result.failed} failed)`
+        : "ℹ No new leads found in any sheets";
 
-    console.log(`[SCHEDULED] ✓ Sync complete: ${result.message}`);
+    if (result.failed > 0) {
+      result.message += ` - Some errors occurred: ${result.errors?.join("; ") || "See logs"}`;
+    }
+
+    console.log(`[SCHEDULED] ${result.message}`);
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     result.message = `Scheduled sync failed: ${errorMsg}`;

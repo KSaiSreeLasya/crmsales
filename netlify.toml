@@ -21,4 +21,4 @@
 
 [[scheduled]]
   function = "sync-leads-scheduled"
-  cron = "*/2 * * * *"  # Every 2 minutes
+  cron = "0 2 * * *"  # Daily at 2:00 AM UTC (adjust to your timezone)

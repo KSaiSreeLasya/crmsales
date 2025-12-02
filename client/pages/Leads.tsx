@@ -237,6 +237,28 @@ export default function Leads() {
             typeof data[0].sheet_id,
           );
         }
+
+        // If no leads found for selected sheet but leads exist in database,
+        // load all leads as fallback (sheet_id might not be set correctly)
+        if ((!data || data.length === 0) && selectedSheetId !== "all") {
+          console.log(
+            `No leads found for sheet ${selectedSheetId}, trying to load all leads...`,
+          );
+          const { data: allLeads, error: allError } = await supabase
+            .from("leads")
+            .select("*")
+            .order("created_at", { ascending: false })
+            .order("id", { ascending: false });
+
+          if (!allError && allLeads && allLeads.length > 0) {
+            console.log(
+              `Fallback: Loaded ${allLeads.length} total leads from database`,
+            );
+            setLeads(allLeads);
+            return;
+          }
+        }
+
         setLeads(data || []);
       }
     } catch (error) {
@@ -606,6 +628,9 @@ export default function Leads() {
             `Synced ${syncData.synced} leads${emptyRowsMsg}${dateRowsMsg} with all columns`,
           );
         }
+
+        // Reload leads to display synced data
+        await loadLeads();
       } catch (fetchError) {
         clearTimeout(syncTimeoutId);
         throw fetchError;
