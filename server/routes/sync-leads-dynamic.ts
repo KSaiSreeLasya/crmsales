@@ -420,11 +420,15 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       );
 
       // Preserve existing assignments for leads that are being updated
+      // Remove sheet_id from update data since it's immutable
       const leadsToUpdateWithPreservedAssignments = existingLeadsToUpdate.map(
-        (lead) => ({
-          ...lead,
-          assigned_to: existingAssignments.get(lead.email) || "Unassigned",
-        }),
+        (lead) => {
+          const { sheet_id, ...leadWithoutSheetId } = lead;
+          return {
+            ...leadWithoutSheetId,
+            assigned_to: existingAssignments.get(lead.email) || "Unassigned",
+          };
+        },
       );
 
       let insertCount = 0;
@@ -462,14 +466,15 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           const { error: updateError } = await supabase
             .from("leads")
             .update(updateData)
-            .eq("email", email);
+            .eq("email", email)
+            .eq("sheet_id", sheetId);
 
           if (!updateError) {
             updateCount++;
           } else {
             failureCount++;
             console.warn(
-              `Failed to update lead with email ${email}:`,
+              `Failed to update lead with email ${email} in sheet ${sheetId}:`,
               updateError,
             );
           }
