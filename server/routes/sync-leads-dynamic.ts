@@ -58,6 +58,10 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       sheetId,
     );
     console.log("Sheet ID received:", sheetId, "Type:", typeof sheetId);
+    console.log("[SYNC DEBUG] Full request body keys:", Object.keys(req.body));
+    if (req.body.sheetId === undefined) {
+      console.warn("[SYNC DEBUG] WARNING: sheetId is undefined in request body!");
+    }
     console.log("[SYNC DEBUG] Supabase URL configured:", !!supabaseUrl);
     console.log("[SYNC DEBUG] Supabase Key configured:", !!supabaseKey);
     if (dateRows && dateRows.length > 0) {
