@@ -420,11 +420,15 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       );
 
       // Preserve existing assignments for leads that are being updated
+      // Remove sheet_id from update data since it's immutable
       const leadsToUpdateWithPreservedAssignments = existingLeadsToUpdate.map(
-        (lead) => ({
-          ...lead,
-          assigned_to: existingAssignments.get(lead.email) || "Unassigned",
-        }),
+        (lead) => {
+          const { sheet_id, ...leadWithoutSheetId } = lead;
+          return {
+            ...leadWithoutSheetId,
+            assigned_to: existingAssignments.get(lead.email) || "Unassigned",
+          };
+        },
       );
 
       let insertCount = 0;
