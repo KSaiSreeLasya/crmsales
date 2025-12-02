@@ -241,27 +241,6 @@ export default function Leads() {
         console.log(
           `✓ Successfully loaded ${data?.length || 0} leads for sheet ${selectedSheetId}`,
         );
-
-        // If no leads found for selected sheet, try loading all leads
-        if ((!data || data.length === 0) && selectedSheetId !== "all") {
-          console.log(
-            `No leads found for sheet ${selectedSheetId}, trying to load all leads...`,
-          );
-          const { data: allLeads, error: allError } = await supabase
-            .from("leads")
-            .select("*")
-            .order("created_at", { ascending: false })
-            .order("id", { ascending: false });
-
-          if (!allError && allLeads && allLeads.length > 0) {
-            console.log(
-              `Fallback: Loaded ${allLeads.length} total leads from database`,
-            );
-            setLeads(allLeads);
-            return;
-          }
-        }
-
         setLeads(data || []);
       }
     } catch (error) {

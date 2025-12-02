@@ -58,6 +58,12 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       sheetId,
     );
     console.log("Sheet ID received:", sheetId, "Type:", typeof sheetId);
+    console.log("[SYNC DEBUG] Full request body keys:", Object.keys(req.body));
+    if (req.body.sheetId === undefined) {
+      console.warn(
+        "[SYNC DEBUG] WARNING: sheetId is undefined in request body!",
+      );
+    }
     console.log("[SYNC DEBUG] Supabase URL configured:", !!supabaseUrl);
     console.log("[SYNC DEBUG] Supabase Key configured:", !!supabaseKey);
     if (dateRows && dateRows.length > 0) {
@@ -364,7 +370,11 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       syncData.updated_at = syncData.updated_at || now;
 
       // Set sheet_id so leads are associated with correct sheet
-      syncData.sheet_id = sheetId || "0";
+      // Ensure we use the actual sheetId, not default to "0"
+      if (!sheetId || sheetId === "undefined") {
+        console.warn("[SYNC DEBUG] WARNING: sheetId is missing or undefined!");
+      }
+      syncData.sheet_id = String(sheetId || "0");
 
       return syncData;
     });
@@ -376,11 +386,12 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     console.log("Columns:", Object.keys(leadsToSync[0]));
 
     try {
-      // Pre-check: Fetch existing leads to preserve assignments
+      // Pre-check: Fetch existing leads for this sheet to preserve assignments
       console.log("Checking for existing leads to preserve assignments...");
       const { data: existingLeads } = await supabase
         .from("leads")
-        .select("email, assigned_to, id");
+        .select("email, assigned_to, id, sheet_id")
+        .eq("sheet_id", sheetId);
 
       const existingEmails = new Set(
         (existingLeads || []).map((lead: any) => lead.email),
@@ -392,9 +403,11 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         ]),
       );
 
-      console.log(`Found ${existingEmails.size} existing leads in database`);
+      console.log(
+        `Found ${existingEmails.size} existing leads for sheet ${sheetId}`,
+      );
 
-      // Separate leads into new and existing
+      // Separate leads into new and existing (for this sheet only)
       const newLeads = leadsToSync.filter(
         (lead) => !existingEmails.has(lead.email),
       );
