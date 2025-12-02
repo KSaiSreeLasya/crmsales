@@ -513,8 +513,10 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       console.log("Successfully inserted", data?.length, "leads");
       res.json({
         success: true,
-        message: `${leadsToSync.length} leads synced successfully (${leads.length - leadsToSync.length} empty rows removed)`,
+        message: `${leadsToSync.length} new leads synced successfully (${leads.length - leadsToSync.length} empty rows removed)`,
         synced: leadsToSync.length,
+        newLeads: leadsToSync.length,
+        updatedLeads: 0,
         totalFetched: leads.length,
         emptyRowsRemoved: leads.length - leadsToSync.length,
         source: source,
