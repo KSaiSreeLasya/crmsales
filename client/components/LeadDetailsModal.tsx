@@ -32,7 +32,9 @@ type LeadStatus =
   | "Site visit"
   | "Advance payment"
   | "Lead finished"
-  | "Contacted";
+  | "Contacted"
+  | "Busy"
+  | "Call Back";
 
 interface Lead {
   id: string;
@@ -85,6 +87,8 @@ const STATUS_OPTIONS: LeadStatus[] = [
   "Advance payment",
   "Lead finished",
   "Contacted",
+  "Busy",
+  "Call Back",
 ];
 
 function formatDateIST(dateString?: string): string {
@@ -756,6 +760,69 @@ export function LeadDetailsModal({
                 ))}
               </div>
             </Card>
+
+            {(formData.status === "Call Back" || formData.status === "Busy") && (
+              <Card className="p-4 border bg-blue-50 dark:bg-blue-950">
+                <Label className="text-xs font-semibold mb-3 block">
+                  📞 Callback Options
+                </Label>
+                <div className="space-y-3">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-xs h-8"
+                    onClick={() => {
+                      const callTime = new Date(Date.now() + 24 * 60 * 60 * 1000)
+                        .toLocaleString("en-IN");
+                      handleSaveField(
+                        "note1",
+                        (formData.note1 || "") +
+                          (formData.note1 ? "\n" : "") +
+                          `[Call back scheduled for: ${callTime}]`,
+                      );
+                      toast.success("Callback scheduled for 24 hours");
+                    }}
+                  >
+                    ⏰ Schedule for 24 hours
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-xs h-8"
+                    onClick={() => {
+                      const callTime = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                        .toLocaleString("en-IN");
+                      handleSaveField(
+                        "note1",
+                        (formData.note1 || "") +
+                          (formData.note1 ? "\n" : "") +
+                          `[Call back scheduled for: ${callTime}]`,
+                      );
+                      toast.success("Callback scheduled for 7 days");
+                    }}
+                  >
+                    📅 Schedule for 7 days
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-xs h-8"
+                    onClick={() => {
+                      const callTime = prompt(
+                        "Enter callback date and time (e.g., 2024-01-15 10:00 AM)",
+                      );
+                      if (callTime) {
+                        handleSaveField(
+                          "note1",
+                          (formData.note1 || "") +
+                            (formData.note1 ? "\n" : "") +
+                            `[Call back scheduled for: ${callTime}]`,
+                        );
+                      }
+                    }}
+                  >
+                    📝 Schedule custom time
+                  </Button>
+                </div>
+              </Card>
+            )}
           </TabsContent>
         </Tabs>
       </DialogContent>

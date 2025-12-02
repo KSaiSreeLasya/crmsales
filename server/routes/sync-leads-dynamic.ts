@@ -335,6 +335,18 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
             let updateCount = 0;
             let failureCount = 0;
 
+            // First, fetch existing leads to preserve assigned_to
+            const { data: existingLeads, error: fetchError } = await supabase
+              .from("leads")
+              .select("email, assigned_to");
+
+            const existingAssignments = new Map(
+              (existingLeads || []).map((lead: any) => [
+                lead.email,
+                lead.assigned_to,
+              ]),
+            );
+
             // Update each lead by email
             for (const lead of leadsToSync) {
               const email = lead.email;
@@ -342,6 +354,9 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
               if (email && String(email).trim()) {
                 const updateData = {
                   ...lead,
+                  // Preserve existing assigned_to if the lead already has one
+                  assigned_to:
+                    existingAssignments.get(email) || lead.assigned_to,
                   updated_at: new Date().toISOString(),
                 };
 

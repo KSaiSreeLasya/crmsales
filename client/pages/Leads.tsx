@@ -56,7 +56,9 @@ type LeadStatus =
   | "Site visit"
   | "Advance payment"
   | "Lead finished"
-  | "Contacted";
+  | "Contacted"
+  | "Busy"
+  | "Call Back";
 
 interface Lead {
   id: string;
@@ -100,6 +102,8 @@ const STATUS_OPTIONS: LeadStatus[] = [
   "Advance payment",
   "Lead finished",
   "Contacted",
+  "Busy",
+  "Call Back",
 ];
 
 const SPREADSHEET_ID = "1QY8_Q8-ybLKNVs4hynPZslZDwUfC-PIJrViJfL0-tpM";
@@ -170,18 +174,9 @@ export default function Leads() {
 
   // Combine leads and date rows for display
   useEffect(() => {
-    const combined: DisplayRow[] = [];
-
-    if (dateRows.length === 0) {
-      // No date rows, just use leads
-      setDisplayRows(leads);
-    } else {
-      // Need to interleave date rows with leads based on original order
-      // For now, we'll append date rows info to the display
-      // In a more sophisticated approach, we'd track the original row indices
-      setDisplayRows([...leads, ...dateRows]);
-    }
-  }, [leads, dateRows]);
+    // Display all leads (date rows are stored for reference but not used for filtering)
+    setDisplayRows(leads);
+  }, [leads]);
 
   const loadLeads = async () => {
     setIsLoading(true);
@@ -1094,13 +1089,7 @@ export default function Leads() {
     return "hover:bg-gray-50";
   };
 
-  const filteredLeads = displayRows.filter((row) => {
-    // Always show date rows
-    if (isDateRow(row)) {
-      return true;
-    }
-
-    const lead = row as Lead;
+  const filteredLeads = displayRows.filter((lead) => {
     const matchesSearch =
       lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -1560,23 +1549,7 @@ export default function Leads() {
                           </TableCell>
                         </TableRow>
                       ) : (
-                        filteredLeads.map((row) => {
-                          if (isDateRow(row)) {
-                            return (
-                              <TableRow
-                                key={`date-${row._dateValue}`}
-                                className="border-b border-border bg-blue-50 hover:bg-blue-100"
-                              >
-                                <TableCell
-                                  colSpan={15}
-                                  className="py-3 text-center font-semibold text-blue-700"
-                                >
-                                  📅 {row._dateValue}
-                                </TableCell>
-                              </TableRow>
-                            );
-                          }
-                          const lead = row as Lead;
+                        filteredLeads.map((lead) => {
                           return (
                             <TableRow
                               key={lead.id}
