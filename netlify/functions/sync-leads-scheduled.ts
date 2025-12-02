@@ -184,10 +184,7 @@ export const handler: Handler = async (event) => {
         // Validate and normalize leads
         const leadsToSync = dataRows
           .filter((row) => validateLead(row))
-          .map((row) => ({
-            ...normalizeLeadData(row),
-            sheet_id: sheetId, // Ensure sheet_id is set correctly
-          }));
+          .map((row) => normalizeLeadData(row, sheetId));
 
         console.log(
           `[SCHEDULED] Valid leads from ${sheetName}: ${leadsToSync.length}`,
