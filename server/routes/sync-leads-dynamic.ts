@@ -392,6 +392,9 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
               .from("leads")
               .select("email, assigned_to");
 
+            const existingEmails = new Set(
+              (existingLeads || []).map((lead: any) => lead.email),
+            );
             const existingAssignments = new Map(
               (existingLeads || []).map((lead: any) => [
                 lead.email,
@@ -399,8 +402,32 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
               ]),
             );
 
+            // Separate leads into new and existing
+            const newLeads = leadsToSync.filter(
+              (lead) => !existingEmails.has(lead.email),
+            );
+            const existingLeadsToUpdate = leadsToSync.filter((lead) =>
+              existingEmails.has(lead.email),
+            );
+
+            // Try to insert new leads first
+            if (newLeads.length > 0) {
+              const { error: insertError } = await supabase
+                .from("leads")
+                .insert(newLeads)
+                .select();
+
+              if (!insertError) {
+                insertCount = newLeads.length;
+                console.log(`✓ Inserted ${insertCount} new leads`);
+              } else {
+                console.warn(`Failed to insert ${newLeads.length} new leads:`, insertError);
+                failureCount += newLeads.length;
+              }
+            }
+
             // Update each lead by email
-            for (const lead of leadsToSync) {
+            for (const lead of existingLeadsToUpdate) {
               const email = lead.email;
 
               if (email && String(email).trim()) {
