@@ -96,7 +96,16 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           if (!strValue) continue; // Skip empty values
 
           // Look for name column - be very flexible with matching
-          if (!nameValue && !normalizedKey.includes("email") && !normalizedKey.includes("phone") && !normalizedKey.includes("bill") && !normalizedKey.includes("address") && !normalizedKey.includes("code") && !normalizedKey.includes("status") && !normalizedKey.includes("note")) {
+          if (
+            !nameValue &&
+            !normalizedKey.includes("email") &&
+            !normalizedKey.includes("phone") &&
+            !normalizedKey.includes("bill") &&
+            !normalizedKey.includes("address") &&
+            !normalizedKey.includes("code") &&
+            !normalizedKey.includes("status") &&
+            !normalizedKey.includes("note")
+          ) {
             // If key contains "name" or "full" or is just a generic first column, treat as name
             if (
               normalizedKey.includes("name") ||
@@ -110,7 +119,12 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           }
 
           // Look for email - prioritize columns with "email"
-          if (!emailValue && (normalizedKey.includes("email") || normalizedKey.includes("mail")) && strValue) {
+          if (
+            !emailValue &&
+            (normalizedKey.includes("email") ||
+              normalizedKey.includes("mail")) &&
+            strValue
+          ) {
             emailValue = strValue;
           }
 
@@ -250,13 +264,24 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         // Map common column name variations
         let dbColumn = "";
 
-        if (!foundName && (normalizedKey.includes("full_name") || normalizedKey.includes("fullname") || (normalizedKey.includes("name") && !normalizedKey.includes("email")))) {
+        if (
+          !foundName &&
+          (normalizedKey.includes("full_name") ||
+            normalizedKey.includes("fullname") ||
+            (normalizedKey.includes("name") &&
+              !normalizedKey.includes("email")))
+        ) {
           dbColumn = "name";
           foundName = true;
         } else if (!foundEmail && normalizedKey.includes("email")) {
           dbColumn = "email";
           foundEmail = true;
-        } else if (!foundPhone && (normalizedKey.includes("phone") || normalizedKey.includes("contact") || normalizedKey.includes("mobile"))) {
+        } else if (
+          !foundPhone &&
+          (normalizedKey.includes("phone") ||
+            normalizedKey.includes("contact") ||
+            normalizedKey.includes("mobile"))
+        ) {
           dbColumn = "phone";
           foundPhone = true;
         } else if (normalizedKey.includes("company")) {
@@ -285,13 +310,16 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           dbColumn = "type_of_property";
         } else if (
           normalizedKey.includes("avg") ||
-          (normalizedKey.includes("current") && normalizedKey.includes("electricity")) ||
+          (normalizedKey.includes("current") &&
+            normalizedKey.includes("electricity")) ||
           (normalizedKey.includes("monthly") && normalizedKey.includes("bill"))
         ) {
           dbColumn = "avg_monthly_bill";
         } else if (
           normalizedKey.includes("electricity") ||
-          (normalizedKey.includes("bill") && !normalizedKey.includes("monthly") && !normalizedKey.includes("avg"))
+          (normalizedKey.includes("bill") &&
+            !normalizedKey.includes("monthly") &&
+            !normalizedKey.includes("avg"))
         ) {
           dbColumn = "electricity_bill";
         } else if (
@@ -421,7 +449,10 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
                 insertCount = newLeads.length;
                 console.log(`✓ Inserted ${insertCount} new leads`);
               } else {
-                console.warn(`Failed to insert ${newLeads.length} new leads:`, insertError);
+                console.warn(
+                  `Failed to insert ${newLeads.length} new leads:`,
+                  insertError,
+                );
                 failureCount += newLeads.length;
               }
             }
