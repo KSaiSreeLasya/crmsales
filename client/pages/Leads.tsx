@@ -251,7 +251,9 @@ export default function Leads() {
             .order("id", { ascending: false });
 
           if (!allError && allLeads && allLeads.length > 0) {
-            console.log(`Fallback: Loaded ${allLeads.length} total leads from database`);
+            console.log(
+              `Fallback: Loaded ${allLeads.length} total leads from database`,
+            );
             setLeads(allLeads);
             return;
           }
