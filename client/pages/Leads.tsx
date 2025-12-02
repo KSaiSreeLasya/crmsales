@@ -1549,23 +1549,7 @@ export default function Leads() {
                           </TableCell>
                         </TableRow>
                       ) : (
-                        filteredLeads.map((row) => {
-                          if (isDateRow(row)) {
-                            return (
-                              <TableRow
-                                key={`date-${row._dateValue}`}
-                                className="border-b border-border bg-blue-50 hover:bg-blue-100"
-                              >
-                                <TableCell
-                                  colSpan={15}
-                                  className="py-3 text-center font-semibold text-blue-700"
-                                >
-                                  📅 {row._dateValue}
-                                </TableCell>
-                              </TableRow>
-                            );
-                          }
-                          const lead = row as Lead;
+                        filteredLeads.map((lead) => {
                           return (
                             <TableRow
                               key={lead.id}
