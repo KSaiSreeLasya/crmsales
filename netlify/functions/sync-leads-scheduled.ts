@@ -1,3 +1,24 @@
+/**
+ * Scheduled Lead Sync Function
+ *
+ * Runs daily at 2:00 AM UTC to sync leads from Google Sheets to Supabase
+ * Schedule: 0 2 * * * (cron format)
+ *
+ * To change the time, update netlify.toml:
+ * - Change "0 2 * * *" to your desired cron expression
+ * - Common examples:
+ *   - "0 6 * * *" = 6:00 AM UTC (India Standard Time: 11:30 AM IST)
+ *   - "30 5 * * *" = 5:30 AM UTC (India Standard Time: 11:00 AM IST)
+ *   - "0 23 * * *" = 11:00 PM UTC (India Standard Time: 4:30 AM IST next day)
+ *
+ * Features:
+ * - Syncs both October and November sheets from Google Sheets
+ * - Preserves existing lead assignments during sync
+ * - Handles duplicate leads by updating existing records
+ * - Logs all sync operations for debugging
+ * - Returns detailed sync report with success/failure counts
+ */
+
 import { Handler } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
 import { fetchGoogleSheet, parseRowDynamic } from "../../shared/googleSheets";
