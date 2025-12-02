@@ -45,11 +45,11 @@ const validateLead = (lead: any): boolean => {
   );
 };
 
-const normalizeLeadData = (lead: any): any => {
+const normalizeLeadData = (lead: any, sheetId: string): any => {
   // Create normalized keys mapping
   const normalized: any = {
     source: "google_sheet",
-    sheet_id: SHEET_ID,
+    sheet_id: sheetId,
   };
 
   // Normalize column names to match Supabase schema
