@@ -26,7 +26,17 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       "from sheet:",
       sheetId,
     );
-    console.log("Sheet ID received:", sheetId, "Type:", typeof sheetId);
+    console.log(
+      "Sheet ID received:",
+      sheetId,
+      "Type:",
+      typeof sheetId,
+      "Truthy:",
+      !!sheetId,
+    );
+    if (!sheetId) {
+      console.warn("⚠️  WARNING: sheetId is missing or falsy! Will default to '0'");
+    }
     if (leads.length > 0) {
       console.log("First lead sample:", leads[0]);
       console.log("Available columns:", Object.keys(leads[0]));
