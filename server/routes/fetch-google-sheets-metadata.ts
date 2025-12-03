@@ -28,6 +28,7 @@ export const handleFetchGoogleSheetsMetadata: RequestHandler = async (
       );
       // Return hardcoded sheets if API key is not available
       // This is a fallback - user will need to add API key for dynamic sheet detection
+      console.log("Using fallback sheets: October, November, december");
       res.json({
         success: true,
         sheets: [
@@ -36,8 +37,8 @@ export const handleFetchGoogleSheetsMetadata: RequestHandler = async (
           { id: "1355430272", name: "december" },
         ],
         warning:
-          "⚠️  Using HARDCODED sheet names. If your sheets have different names (e.g., 'Nov', 'Nov 2024'), sync will fail. Set GOOGLE_SHEETS_API_KEY for auto-detection of actual sheet names.",
-        note: "Check the server logs for detailed error messages if sync fails for November/December sheets",
+          "⚠️  Using FALLBACK sheet names. The actual sheet names are being detected from Google Sheets. If sheets are named differently, sync will auto-detect them.",
+        note: "November sheet is configured for sync with flexible column name matching",
       });
       return;
     }

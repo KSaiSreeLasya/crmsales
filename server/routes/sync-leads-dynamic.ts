@@ -87,65 +87,16 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       return;
     }
 
-    // For dynamic sync, validate that rows have meaningful data
-    // Use flexible name matching to handle column name variations
-    const validLeads = leads
-      .map((lead, index) => {
-        let nameValue = "";
-        let emailValue = "";
-        let phoneValue = "";
-
-        // Find name, email, phone by flexible name matching
-        for (const [key, value] of Object.entries(lead)) {
-          const strValue = String(value || "").trim();
-          if (!strValue) continue;
-
-          const normalizedKey = key
-            .toLowerCase()
-            .trim()
-            .replace(/[\s_]+/g, "_")
-            .replace(/[-–!?]/g, "");
-
-          // Match name column (various names: full name, full_name, etc.)
-          if (
-            !nameValue &&
-            ((normalizedKey.includes("full") &&
-              normalizedKey.includes("name")) ||
-              normalizedKey === "name")
-          ) {
-            nameValue = strValue;
-          }
-
-          // Match email column
-          if (
-            !emailValue &&
-            (normalizedKey.includes("email") || normalizedKey.includes("mail"))
-          ) {
-            emailValue = strValue;
-          }
-
-          // Match phone column
-          if (
-            !phoneValue &&
-            (normalizedKey.includes("phone") ||
-              normalizedKey.includes("contact") ||
-              normalizedKey.includes("mobile"))
-          ) {
-            phoneValue = strValue;
-          }
-        }
-
-        // Validation: require name and email (phone is optional)
-        const isValid =
-          nameValue &&
-          nameValue.length > 0 &&
-          emailValue &&
-          emailValue.length > 0;
-
-        return { lead, isValid, nameValue, emailValue, phoneValue };
-      })
-      .filter((item) => item.isValid)
-      .map((item) => item.lead);
+    // For dynamic sync, accept rows with any meaningful data
+    // Flexible validation: allow November sheet and others with non-standard columns
+    const validLeads = leads.filter((lead) => {
+      // Accept any row that has at least one non-empty column value
+      const hasData = Object.values(lead).some((value) => {
+        const strValue = String(value || "").trim();
+        return strValue.length > 0;
+      });
+      return hasData;
+    });
 
     console.log("Valid leads after filtering:", validLeads.length);
     console.log(
@@ -170,15 +121,15 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       console.error("No valid leads after filtering:", {
         totalRows: leads.length,
         sampleRows,
-        requiredFields: "name and email (phone is optional)",
+        note: "No rows with data found - all rows appear to be empty",
       });
 
       res.status(400).json({
         error:
-          "No valid leads found - ensure rows have Name and Email columns. Phone is optional.",
+          "No valid leads found - sheet appears to be empty or all rows have no data.",
         totalRowsFetched: leads.length,
         sampleDebug: sampleRows.length > 0 ? sampleRows[0] : null,
-        hint: "Each row must have a Name (or Full Name) and Email address. Check your Google Sheet structure.",
+        hint: "Ensure your sheet has data in at least one column per row.",
       });
       return;
     }
@@ -325,13 +276,14 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         .eq("sheet_id", sheetId);
 
       const existingEmails = new Set(
-        (existingLeads || []).map((lead: any) => lead.email),
+        (existingLeads || [])
+          .map((lead: any) => lead.email)
+          .filter((email) => email), // Filter out null/empty emails
       );
       const existingAssignments = new Map(
-        (existingLeads || []).map((lead: any) => [
-          lead.email,
-          lead.assigned_to,
-        ]),
+        (existingLeads || [])
+          .filter((lead: any) => lead.email) // Only map leads with emails
+          .map((lead: any) => [lead.email, lead.assigned_to]),
       );
 
       console.log(
@@ -339,11 +291,12 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       );
 
       // Separate leads into new and existing (for this sheet only)
+      // For leads without email, treat them as new
       const newLeads = leadsToSync.filter(
-        (lead) => !existingEmails.has(lead.email),
+        (lead) => !lead.email || !existingEmails.has(lead.email),
       );
-      const existingLeadsToUpdate = leadsToSync.filter((lead) =>
-        existingEmails.has(lead.email),
+      const existingLeadsToUpdate = leadsToSync.filter(
+        (lead) => lead.email && existingEmails.has(lead.email),
       );
 
       console.log(
@@ -355,9 +308,13 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       const leadsToUpdateWithPreservedAssignments = existingLeadsToUpdate.map(
         (lead) => {
           const { sheet_id, ...leadWithoutSheetId } = lead;
+          const preservedAssignment = lead.email
+            ? existingAssignments.get(lead.email)
+            : undefined;
           return {
             ...leadWithoutSheetId,
-            assigned_to: existingAssignments.get(lead.email) || "Unassigned",
+            assigned_to:
+              preservedAssignment || lead.assigned_to || "Unassigned",
           };
         },
       );
