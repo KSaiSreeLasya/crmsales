@@ -53,38 +53,41 @@ function getColumnValue(
  * H: Lead status
  */
 export function parseLeadRow(row: GoogleSheetRow) {
+  // Normalize a key by converting all whitespace and multiple underscores to single underscores
+  const normalizeKey = (key: string): string => {
+    return key
+      .toLowerCase()
+      .trim()
+      .replace(/^["']|["']$/g, "") // Remove leading/trailing quotes
+      .replace(/[\s_]+/g, "_") // Replace all spaces and underscores with single underscore
+      .replace(/[?!-]/g, ""); // Remove special characters like ?, !, -
+  };
+
   // Create a map of normalized keys to values for flexible matching
   const columnMap: { [normalizedKey: string]: string } = {};
   const allKeys: string[] = [];
 
   for (const [key, value] of Object.entries(row)) {
     allKeys.push(key);
-    const normalizedKey = key
-      .toLowerCase()
-      .trim()
-      .replace(/\s+/g, "_")
-      .replace(/^["']|["']$/g, "");
+    const normalizedKey = normalizeKey(key);
     const trimmedValue = String(value || "").trim();
     columnMap[normalizedKey] = trimmedValue;
   }
 
   // Helper function to find a column value by searching for key patterns
   const findColumnValue = (patterns: string[]): string => {
-    // Try exact matches first
+    // Try exact normalized matches first
     for (const pattern of patterns) {
-      const normalizedPattern = pattern
-        .toLowerCase()
-        .trim()
-        .replace(/\s+/g, "_");
+      const normalizedPattern = normalizeKey(pattern);
 
       if (columnMap[normalizedPattern]) {
         return columnMap[normalizedPattern];
       }
     }
 
-    // Try partial/fuzzy matching
+    // Try fuzzy matching with normalized keys
     for (const pattern of patterns) {
-      const normalizedPattern = pattern.toLowerCase().trim();
+      const normalizedPattern = normalizeKey(pattern);
 
       for (const key in columnMap) {
         // Check if pattern appears in key or key appears in pattern
