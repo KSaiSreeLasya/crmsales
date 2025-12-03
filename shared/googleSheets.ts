@@ -191,6 +191,7 @@ export function parseLeadRow(row: GoogleSheetRow) {
     assignedTo: "Unassigned",
     note1: note1 || "",
     note2: note2 || "",
+    whatsapp_follow_up: whatsappFollowUp || "",
   };
 
   return parsed;
