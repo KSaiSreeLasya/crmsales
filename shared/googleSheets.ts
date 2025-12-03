@@ -88,30 +88,83 @@ function getColumnValue(
 }
 
 /**
- * Parse Google Sheet lead row into Lead format using positional mapping
- * Column order is consistent across all sheets (December, November, October):
- * Position 0: Type of property (various names: "what_type_of_property_do_you_want_to_install_solar_on?", etc.)
- * Position 1: Monthly electricity bill (various names: "what_is_your_average_monthly_electricity_bill?", etc.)
- * Position 2: Full name
- * Position 3: Phone
- * Position 4: Email
- * Position 5: Street address
- * Position 6: Postal code
- * Position 7: Lead status
+ * Parse Google Sheet lead row into Lead format
+ * Handles multiple column name variations across different sheets
+ * December/November: property question, electricity bill, full name, phone, email, street address, post_code, lead_status
+ * October: electricity_bill?, full name, phone, email, street address, post_code, FEEDBACK -1, FEEDBACK- 2, Whatsapp follow up
  */
 export function parseLeadRow(row: GoogleSheetRow) {
-  // Convert row to array of values in their original order
-  const values = Object.values(row);
+  // Helper to find column value by flexible name matching
+  const findColumn = (patterns: string[]): string => {
+    for (const [key, value] of Object.entries(row)) {
+      if (!value) continue;
 
-  // Extract values by position (column index)
-  const type_of_property = sanitizeValue(values[0] || "");
-  const avg_monthly_bill = sanitizeValue(values[1] || "");
-  const name = sanitizeValue(values[2] || "");
-  const phone = sanitizeValue(values[3] || "");
-  const email = sanitizeValue(values[4] || "");
-  const street_address = sanitizeValue(values[5] || "");
-  const post_code = sanitizeValue(values[6] || "");
-  const lead_status = sanitizeValue(values[7] || "");
+      const normalizedKey = normalizeKey(key);
+
+      for (const pattern of patterns) {
+        const normalizedPattern = normalizeKey(pattern);
+        // Exact match after normalization
+        if (normalizedKey === normalizedPattern) {
+          return sanitizeValue(value);
+        }
+        // Partial match - key contains pattern or pattern contains key
+        if (
+          normalizedKey.includes(normalizedPattern) ||
+          normalizedPattern.includes(normalizedKey)
+        ) {
+          return sanitizeValue(value);
+        }
+      }
+    }
+    return "";
+  };
+
+  // Parse with flexible name matching for all variations
+  const type_of_property = findColumn([
+    "what_type_of_property_do_you_want_to_install_solar_on",
+    "what_type__of_property__do_you_want__to_install_solar_on",
+    "type_of_property",
+    "property_type",
+  ]);
+
+  const avg_monthly_bill = findColumn([
+    "what_is_your_average_monthly_electricity_bill",
+    "average_monthly_electricity_bill",
+    "monthly_electricity_bill",
+    "electricity_bill",
+  ]);
+
+  const name = findColumn(["full name", "full_name", "name"]);
+
+  const phone = findColumn(["phone", "phone_no", "phone_number"]);
+
+  const email = findColumn(["email", "email_address"]);
+
+  const street_address = findColumn([
+    "street address",
+    "street_address",
+    "street",
+    "address",
+  ]);
+
+  const post_code = findColumn([
+    "post_code",
+    "postal_code",
+    "postcode",
+    "zip_code",
+  ]);
+
+  const lead_status = findColumn(["lead_status", "status"]);
+
+  const note1 = findColumn(["feedback_1", "feedback -1", "note_1", "notes_1"]);
+
+  const note2 = findColumn(["feedback_2", "feedback- 2", "note_2", "notes_2"]);
+
+  const whatsappFollowUp = findColumn([
+    "whatsapp_follow_up",
+    "whatsapp follow up",
+    "whatsapp",
+  ]);
 
   const parsed = {
     name,
@@ -126,9 +179,9 @@ export function parseLeadRow(row: GoogleSheetRow) {
     avg_monthly_bill,
     status: "Not lifted" as const,
     assignedTo: "Unassigned",
-    note1: "",
-    note2: "",
-    whatsapp_follow_up: "",
+    note1: note1 || "",
+    note2: note2 || "",
+    whatsapp_follow_up: whatsappFollowUp || "",
   };
 
   return parsed;
