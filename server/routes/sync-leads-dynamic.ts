@@ -87,24 +87,53 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       return;
     }
 
-    // For dynamic sync, validate that rows have meaningful data using positional mapping
-    // Column order (consistent across all sheets):
-    // 0: Type of property
-    // 1: Monthly electricity bill
-    // 2: Full name
-    // 3: Phone
-    // 4: Email
-    // 5: Street address
-    // 6: Post code
-    // 7: Lead status
+    // For dynamic sync, validate that rows have meaningful data
+    // Use flexible name matching to handle column name variations
     const validLeads = leads
       .map((lead, index) => {
-        const values = Object.values(lead);
+        let nameValue = "";
+        let emailValue = "";
+        let phoneValue = "";
 
-        // Extract values by position
-        const nameValue = String(values[2] || "").trim();
-        const emailValue = String(values[4] || "").trim();
-        const phoneValue = String(values[3] || "").trim();
+        // Find name, email, phone by flexible name matching
+        for (const [key, value] of Object.entries(lead)) {
+          const strValue = String(value || "").trim();
+          if (!strValue) continue;
+
+          const normalizedKey = key
+            .toLowerCase()
+            .trim()
+            .replace(/[\s_]+/g, "_")
+            .replace(/[-–!?]/g, "");
+
+          // Match name column (various names: full name, full_name, etc.)
+          if (
+            !nameValue &&
+            ((normalizedKey.includes("full") &&
+              normalizedKey.includes("name")) ||
+              normalizedKey === "name")
+          ) {
+            nameValue = strValue;
+          }
+
+          // Match email column
+          if (
+            !emailValue &&
+            (normalizedKey.includes("email") || normalizedKey.includes("mail"))
+          ) {
+            emailValue = strValue;
+          }
+
+          // Match phone column
+          if (
+            !phoneValue &&
+            (normalizedKey.includes("phone") ||
+              normalizedKey.includes("contact") ||
+              normalizedKey.includes("mobile"))
+          ) {
+            phoneValue = strValue;
+          }
+        }
 
         // Validation: require name and email (phone is optional)
         const isValid =
@@ -191,44 +220,70 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       "updated_at",
     ]);
 
-    // Prepare leads data - map by column position to Supabase schema
-    // Column order (consistent across all sheets):
-    // 0: Type of property
-    // 1: Monthly electricity bill
-    // 2: Full name
-    // 3: Phone
-    // 4: Email
-    // 5: Street address
-    // 6: Post code
-    // 7: Lead status
+    // Prepare leads data - normalize column names to match Supabase schema
     const leadsToSync = validLeads.map((lead) => {
-      const values = Object.values(lead);
-
-      // Extract values by position
-      const type_of_property = sanitizeValue(values[0] || "");
-      const avg_monthly_bill = sanitizeValue(values[1] || "");
-      const name = sanitizeValue(values[2] || "");
-      const phone = sanitizeValue(values[3] || "");
-      const email = sanitizeValue(values[4] || "");
-      const street_address = sanitizeValue(values[5] || "");
-      const post_code = sanitizeValue(values[6] || "");
-      const lead_status = sanitizeValue(values[7] || "");
-
       const syncData: any = {
         source: source || "google_sheet",
         sheet_id: sheetId || "0",
-        name: name || "Unknown",
-        email: email || "",
-        phone: phone || "",
-        company: "",
-        status: "Not lifted",
-        street_address: street_address || "",
-        post_code: post_code || "",
-        lead_status: lead_status || "",
-        electricity_bill: avg_monthly_bill || "",
-        type_of_property: type_of_property || "",
-        avg_monthly_bill: avg_monthly_bill || "",
       };
+
+      // Helper function to find and map column values
+      const mapColumn = (patterns: string[]): string => {
+        for (const [key, value] of Object.entries(lead)) {
+          if (!value) continue;
+
+          const normalizedKey = key
+            .toLowerCase()
+            .trim()
+            .replace(/[\s_]+/g, "_")
+            .replace(/[-–!?]/g, "");
+
+          for (const pattern of patterns) {
+            const normalizedPattern = pattern
+              .toLowerCase()
+              .trim()
+              .replace(/[\s_]+/g, "_")
+              .replace(/[-–!?]/g, "");
+
+            if (
+              normalizedKey === normalizedPattern ||
+              normalizedKey.includes(normalizedPattern) ||
+              normalizedPattern.includes(normalizedKey)
+            ) {
+              return sanitizeValue(value);
+            }
+          }
+        }
+        return "";
+      };
+
+      // Map columns with flexible name matching
+      syncData.name =
+        mapColumn(["full name", "full_name", "name"]) || "Unknown";
+      syncData.email = mapColumn(["email", "email_address"]) || "";
+      syncData.phone = mapColumn(["phone", "phone_no", "phone_number"]) || "";
+      syncData.company = mapColumn(["company"]) || "";
+      syncData.street_address =
+        mapColumn(["street address", "street_address", "street", "address"]) ||
+        "";
+      syncData.post_code =
+        mapColumn(["post_code", "postal_code", "postcode", "zip_code"]) || "";
+      syncData.lead_status = mapColumn(["lead_status", "status"]) || "";
+      syncData.electricity_bill =
+        mapColumn([
+          "electricity_bill",
+          "what_is_your_average_monthly_electricity_bill",
+          "average_monthly_electricity_bill",
+          "monthly_electricity_bill",
+        ]) || "";
+      syncData.type_of_property =
+        mapColumn([
+          "what_type_of_property_do_you_want_to_install_solar_on",
+          "type_of_property",
+          "property_type",
+        ]) || "";
+      syncData.avg_monthly_bill = syncData.electricity_bill;
+      syncData.status = "Not lifted";
 
       // Set timestamps to ensure they're properly recorded
       const now = new Date().toISOString();

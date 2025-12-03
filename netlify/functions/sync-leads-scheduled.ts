@@ -48,12 +48,37 @@ interface SyncResult {
 }
 
 const validateLead = (lead: any): boolean => {
-  // Use positional mapping (column order is consistent across all sheets)
-  // Position 2: Full name
-  // Position 4: Email
-  const values = Object.values(lead);
-  const nameValue = String(values[2] || "").trim();
-  const emailValue = String(values[4] || "").trim();
+  // Use flexible name matching to handle column name variations
+  let nameValue = "";
+  let emailValue = "";
+
+  for (const [key, value] of Object.entries(lead)) {
+    const strValue = String(value || "").trim();
+    if (!strValue) continue;
+
+    const normalizedKey = key
+      .toLowerCase()
+      .trim()
+      .replace(/[\s_]+/g, "_")
+      .replace(/[-–!?]/g, "");
+
+    // Match name column
+    if (
+      !nameValue &&
+      ((normalizedKey.includes("full") && normalizedKey.includes("name")) ||
+        normalizedKey === "name")
+    ) {
+      nameValue = strValue;
+    }
+
+    // Match email column
+    if (
+      !emailValue &&
+      (normalizedKey.includes("email") || normalizedKey.includes("mail"))
+    ) {
+      emailValue = strValue;
+    }
+  }
 
   // Email is required for upsert (unique constraint)
   // Name is required for meaningful records
@@ -64,35 +89,73 @@ const validateLead = (lead: any): boolean => {
 };
 
 const normalizeLeadData = (lead: any, sheetId: string): any => {
-  // Map by column position (consistent across all sheets):
-  // 0: Type of property
-  // 1: Monthly electricity bill
-  // 2: Full name
-  // 3: Phone
-  // 4: Email
-  // 5: Street address
-  // 6: Post code
-  // 7: Lead status
-  const values = Object.values(lead);
-
+  // Use flexible name matching to map all column variations to Supabase schema
   const normalized: any = {
     source: "google_sheet",
     sheet_id: sheetId,
-    type_of_property: String(values[0] || "").trim(),
-    avg_monthly_bill: String(values[1] || "").trim(),
-    name: String(values[2] || "").trim(),
-    phone: String(values[3] || "").trim(),
-    email: String(values[4] || "").trim(),
-    street_address: String(values[5] || "").trim(),
-    post_code: String(values[6] || "").trim(),
-    lead_status: String(values[7] || "").trim(),
   };
 
-  // Set defaults for fields not coming from the sheet
-  normalized.company = "";
+  // Helper to find and map columns
+  const mapColumn = (patterns: string[]): string => {
+    for (const [key, value] of Object.entries(lead)) {
+      if (!value) continue;
+
+      const normalizedKey = key
+        .toLowerCase()
+        .trim()
+        .replace(/[\s_]+/g, "_")
+        .replace(/[-–!?]/g, "");
+
+      for (const pattern of patterns) {
+        const normalizedPattern = pattern
+          .toLowerCase()
+          .trim()
+          .replace(/[\s_]+/g, "_")
+          .replace(/[-–!?]/g, "");
+
+        if (
+          normalizedKey === normalizedPattern ||
+          normalizedKey.includes(normalizedPattern) ||
+          normalizedPattern.includes(normalizedKey)
+        ) {
+          return String(value).trim();
+        }
+      }
+    }
+    return "";
+  };
+
+  // Map all columns with flexible name matching
+  normalized.name = mapColumn(["full name", "full_name", "name"]) || "";
+  normalized.email = mapColumn(["email", "email_address"]) || "";
+  normalized.phone = mapColumn(["phone", "phone_no", "phone_number"]) || "";
+  normalized.company = mapColumn(["company"]) || "";
+  normalized.street_address =
+    mapColumn(["street address", "street_address", "street", "address"]) || "";
+  normalized.post_code =
+    mapColumn(["post_code", "postal_code", "postcode", "zip_code"]) || "";
+  normalized.lead_status = mapColumn(["lead_status", "status"]) || "";
+  normalized.type_of_property =
+    mapColumn([
+      "what_type_of_property_do_you_want_to_install_solar_on",
+      "type_of_property",
+      "property_type",
+    ]) || "";
+
+  const avgBill =
+    mapColumn([
+      "electricity_bill",
+      "what_is_your_average_monthly_electricity_bill",
+      "average_monthly_electricity_bill",
+      "monthly_electricity_bill",
+    ]) || "";
+
+  normalized.avg_monthly_bill = avgBill;
+  normalized.electricity_bill = avgBill;
+
+  // Set defaults for fields not in sheet
   normalized.status = "Not lifted";
   normalized.assigned_to = "Unassigned";
-  normalized.electricity_bill = normalized.avg_monthly_bill;
 
   return normalized;
 };
