@@ -78,6 +78,7 @@ const normalizeLeadData = (lead: any, sheetId: string): any => {
       .toLowerCase()
       .trim()
       .replace(/\s+/g, "_")
+      .replace(/[-–]/g, "_")
       .replace(/[?]/g, "");
     const strValue = String(value).trim();
 
@@ -112,8 +113,12 @@ const normalizeLeadData = (lead: any, sheetId: string): any => {
     ) {
       normalized.type_of_property = strValue;
     } else if (
-      normalizedKey.includes("avg") &&
-      normalizedKey.includes("monthly")
+      (normalizedKey.includes("avg") ||
+        normalizedKey.includes("current") ||
+        normalizedKey.includes("your")) &&
+      (normalizedKey.includes("monthly") ||
+        normalizedKey.includes("electricity") ||
+        normalizedKey.includes("bill"))
     ) {
       normalized.avg_monthly_bill = strValue;
     } else if (
@@ -121,10 +126,19 @@ const normalizeLeadData = (lead: any, sheetId: string): any => {
       (normalizedKey.includes("bill") && !normalizedKey.includes("monthly"))
     ) {
       normalized.electricity_bill = strValue;
-    } else if (normalizedKey.includes("note") && normalizedKey.includes("1")) {
-      normalized.note1 = strValue;
-    } else if (normalizedKey.includes("note") && normalizedKey.includes("2")) {
-      normalized.note2 = strValue;
+    } else if (
+      normalizedKey.includes("feedback") ||
+      normalizedKey.includes("note")
+    ) {
+      if (normalizedKey.includes("1")) {
+        normalized.note1 = strValue;
+      } else if (normalizedKey.includes("2")) {
+        normalized.note2 = strValue;
+      } else {
+        normalized.note1 = strValue;
+      }
+    } else if (normalizedKey.includes("whatsapp")) {
+      normalized.whatsapp_follow_up = strValue;
     }
   }
 
