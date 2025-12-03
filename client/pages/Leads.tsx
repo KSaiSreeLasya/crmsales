@@ -303,9 +303,9 @@ export default function Leads() {
 
     setIsSyncing(true);
     try {
-      // Fetch from server endpoint (avoids CORS issues) with 30 second timeout
+      // Fetch from server endpoint (avoids CORS issues) with 60 second timeout
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
 
       const fetchResponse = await fetch(
         `/api/fetch-google-sheet?spreadsheetId=${SPREADSHEET_ID}&sheetId=0`,
