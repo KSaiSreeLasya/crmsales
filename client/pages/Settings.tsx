@@ -237,8 +237,16 @@ export default function Settings() {
                       <RefreshCw
                         className={`h-4 w-4 ${isSyncingLeads ? "animate-spin" : ""}`}
                       />
-                      {isSyncingLeads ? "Syncing Leads..." : "Sync Leads"}
+                      {isSyncingLeads ? "Syncing All Sheets..." : "Sync All Leads"}
                     </Button>
+                    {syncProgress && (
+                      <div className="mt-3 rounded-lg bg-blue-50 p-3 border border-blue-200">
+                        <div className="flex items-start gap-2">
+                          <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                          <p className="text-sm text-blue-800">{syncProgress}</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
