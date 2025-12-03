@@ -46,22 +46,15 @@ interface SyncResult {
 
 const validateLead = (lead: any): boolean => {
   const nameValue = lead.name || lead.Name || lead.full_name || lead.Full_Name;
-  const phoneValue =
-    lead.phone ||
-    lead.Phone ||
-    lead.phone_no ||
-    lead.Phone_No ||
-    lead.contact ||
-    lead.Contact;
   const emailValue =
     lead.email || lead.Email || lead.email_address || lead.Email_Address;
 
   // Email is required for upsert (unique constraint)
+  // Name is required for meaningful records
+  // Phone is optional (sync-leads-dynamic.ts also makes it optional for consistency)
   return (
     nameValue &&
     String(nameValue).trim().length > 0 &&
-    phoneValue &&
-    String(phoneValue).trim().length > 0 &&
     emailValue &&
     String(emailValue).trim().length > 0
   );
