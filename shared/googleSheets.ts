@@ -151,6 +151,8 @@ export function parseLeadRow(row: GoogleSheetRow) {
   const lead_status = findColumnValue(["lead_status", "lead status"]);
 
   const note1 = findColumnValue([
+    "feedback_1",
+    "feedback-1",
     "note_1",
     "note 1",
     "note1",
@@ -159,11 +161,19 @@ export function parseLeadRow(row: GoogleSheetRow) {
   ]);
 
   const note2 = findColumnValue([
+    "feedback_2",
+    "feedback-2",
     "note_2",
     "note 2",
     "note2",
     "notes_2",
     "notes",
+  ]);
+
+  const whatsappFollowUp = findColumnValue([
+    "whatsapp_follow_up",
+    "whatsapp follow up",
+    "whatsapp follow-up",
   ]);
 
   const parsed = {
