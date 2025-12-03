@@ -76,10 +76,7 @@ const validateLead = (lead: any): boolean => {
 
   // Name and email are required (phone is optional for consistency)
   return (
-    nameValue &&
-    nameValue.length > 0 &&
-    emailValue &&
-    emailValue.length > 0
+    nameValue && nameValue.length > 0 && emailValue && emailValue.length > 0
   );
 };
 
@@ -196,7 +193,8 @@ export const handleTestSyncAllSheets: RequestHandler = async (req, res) => {
 
               if (
                 name === "N/A" &&
-                ((normalizedKey.includes("full") && normalizedKey.includes("name")) ||
+                ((normalizedKey.includes("full") &&
+                  normalizedKey.includes("name")) ||
                   normalizedKey === "name")
               ) {
                 name = strValue;
@@ -204,7 +202,8 @@ export const handleTestSyncAllSheets: RequestHandler = async (req, res) => {
 
               if (
                 email === "N/A" &&
-                (normalizedKey.includes("email") || normalizedKey.includes("mail"))
+                (normalizedKey.includes("email") ||
+                  normalizedKey.includes("mail"))
               ) {
                 email = strValue;
               }
