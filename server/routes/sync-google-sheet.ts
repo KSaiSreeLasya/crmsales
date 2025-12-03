@@ -124,17 +124,10 @@ export const handleSyncGoogleSheet: RequestHandler = async (req, res) => {
         .map((item) => item.parsed);
 
       if (leadsToSync.length === 0) {
-        const sampleInvalidRows = rows
-          .filter((row) => {
-            const parsed = parseLeadRow(row);
-            return !parsed.name || !parsed.email;
-          })
-          .slice(0, 3);
-
         console.error("No valid leads after filtering:", {
           totalRows: rows.length,
-          sampleInvalidRows: sampleInvalidRows.slice(0, 2),
-          requiredFields: "name and email",
+          invalidCount: invalidRows.length,
+          sampleInvalid: invalidRows.slice(0, 3),
         });
 
         res.status(400).json({
@@ -143,7 +136,12 @@ export const handleSyncGoogleSheet: RequestHandler = async (req, res) => {
           processed: rows.length,
           valid: 0,
           sample_row: rows[0] || {},
-          hint: "Each row must have a Name (or Full Name) and Email address. Phone is optional.",
+          invalidRowsCount: invalidRows.length,
+          sampleInvalidRows: invalidRows.slice(0, 5).map((item) => ({
+            row: item.rowIndex + 1,
+            reason: item.reason,
+          })),
+          hint: "Each row must have: 1) A valid Name, 2) A valid Email address (name@domain.com). Phone is optional.",
         });
         return;
       }
