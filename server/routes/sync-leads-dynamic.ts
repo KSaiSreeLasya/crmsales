@@ -121,15 +121,15 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       console.error("No valid leads after filtering:", {
         totalRows: leads.length,
         sampleRows,
-        requiredFields: "name and email (phone is optional)",
+        note: "No rows with data found - all rows appear to be empty",
       });
 
       res.status(400).json({
         error:
-          "No valid leads found - ensure rows have Name and Email columns. Phone is optional.",
+          "No valid leads found - sheet appears to be empty or all rows have no data.",
         totalRowsFetched: leads.length,
         sampleDebug: sampleRows.length > 0 ? sampleRows[0] : null,
-        hint: "Each row must have a Name (or Full Name) and Email address. Check your Google Sheet structure.",
+        hint: "Ensure your sheet has data in at least one column per row.",
       });
       return;
     }
