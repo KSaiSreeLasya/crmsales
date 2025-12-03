@@ -319,6 +319,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
               totalFetched: leads.length,
               emptyRowsRemoved: leads.length - leadsToSync.length,
               source: source,
+              sheetId: finalSheetId,
               columnsIncluded: Object.keys(leadsToSync[0]),
             });
             return;
