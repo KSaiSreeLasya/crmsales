@@ -57,9 +57,7 @@ export default function Settings() {
       ];
 
       setLeadsSheets(sheetsToSync);
-      setSyncProgress(
-        `Found ${sheetsToSync.length} sheets. Starting sync...`,
-      );
+      setSyncProgress(`Found ${sheetsToSync.length} sheets. Starting sync...`);
 
       let totalSynced = 0;
       let failedSheets = [];
@@ -125,7 +123,8 @@ export default function Settings() {
         );
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       console.error("Error syncing leads:", errorMessage);
       toast.error("Failed to sync leads from Google Sheets");
       setSyncProgress(`Error: ${errorMessage}`);
@@ -237,13 +236,17 @@ export default function Settings() {
                       <RefreshCw
                         className={`h-4 w-4 ${isSyncingLeads ? "animate-spin" : ""}`}
                       />
-                      {isSyncingLeads ? "Syncing All Sheets..." : "Sync All Leads"}
+                      {isSyncingLeads
+                        ? "Syncing All Sheets..."
+                        : "Sync All Leads"}
                     </Button>
                     {syncProgress && (
                       <div className="mt-3 rounded-lg bg-blue-50 p-3 border border-blue-200">
                         <div className="flex items-start gap-2">
                           <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                          <p className="text-sm text-blue-800">{syncProgress}</p>
+                          <p className="text-sm text-blue-800">
+                            {syncProgress}
+                          </p>
                         </div>
                       </div>
                     )}
