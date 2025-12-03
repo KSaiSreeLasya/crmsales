@@ -276,13 +276,14 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         .eq("sheet_id", sheetId);
 
       const existingEmails = new Set(
-        (existingLeads || []).map((lead: any) => lead.email),
+        (existingLeads || [])
+          .map((lead: any) => lead.email)
+          .filter((email) => email), // Filter out null/empty emails
       );
       const existingAssignments = new Map(
-        (existingLeads || []).map((lead: any) => [
-          lead.email,
-          lead.assigned_to,
-        ]),
+        (existingLeads || [])
+          .filter((lead: any) => lead.email) // Only map leads with emails
+          .map((lead: any) => [lead.email, lead.assigned_to]),
       );
 
       console.log(
@@ -290,11 +291,12 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       );
 
       // Separate leads into new and existing (for this sheet only)
+      // For leads without email, treat them as new
       const newLeads = leadsToSync.filter(
-        (lead) => !existingEmails.has(lead.email),
+        (lead) => !lead.email || !existingEmails.has(lead.email),
       );
-      const existingLeadsToUpdate = leadsToSync.filter((lead) =>
-        existingEmails.has(lead.email),
+      const existingLeadsToUpdate = leadsToSync.filter(
+        (lead) => lead.email && existingEmails.has(lead.email),
       );
 
       console.log(
