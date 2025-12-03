@@ -313,7 +313,8 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
             : undefined;
           return {
             ...leadWithoutSheetId,
-            assigned_to: preservedAssignment || lead.assigned_to || "Unassigned",
+            assigned_to:
+              preservedAssignment || lead.assigned_to || "Unassigned",
           };
         },
       );
