@@ -167,7 +167,7 @@ export const handler: Handler = async (event) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Sync both October and November sheets
+    // Sync all configured sheets (October, November, December)
     for (const sheet of SHEETS_TO_SYNC) {
       const sheetId = sheet.id;
       const sheetName = sheet.name;
