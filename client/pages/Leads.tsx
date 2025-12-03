@@ -225,10 +225,9 @@ export default function Leads() {
             "type:",
             typeof data[0].sheet_id,
           );
-          console.log(
-            "All sheet_ids in loaded data:",
-            [...new Set(data.map((d) => d.sheet_id))],
-          );
+          console.log("All sheet_ids in loaded data:", [
+            ...new Set(data.map((d) => d.sheet_id)),
+          ]);
         } else {
           console.log(
             "No leads found for sheet_id:",
