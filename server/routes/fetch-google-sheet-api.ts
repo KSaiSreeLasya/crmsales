@@ -88,16 +88,23 @@ export const handleFetchGoogleSheetApi: RequestHandler = async (req, res) => {
 
     // Check if API key is available
     if (!GOOGLE_SHEETS_API_KEY) {
-      console.warn("[FETCH API] WARNING: GOOGLE_SHEETS_API_KEY not configured - using CSV export fallback");
-      console.warn("[FETCH API] This endpoint will work for public sheets without API key, but with limitations");
-      console.info("[FETCH API] To enable unlimited rows, set GOOGLE_SHEETS_API_KEY environment variable");
+      console.warn(
+        "[FETCH API] WARNING: GOOGLE_SHEETS_API_KEY not configured - using CSV export fallback",
+      );
+      console.warn(
+        "[FETCH API] This endpoint will work for public sheets without API key, but with limitations",
+      );
+      console.info(
+        "[FETCH API] To enable unlimited rows, set GOOGLE_SHEETS_API_KEY environment variable",
+      );
 
       // For now, return an error but suggest CSV export as alternative
       res.status(500).json({
         error: "Google Sheets API key not configured",
         hint: "Use /api/sync-google-sheet instead, which works for public sheets without an API key",
         requestedSheetName: sheetName,
-        suggestion: "Public sheets can be synced using CSV export method which doesn't require authentication",
+        suggestion:
+          "Public sheets can be synced using CSV export method which doesn't require authentication",
       });
       return;
     }

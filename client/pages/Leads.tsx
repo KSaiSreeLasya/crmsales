@@ -707,17 +707,12 @@ export default function Leads() {
         );
         if (showNotification && loadingToastId !== undefined) {
           toast.dismiss(loadingToastId);
-          loadingToastId = toast.loading(
-            "Syncing leads using CSV export...",
-          );
+          loadingToastId = toast.loading("Syncing leads using CSV export...");
         }
 
         // Use the CSV-based endpoint with sheet ID instead
         const csvController = new AbortController();
-        const csvTimeoutId = setTimeout(
-          () => csvController.abort(),
-          180000,
-        );
+        const csvTimeoutId = setTimeout(() => csvController.abort(), 180000);
 
         const csvResponse = await fetch(
           `/api/fetch-google-sheet?spreadsheetId=${SPREADSHEET_ID}&sheetId=${sheetId}`,
@@ -732,8 +727,7 @@ export default function Leads() {
             csvErrorDetails =
               errorData.error || errorData.message || "Unknown error";
           } catch {
-            csvErrorDetails =
-              csvResponse.statusText || "Unknown error";
+            csvErrorDetails = csvResponse.statusText || "Unknown error";
           }
           throw new Error(
             `Failed to fetch using CSV export: ${csvErrorDetails}`,
