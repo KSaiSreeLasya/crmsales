@@ -44,11 +44,15 @@ export const handleSyncLeads: RequestHandler = async (req, res) => {
       return;
     }
 
-    // Validate leads - only require name and email
+    // Validate leads - require name and valid email
     const validLeads = leads.filter((lead) => {
-      const isValid = lead.name && lead.email;
+      const isValid = lead.name && lead.email && isValidEmail(lead.email);
       if (!isValid) {
-        console.log("Invalid lead filtered out - missing name or email:", lead);
+        let reason = "Unknown";
+        if (!lead.name) reason = "Missing name";
+        else if (!lead.email) reason = "Missing email";
+        else reason = `Invalid email: "${lead.email}"`;
+        console.log("Invalid lead filtered out:", reason, lead);
       }
       return isValid;
     });
