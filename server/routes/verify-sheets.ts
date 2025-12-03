@@ -70,9 +70,7 @@ export const handleVerifySheets: RequestHandler = async (req, res) => {
       };
 
       try {
-        console.log(
-          `[VERIFY] Testing ${sheet.name} (ID: ${sheet.id})...`,
-        );
+        console.log(`[VERIFY] Testing ${sheet.name} (ID: ${sheet.id})...`);
 
         const rows = await fetchGoogleSheet(sheetId, sheet.id);
 
@@ -89,8 +87,7 @@ export const handleVerifySheets: RequestHandler = async (req, res) => {
           console.warn(`[VERIFY] ⚠ ${sheet.name}: No rows found`);
         }
       } catch (error) {
-        const errorMsg =
-          error instanceof Error ? error.message : String(error);
+        const errorMsg = error instanceof Error ? error.message : String(error);
         verification.error = errorMsg;
         result.summary.failed++;
         console.error(

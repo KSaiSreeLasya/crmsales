@@ -98,9 +98,7 @@ export const handleTestSyncAllSheets: RequestHandler = async (req, res) => {
       };
 
       try {
-        console.log(
-          `[TEST SYNC] Testing ${sheet.name} (ID: ${sheet.id})...`,
-        );
+        console.log(`[TEST SYNC] Testing ${sheet.name} (ID: ${sheet.id})...`);
 
         // Fetch the sheet data
         const rows = await fetchGoogleSheet(sheetId, sheet.id);
@@ -134,30 +132,28 @@ export const handleTestSyncAllSheets: RequestHandler = async (req, res) => {
           testResult.invalidRows = invalidRows;
 
           // Get sample leads for display
-          testResult.sampleLeads = validLeads
-            .slice(0, 2)
-            .map((lead) => ({
-              name:
-                lead.name ||
-                lead.Name ||
-                lead.full_name ||
-                lead.Full_Name ||
-                "N/A",
-              email:
-                lead.email ||
-                lead.Email ||
-                lead.email_address ||
-                lead.Email_Address ||
-                "N/A",
-              phone:
-                lead.phone ||
-                lead.Phone ||
-                lead.phone_no ||
-                lead.Phone_No ||
-                lead.contact ||
-                lead.Contact ||
-                "(optional)",
-            }));
+          testResult.sampleLeads = validLeads.slice(0, 2).map((lead) => ({
+            name:
+              lead.name ||
+              lead.Name ||
+              lead.full_name ||
+              lead.Full_Name ||
+              "N/A",
+            email:
+              lead.email ||
+              lead.Email ||
+              lead.email_address ||
+              lead.Email_Address ||
+              "N/A",
+            phone:
+              lead.phone ||
+              lead.Phone ||
+              lead.phone_no ||
+              lead.Phone_No ||
+              lead.contact ||
+              lead.Contact ||
+              "(optional)",
+          }));
 
           testResult.success = true;
           result.summary.successfulSheets++;
@@ -169,8 +165,7 @@ export const handleTestSyncAllSheets: RequestHandler = async (req, res) => {
           );
         }
       } catch (error) {
-        const errorMsg =
-          error instanceof Error ? error.message : String(error);
+        const errorMsg = error instanceof Error ? error.message : String(error);
         testResult.error = errorMsg;
         result.summary.failedSheets++;
         console.error(

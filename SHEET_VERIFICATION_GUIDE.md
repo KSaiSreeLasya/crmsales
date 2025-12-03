@@ -8,11 +8,11 @@ This guide explains how to verify and test the Google Sheets sync configuration,
 
 The application is configured to sync the following sheets:
 
-| Month | Sheet ID | Status |
-|-------|----------|--------|
-| October | `0` | Default/Primary Sheet |
-| November | `1892152973` | Secondary Sheet |
-| December | `1355430272` | Secondary Sheet |
+| Month    | Sheet ID     | Status                |
+| -------- | ------------ | --------------------- |
+| October  | `0`          | Default/Primary Sheet |
+| November | `1892152973` | Secondary Sheet       |
+| December | `1355430272` | Secondary Sheet       |
 
 **Spreadsheet ID:** `1QY8_Q8-ybLKNVs4hynPZslZDwUfC-PIJrViJfL0-tpM`
 
@@ -37,14 +37,17 @@ Previously, `sync-leads-scheduled.ts` required phone numbers, but `sync-leads-dy
 Tests whether all configured sheets are accessible and returns basic metadata.
 
 **Query Parameters:**
+
 - `spreadsheetId` (optional): Spreadsheet ID to test (defaults to configured ID)
 
 **Example:**
+
 ```bash
 curl "http://localhost:5173/api/verify-sheets"
 ```
 
 **Response:**
+
 ```json
 {
   "spreadsheetId": "1QY8_Q8-ybLKNVs4hynPZslZDwUfC-PIJrViJfL0-tpM",
@@ -88,20 +91,24 @@ curl "http://localhost:5173/api/verify-sheets"
 Tests the complete sync process without saving to database. Validates that all sheets can be fetched and parsed correctly.
 
 **Query Parameters:**
+
 - `spreadsheetId` (optional): Spreadsheet ID to test (defaults to configured ID)
 - `dryRun` (optional): Set to `"false"` to actually sync data (default is `"true"`)
 
 **Example (Dry Run - Recommended):**
+
 ```bash
 curl -X POST "http://localhost:5173/api/test-sync-all-sheets?dryRun=true"
 ```
 
 **Example (Actual Sync):**
+
 ```bash
 curl -X POST "http://localhost:5173/api/test-sync-all-sheets?dryRun=false"
 ```
 
 **Response:**
+
 ```json
 {
   "spreadsheetId": "1QY8_Q8-ybLKNVs4hynPZslZDwUfC-PIJrViJfL0-tpM",
@@ -178,6 +185,7 @@ curl -X POST "http://localhost:5173/api/test-sync-all-sheets?dryRun=false"
 
 1. Ensure `GOOGLE_SHEETS_API_KEY` is configured in your environment
 2. Use the fetch-google-sheets-metadata endpoint:
+
    ```bash
    curl "http://localhost:5173/api/fetch-google-sheets-metadata?spreadsheetId=1QY8_Q8-ybLKNVs4hynPZslZDwUfC-PIJrViJfL0-tpM"
    ```
@@ -208,12 +216,14 @@ curl -X POST "http://localhost:5173/api/test-sync-all-sheets?dryRun=false"
 ### Issue: "Sheet not found" or "Sheet ID mismatch"
 
 **Possible Causes:**
+
 1. Sheet ID is incorrect
 2. Sheet was deleted or renamed in Google Sheets
 3. The sheet is not part of the configured spreadsheet
 4. Google Sheets API is not accessible
 
 **Solutions:**
+
 1. Verify sheet IDs match the actual sheets in your Google Sheets document
 2. Use the `/api/fetch-google-sheets-metadata` endpoint to get current sheet IDs
 3. Update the sheet IDs in:
@@ -234,10 +244,12 @@ The application has a fallback to hardcoded sheet IDs when the API key is not av
 ### Issue: Validation errors - "No valid leads found"
 
 **Possible Causes:**
+
 1. Sheet columns don't match expected format (name, email required)
 2. Data rows are missing required fields
 
 **Solutions:**
+
 1. Check that each data row has:
    - A name or full name column
    - An email address column
@@ -249,14 +261,17 @@ The application has a fallback to hardcoded sheet IDs when the API key is not av
 ### Validation Consistency Fix
 
 **Files Modified:**
+
 - `netlify/functions/sync-leads-scheduled.ts`: Updated `validateLead()` function to make phone optional
 
 **What Changed:**
+
 - Previously: Required name, email, AND phone
 - Now: Required name and email, phone is optional
 - This matches the behavior of `sync-leads-dynamic.ts`
 
 **Impact:**
+
 - More leads will pass validation
 - Scheduled syncs will now include leads without phone numbers
 - Consistent behavior across all sync methods
@@ -271,6 +286,7 @@ The application has a fallback to hardcoded sheet IDs when the API key is not av
 ## Contact & Support
 
 For issues with Google Sheets API or sheet IDs:
+
 - Check the server logs for detailed error messages
 - Run the verification endpoints to diagnose issues
 - Ensure the spreadsheet ID and sheet IDs are correct
