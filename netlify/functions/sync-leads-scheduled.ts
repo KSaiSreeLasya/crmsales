@@ -59,10 +59,7 @@ const validateLead = (lead: any): boolean => {
   // Name is required for meaningful records
   // Phone is optional (sync-leads-dynamic.ts also makes it optional for consistency)
   return (
-    nameValue &&
-    nameValue.length > 0 &&
-    emailValue &&
-    emailValue.length > 0
+    nameValue && nameValue.length > 0 && emailValue && emailValue.length > 0
   );
 };
 
