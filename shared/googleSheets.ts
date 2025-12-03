@@ -8,14 +8,15 @@ export interface GoogleSheetRow {
 }
 
 /**
- * Normalize column names (case-insensitive, trim whitespace, remove quotes)
+ * Normalize column names (case-insensitive, trim whitespace, remove quotes, handle multiple underscores)
  */
 function normalizeKey(key: string): string {
   return key
-    .trim()
     .toLowerCase()
+    .trim()
     .replace(/^["']|["']$/g, "") // Remove leading/trailing quotes
-    .replace(/\s+/g, "_");
+    .replace(/[\s_]+/g, "_") // Replace all spaces and underscores with single underscore
+    .replace(/[?!-]/g, ""); // Remove special characters like ?, !, -
 }
 
 /**
