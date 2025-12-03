@@ -52,19 +52,10 @@ function convertRowsToObjects(
       const header = headers[j];
       const value = row[j];
 
-      // Normalize header (trim, lowercase, replace spaces with underscores)
-      const normalizedHeader = header
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, "_")
-        .replace(/^["']|["']$/g, "");
-
-      // Store with normalized key
-      if (normalizedHeader) {
-        const trimmedValue =
-          value === undefined || value === null ? "" : String(value).trim();
-        obj[header] = trimmedValue; // Use original header for display
-      }
+      // Keep original header as-is (the parseLeadRow function handles normalization)
+      const trimmedValue =
+        value === undefined || value === null ? "" : String(value).trim();
+      obj[header] = trimmedValue;
     }
 
     result.push(obj);
