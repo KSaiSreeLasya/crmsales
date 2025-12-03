@@ -700,7 +700,9 @@ export default function Leads() {
         } catch {
           errorDetails = fetchResponse.statusText || "Unknown error";
         }
-        throw new Error(`Failed to fetch from Google Sheet API: ${errorDetails}`);
+        throw new Error(
+          `Failed to fetch from Google Sheet API: ${errorDetails}`,
+        );
       }
 
       const fetchData = await fetchResponse.json();
