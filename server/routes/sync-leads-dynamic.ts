@@ -87,78 +87,26 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       return;
     }
 
-    // For dynamic sync, validate that rows have meaningful data
-    // More lenient validation - just need some basic info
+    // For dynamic sync, validate that rows have meaningful data using positional mapping
+    // Column order (consistent across all sheets):
+    // 0: Type of property
+    // 1: Monthly electricity bill
+    // 2: Full name
+    // 3: Phone
+    // 4: Email
+    // 5: Street address
+    // 6: Post code
+    // 7: Lead status
     const validLeads = leads
       .map((lead, index) => {
-        let nameValue = "";
-        let emailValue = "";
-        let phoneValue = "";
+        const values = Object.values(lead);
 
-        // Find name, email, phone across all columns with flexible matching
-        for (const [key, value] of Object.entries(lead)) {
-          const normalizedKey = key
-            .toLowerCase()
-            .trim()
-            .replace(/[\s_]+/g, "_") // Replace all spaces and underscores with single underscore
-            .replace(/[-–!?]/g, ""); // Remove special characters
-          const strValue = String(value || "").trim();
+        // Extract values by position
+        const nameValue = String(values[2] || "").trim();
+        const emailValue = String(values[4] || "").trim();
+        const phoneValue = String(values[3] || "").trim();
 
-          if (!strValue) continue; // Skip empty values
-
-          // Look for name column - be very flexible with matching
-          if (
-            !nameValue &&
-            !normalizedKey.includes("email") &&
-            !normalizedKey.includes("phone") &&
-            !normalizedKey.includes("bill") &&
-            !normalizedKey.includes("address") &&
-            !normalizedKey.includes("code") &&
-            !normalizedKey.includes("status") &&
-            !normalizedKey.includes("note")
-          ) {
-            // If key contains "name" or "full" or is just a generic first column, treat as name
-            if (
-              normalizedKey.includes("name") ||
-              normalizedKey.includes("full") ||
-              normalizedKey === "c" ||
-              normalizedKey === "c:" ||
-              key.trim().match(/^[A-Z]$/) // Single letter column
-            ) {
-              nameValue = strValue;
-            }
-          }
-
-          // Look for email - prioritize columns with "email"
-          if (
-            !emailValue &&
-            (normalizedKey.includes("email") ||
-              normalizedKey.includes("mail")) &&
-            strValue
-          ) {
-            emailValue = strValue;
-          }
-
-          // Look for phone
-          if (
-            !phoneValue &&
-            (normalizedKey.includes("phone") ||
-              normalizedKey.includes("contact") ||
-              normalizedKey.includes("phone_no") ||
-              normalizedKey.includes("mobile") ||
-              normalizedKey.includes("telephone")) &&
-            strValue
-          ) {
-            phoneValue = strValue;
-          }
-        }
-
-        const nonEmptyFields = Object.values(lead).filter(
-          (v) => v !== undefined && v !== null && String(v).trim() !== "",
-        ).length;
-
-        // Validation: require name and email (email required for upsert constraint, phone is optional)
-        // Be more lenient - if it has a name and email, it's valid
+        // Validation: require name and email (phone is optional)
         const isValid =
           nameValue &&
           nameValue.length > 0 &&
