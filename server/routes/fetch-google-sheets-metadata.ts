@@ -2,9 +2,11 @@
  * API Route: GET /api/fetch-google-sheets-metadata
  * Fetches metadata about all sheets in a Google Spreadsheet
  * Uses the Google Sheets API to get sheet names and IDs
+ * Excludes archive, template, and system sheets from the results
  */
 
 import { RequestHandler } from "express";
+import { getSheetsList, filterSheetsForSync } from "../../shared/googleSheets";
 
 interface SheetMetadata {
   id: string;
