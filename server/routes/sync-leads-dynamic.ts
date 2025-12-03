@@ -109,7 +109,8 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           // Match name column (various names: full name, full_name, etc.)
           if (
             !nameValue &&
-            (normalizedKey.includes("full") && normalizedKey.includes("name") ||
+            ((normalizedKey.includes("full") &&
+              normalizedKey.includes("name")) ||
               normalizedKey === "name")
           ) {
             nameValue = strValue;
@@ -259,18 +260,15 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       // Map columns with flexible name matching
       syncData.name =
         mapColumn(["full name", "full_name", "name"]) || "Unknown";
-      syncData.email =
-        mapColumn(["email", "email_address"]) || "";
-      syncData.phone =
-        mapColumn(["phone", "phone_no", "phone_number"]) || "";
-      syncData.company =
-        mapColumn(["company"]) || "";
+      syncData.email = mapColumn(["email", "email_address"]) || "";
+      syncData.phone = mapColumn(["phone", "phone_no", "phone_number"]) || "";
+      syncData.company = mapColumn(["company"]) || "";
       syncData.street_address =
-        mapColumn(["street address", "street_address", "street", "address"]) || "";
+        mapColumn(["street address", "street_address", "street", "address"]) ||
+        "";
       syncData.post_code =
         mapColumn(["post_code", "postal_code", "postcode", "zip_code"]) || "";
-      syncData.lead_status =
-        mapColumn(["lead_status", "status"]) || "";
+      syncData.lead_status = mapColumn(["lead_status", "status"]) || "";
       syncData.electricity_bill =
         mapColumn([
           "electricity_bill",
