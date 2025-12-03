@@ -308,9 +308,12 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       const leadsToUpdateWithPreservedAssignments = existingLeadsToUpdate.map(
         (lead) => {
           const { sheet_id, ...leadWithoutSheetId } = lead;
+          const preservedAssignment = lead.email
+            ? existingAssignments.get(lead.email)
+            : undefined;
           return {
             ...leadWithoutSheetId,
-            assigned_to: existingAssignments.get(lead.email) || "Unassigned",
+            assigned_to: preservedAssignment || lead.assigned_to || "Unassigned",
           };
         },
       );
