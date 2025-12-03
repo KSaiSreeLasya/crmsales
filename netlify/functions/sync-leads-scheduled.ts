@@ -167,8 +167,29 @@ export const handler: Handler = async (event) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Sync all configured sheets (October, November, December)
-    for (const sheet of SHEETS_TO_SYNC) {
+    // Dynamically fetch sheets from the spreadsheet
+    let sheetsToSync: Array<{ id: string; name: string }>;
+    try {
+      const allSheets = await getSheetsList(SPREADSHEET_ID);
+      sheetsToSync = filterSheetsForSync(allSheets);
+      console.log(
+        `[SCHEDULED] Found ${sheetsToSync.length} sheets to sync: ${sheetsToSync.map((s) => s.name).join(", ")}`,
+      );
+    } catch (error) {
+      console.warn(
+        "[SCHEDULED] Failed to fetch sheets dynamically, falling back to default sheets",
+        error,
+      );
+      // Fallback to default sheets if dynamic fetch fails
+      sheetsToSync = [
+        { id: "0", name: "October" },
+        { id: "1892152973", name: "November" },
+        { id: "1355430272", name: "december" },
+      ];
+    }
+
+    // Sync all detected sheets
+    for (const sheet of sheetsToSync) {
       const sheetId = sheet.id;
       const sheetName = sheet.name;
 
