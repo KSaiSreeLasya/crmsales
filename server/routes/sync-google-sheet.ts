@@ -78,35 +78,50 @@ export const handleSyncGoogleSheet: RequestHandler = async (req, res) => {
 
     if (type === "leads") {
       console.log(`Processing ${rows.length} rows from Google Sheet...`);
+
+      // Track invalid rows for better error reporting
+      const invalidRows: Array<{
+        rowIndex: number;
+        reason: string;
+        data: any;
+      }> = [];
+
       const leadsToSync = rows
-        .map((row) => {
+        .map((row, rowIndex) => {
           try {
             const parsed = parseLeadRow(row);
-            return parsed;
+            return { parsed, rowIndex };
           } catch (parseError) {
             console.error("Error parsing row:", parseError, row);
-            return {
-              name: "",
-              email: "",
-              phone: "",
-              company: "",
-              status: "Not lifted" as const,
-              assignedTo: "Unassigned",
-              note1: "",
-              note2: "",
-            };
+            invalidRows.push({
+              rowIndex,
+              reason: `Parse error: ${parseError instanceof Error ? parseError.message : String(parseError)}`,
+              data: row,
+            });
+            return { parsed: null, rowIndex };
           }
         })
-        .filter((lead) => {
-          const isValid = lead.name && lead.email;
+        .filter((item) => {
+          if (!item.parsed) return false;
+
+          const lead = item.parsed;
+          const isValid = lead.name && lead.email && isValidEmail(lead.email);
+
           if (!isValid) {
-            console.log(
-              "Filtering out invalid lead (missing name or email):",
-              lead,
-            );
+            let reason = "Unknown reason";
+            if (!lead.name) reason = "Missing name";
+            else if (!lead.email) reason = "Missing email";
+            else if (!isValidEmail(lead.email)) reason = `Invalid email format: "${lead.email}"`;
+
+            invalidRows.push({
+              rowIndex: item.rowIndex,
+              reason,
+              data: lead,
+            });
           }
           return isValid;
-        });
+        })
+        .map((item) => item.parsed);
 
       if (leadsToSync.length === 0) {
         const sampleInvalidRows = rows
