@@ -39,7 +39,7 @@ interface TestAllSheetsResult {
 const SHEETS_TO_TEST = [
   { id: "0", name: "October" },
   { id: "1892152973", name: "November" },
-  { id: "1355430272", name: "December" },
+  { id: "1355430272", name: "december" },
 ];
 
 const validateLead = (lead: any): boolean => {

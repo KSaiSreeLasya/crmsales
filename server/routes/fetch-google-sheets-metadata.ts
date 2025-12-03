@@ -36,7 +36,7 @@ export const handleFetchGoogleSheetsMetadata: RequestHandler = async (
         sheets: [
           { id: "0", name: "October" },
           { id: "1892152973", name: "November" },
-          { id: "1355430272", name: "December" },
+          { id: "1355430272", name: "december" },
         ],
         warning:
           "⚠️  Using HARDCODED sheet names. If your sheets have different names (e.g., 'Nov', 'Nov 2024'), sync will fail. Set GOOGLE_SHEETS_API_KEY for auto-detection of actual sheet names.",
