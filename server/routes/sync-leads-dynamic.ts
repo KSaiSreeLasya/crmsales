@@ -87,24 +87,52 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       return;
     }
 
-    // For dynamic sync, validate that rows have meaningful data using positional mapping
-    // Column order (consistent across all sheets):
-    // 0: Type of property
-    // 1: Monthly electricity bill
-    // 2: Full name
-    // 3: Phone
-    // 4: Email
-    // 5: Street address
-    // 6: Post code
-    // 7: Lead status
+    // For dynamic sync, validate that rows have meaningful data
+    // Use flexible name matching to handle column name variations
     const validLeads = leads
       .map((lead, index) => {
-        const values = Object.values(lead);
+        let nameValue = "";
+        let emailValue = "";
+        let phoneValue = "";
 
-        // Extract values by position
-        const nameValue = String(values[2] || "").trim();
-        const emailValue = String(values[4] || "").trim();
-        const phoneValue = String(values[3] || "").trim();
+        // Find name, email, phone by flexible name matching
+        for (const [key, value] of Object.entries(lead)) {
+          const strValue = String(value || "").trim();
+          if (!strValue) continue;
+
+          const normalizedKey = key
+            .toLowerCase()
+            .trim()
+            .replace(/[\s_]+/g, "_")
+            .replace(/[-–!?]/g, "");
+
+          // Match name column (various names: full name, full_name, etc.)
+          if (
+            !nameValue &&
+            (normalizedKey.includes("full") && normalizedKey.includes("name") ||
+              normalizedKey === "name")
+          ) {
+            nameValue = strValue;
+          }
+
+          // Match email column
+          if (
+            !emailValue &&
+            (normalizedKey.includes("email") || normalizedKey.includes("mail"))
+          ) {
+            emailValue = strValue;
+          }
+
+          // Match phone column
+          if (
+            !phoneValue &&
+            (normalizedKey.includes("phone") ||
+              normalizedKey.includes("contact") ||
+              normalizedKey.includes("mobile"))
+          ) {
+            phoneValue = strValue;
+          }
+        }
 
         // Validation: require name and email (phone is optional)
         const isValid =
