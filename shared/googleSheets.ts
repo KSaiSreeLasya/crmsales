@@ -220,17 +220,16 @@ export function parseLeadRow(row: GoogleSheetRow) {
 
 /**
  * Parse Google Sheet row with all columns preserved (dynamic sync)
- * Preserves exact column names from the sheet
+ * Preserves exact column names from the sheet and sanitizes values
  */
 export function parseRowDynamic(row: GoogleSheetRow): GoogleSheetRow {
-  // Return all columns as-is, trimming values
+  // Return all columns as-is, sanitizing values for database safety
   const result: GoogleSheetRow = {};
   for (const [key, value] of Object.entries(row)) {
     const trimmedKey = key.trim();
-    const trimmedValue =
-      value === undefined || value === null ? "" : String(value).trim();
+    const sanitized = sanitizeValue(value);
     if (trimmedKey) {
-      result[trimmedKey] = trimmedValue;
+      result[trimmedKey] = sanitized;
     }
   }
   return result;
