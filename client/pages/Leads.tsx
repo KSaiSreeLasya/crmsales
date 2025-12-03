@@ -550,7 +550,7 @@ export default function Leads() {
       if (showNotification) {
         if (error instanceof Error && error.name === "AbortError") {
           toast.error(
-            "Sync request timed out. Server may be busy. Try again later.",
+            "Sync request timed out (sheets with large data may take 1-2 minutes). Please try again.",
           );
         } else {
           toast.error(
