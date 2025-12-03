@@ -43,16 +43,43 @@ interface TestAllSheetsResult {
 }
 
 const validateLead = (lead: any): boolean => {
-  const nameValue = lead.name || lead.Name || lead.full_name || lead.Full_Name;
-  const emailValue =
-    lead.email || lead.Email || lead.email_address || lead.Email_Address;
+  // Use flexible name matching to handle all column name variations
+  let nameValue = "";
+  let emailValue = "";
+
+  for (const [key, value] of Object.entries(lead)) {
+    const strValue = String(value || "").trim();
+    if (!strValue) continue;
+
+    const normalizedKey = key
+      .toLowerCase()
+      .replace(/[\s_]+/g, "_")
+      .replace(/[-–!?]/g, "");
+
+    // Match name column
+    if (
+      !nameValue &&
+      ((normalizedKey.includes("full") && normalizedKey.includes("name")) ||
+        normalizedKey === "name")
+    ) {
+      nameValue = strValue;
+    }
+
+    // Match email column
+    if (
+      !emailValue &&
+      (normalizedKey.includes("email") || normalizedKey.includes("mail"))
+    ) {
+      emailValue = strValue;
+    }
+  }
 
   // Name and email are required (phone is optional for consistency)
   return (
     nameValue &&
-    String(nameValue).trim().length > 0 &&
+    nameValue.length > 0 &&
     emailValue &&
-    String(emailValue).trim().length > 0
+    emailValue.length > 0
   );
 };
 
