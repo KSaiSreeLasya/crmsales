@@ -191,142 +191,44 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       "updated_at",
     ]);
 
-    // Prepare leads data - normalize column names to match Supabase schema
+    // Prepare leads data - map by column position to Supabase schema
+    // Column order (consistent across all sheets):
+    // 0: Type of property
+    // 1: Monthly electricity bill
+    // 2: Full name
+    // 3: Phone
+    // 4: Email
+    // 5: Street address
+    // 6: Post code
+    // 7: Lead status
     const leadsToSync = validLeads.map((lead) => {
-      // Map Google Sheet column names to Supabase column names
+      const values = Object.values(lead);
+
+      // Extract values by position
+      const type_of_property = sanitizeValue(values[0] || "");
+      const avg_monthly_bill = sanitizeValue(values[1] || "");
+      const name = sanitizeValue(values[2] || "");
+      const phone = sanitizeValue(values[3] || "");
+      const email = sanitizeValue(values[4] || "");
+      const street_address = sanitizeValue(values[5] || "");
+      const post_code = sanitizeValue(values[6] || "");
+      const lead_status = sanitizeValue(values[7] || "");
+
       const syncData: any = {
         source: source || "google_sheet",
         sheet_id: sheetId || "0",
+        name: name || "Unknown",
+        email: email || "",
+        phone: phone || "",
+        company: "",
+        status: "Not lifted",
+        street_address: street_address || "",
+        post_code: post_code || "",
+        lead_status: lead_status || "",
+        electricity_bill: avg_monthly_bill || "",
+        type_of_property: type_of_property || "",
+        avg_monthly_bill: avg_monthly_bill || "",
       };
-
-      // First pass: find critical fields (name, email, phone)
-      let foundName = false;
-      let foundEmail = false;
-      let foundPhone = false;
-
-      // Second pass: assign column values
-      for (const [key, value] of Object.entries(lead)) {
-        const normalizedKey = key
-          .toLowerCase()
-          .trim()
-          .replace(/[\s_]+/g, "_") // Replace all spaces and underscores with single underscore
-          .replace(/[-–!?]/g, ""); // Remove special characters
-
-        // Ensure all values are properly formatted and sanitized
-        const formattedValue = sanitizeValue(value);
-
-        if (!formattedValue) continue;
-
-        // Map common column name variations
-        let dbColumn = "";
-
-        if (
-          !foundName &&
-          (normalizedKey.includes("full_name") ||
-            normalizedKey.includes("fullname") ||
-            (normalizedKey.includes("name") &&
-              !normalizedKey.includes("email")))
-        ) {
-          dbColumn = "name";
-          foundName = true;
-        } else if (!foundEmail && normalizedKey.includes("email")) {
-          dbColumn = "email";
-          foundEmail = true;
-        } else if (
-          !foundPhone &&
-          (normalizedKey.includes("phone") ||
-            normalizedKey.includes("contact") ||
-            normalizedKey.includes("mobile"))
-        ) {
-          dbColumn = "phone";
-          foundPhone = true;
-        } else if (normalizedKey.includes("company")) {
-          dbColumn = "company";
-        } else if (
-          normalizedKey.includes("street") ||
-          normalizedKey.includes("address")
-        ) {
-          dbColumn = "street_address";
-        } else if (
-          normalizedKey.includes("post") ||
-          normalizedKey.includes("postal") ||
-          normalizedKey.includes("zip") ||
-          normalizedKey.includes("code")
-        ) {
-          dbColumn = "post_code";
-        } else if (
-          normalizedKey.includes("lead") &&
-          normalizedKey.includes("status")
-        ) {
-          dbColumn = "lead_status";
-        } else if (
-          normalizedKey.includes("type") &&
-          normalizedKey.includes("property")
-        ) {
-          dbColumn = "type_of_property";
-        } else if (
-          normalizedKey.includes("avg") ||
-          (normalizedKey.includes("current") &&
-            normalizedKey.includes("electricity")) ||
-          (normalizedKey.includes("your") &&
-            (normalizedKey.includes("monthly") ||
-              normalizedKey.includes("electricity") ||
-              normalizedKey.includes("bill"))) ||
-          (normalizedKey.includes("monthly") && normalizedKey.includes("bill"))
-        ) {
-          dbColumn = "avg_monthly_bill";
-        } else if (
-          normalizedKey.includes("electricity") ||
-          (normalizedKey.includes("bill") &&
-            !normalizedKey.includes("monthly") &&
-            !normalizedKey.includes("avg"))
-        ) {
-          dbColumn = "electricity_bill";
-        } else if (
-          (normalizedKey.includes("note") ||
-            normalizedKey.includes("feedback")) &&
-          (normalizedKey.includes("1") || normalizedKey.endsWith("_1"))
-        ) {
-          dbColumn = "note1";
-        } else if (
-          (normalizedKey.includes("note") ||
-            normalizedKey.includes("feedback")) &&
-          (normalizedKey.includes("2") || normalizedKey.endsWith("_2"))
-        ) {
-          dbColumn = "note2";
-        } else if (normalizedKey.includes("whatsapp")) {
-          dbColumn = "whatsapp_follow_up";
-        }
-
-        // Only add column if it exists in Supabase schema and has a mapped name
-        if (dbColumn && allowedColumns.has(dbColumn)) {
-          syncData[dbColumn] = formattedValue;
-        }
-      }
-
-      // Ensure required fields exist and are not empty
-      syncData.name = sanitizeValue(syncData.name || "") || "Unknown";
-      syncData.email = sanitizeValue(syncData.email || "");
-      syncData.phone = sanitizeValue(syncData.phone || "");
-      syncData.company = sanitizeValue(syncData.company || "");
-      syncData.status = sanitizeValue(syncData.status || "Not lifted");
-      // Note: Don't set assigned_to here - we'll preserve it from existing records
-
-      // Sanitize optional fields
-      if (syncData.note1) syncData.note1 = sanitizeValue(syncData.note1);
-      if (syncData.note2) syncData.note2 = sanitizeValue(syncData.note2);
-      if (syncData.street_address)
-        syncData.street_address = sanitizeValue(syncData.street_address);
-      if (syncData.post_code)
-        syncData.post_code = sanitizeValue(syncData.post_code);
-      if (syncData.lead_status)
-        syncData.lead_status = sanitizeValue(syncData.lead_status);
-      if (syncData.electricity_bill)
-        syncData.electricity_bill = sanitizeValue(syncData.electricity_bill);
-      if (syncData.type_of_property)
-        syncData.type_of_property = sanitizeValue(syncData.type_of_property);
-      if (syncData.avg_monthly_bill)
-        syncData.avg_monthly_bill = sanitizeValue(syncData.avg_monthly_bill);
 
       // Set timestamps to ensure they're properly recorded
       const now = new Date().toISOString();
