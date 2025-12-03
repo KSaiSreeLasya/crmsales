@@ -170,14 +170,16 @@ export default function Leads() {
   const loadLeads = async () => {
     setIsLoading(true);
     try {
+      // Ensure sheet_id is always compared as a string
+      const sheetIdToFilter = String(selectedSheetId).trim();
       console.log(
-        `Loading leads for sheet_id: "${selectedSheetId}" (type: ${typeof selectedSheetId})`,
+        `Loading leads for sheet_id: "${sheetIdToFilter}" (type: ${typeof sheetIdToFilter})`,
       );
 
       const { data, error } = await supabase
         .from("leads")
         .select("*")
-        .eq("sheet_id", selectedSheetId)
+        .eq("sheet_id", sheetIdToFilter)
         .order("created_at", { ascending: false });
 
       if (error) {
