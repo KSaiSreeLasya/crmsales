@@ -21,6 +21,28 @@ function normalizeKey(key: string): string {
 }
 
 /**
+ * Find a column value by multiple possible names
+ */
+function getColumnValue(
+  row: GoogleSheetRow,
+  ...possibleNames: string[]
+): string {
+  for (const name of possibleNames) {
+    const normalizedName = normalizeKey(name);
+    for (const [key, value] of Object.entries(row)) {
+      const normalizedKey = normalizeKey(key);
+      if (normalizedKey === normalizedName && value) {
+        const result = String(value)
+          .trim()
+          .replace(/^["']|["']$/g, "");
+        if (result) return result;
+      }
+    }
+  }
+  return "";
+}
+
+/**
  * Parse Google Sheet lead row into Lead format
  * Expected column order:
  * A: Type of property
