@@ -8,6 +8,51 @@ export interface GoogleSheetRow {
 }
 
 /**
+ * Sanitize cell values - remove problematic characters that cause JSON encoding issues
+ * Handles newlines, special Unicode characters, and invalid sequences
+ */
+export function sanitizeValue(value: any): string {
+  if (value === null || value === undefined) return "";
+
+  let stringValue = String(value);
+
+  // Remove/replace problematic characters
+  // 1. Replace newlines and carriage returns with spaces
+  stringValue = stringValue.replace(/[\r\n\t]/g, " ");
+
+  // 2. Remove null bytes (can cause encoding issues)
+  stringValue = stringValue.replace(/\0/g, "");
+
+  // 3. Remove control characters (ASCII 0-31, except for space which we've handled)
+  stringValue = stringValue.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, "");
+
+  // 4. Normalize multiple spaces to single space
+  stringValue = stringValue.replace(/\s+/g, " ");
+
+  // 5. Trim whitespace
+  stringValue = stringValue.trim();
+
+  // 6. Limit length to prevent database field overflow (reasonable limit for TEXT fields)
+  // Most TEXT columns should handle 65KB, but let's be conservative and limit to 10000 chars
+  if (stringValue.length > 10000) {
+    stringValue = stringValue.substring(0, 10000);
+    console.warn("Value truncated to 10000 characters to prevent overflow");
+  }
+
+  return stringValue;
+}
+
+/**
+ * Validate email format
+ */
+export function isValidEmail(email: string): boolean {
+  if (!email || typeof email !== "string") return false;
+  // Simple email validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email.trim());
+}
+
+/**
  * Normalize column names (case-insensitive, trim whitespace, remove quotes, handle multiple underscores)
  */
 function normalizeKey(key: string): string {
