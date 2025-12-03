@@ -111,7 +111,8 @@ export const handleSyncGoogleSheet: RequestHandler = async (req, res) => {
             let reason = "Unknown reason";
             if (!lead.name) reason = "Missing name";
             else if (!lead.email) reason = "Missing email";
-            else if (!isValidEmail(lead.email)) reason = `Invalid email format: "${lead.email}"`;
+            else if (!isValidEmail(lead.email))
+              reason = `Invalid email format: "${lead.email}"`;
 
             invalidRows.push({
               rowIndex: item.rowIndex,
@@ -159,12 +160,20 @@ export const handleSyncGoogleSheet: RequestHandler = async (req, res) => {
         assigned_to: sanitizeValue(lead.assignedTo || "Unassigned"),
         note1: sanitizeValue(lead.note1 || ""),
         note2: sanitizeValue(lead.note2 || ""),
-        street_address: lead.street_address ? sanitizeValue(lead.street_address) : null,
+        street_address: lead.street_address
+          ? sanitizeValue(lead.street_address)
+          : null,
         post_code: lead.post_code ? sanitizeValue(lead.post_code) : null,
         lead_status: lead.lead_status ? sanitizeValue(lead.lead_status) : null,
-        electricity_bill: lead.electricity_bill ? sanitizeValue(lead.electricity_bill) : null,
-        type_of_property: (lead as any).type_of_property ? sanitizeValue((lead as any).type_of_property) : null,
-        avg_monthly_bill: (lead as any).avg_monthly_bill ? sanitizeValue((lead as any).avg_monthly_bill) : null,
+        electricity_bill: lead.electricity_bill
+          ? sanitizeValue(lead.electricity_bill)
+          : null,
+        type_of_property: (lead as any).type_of_property
+          ? sanitizeValue((lead as any).type_of_property)
+          : null,
+        avg_monthly_bill: (lead as any).avg_monthly_bill
+          ? sanitizeValue((lead as any).avg_monthly_bill)
+          : null,
         source: "google_sheet",
       }));
 

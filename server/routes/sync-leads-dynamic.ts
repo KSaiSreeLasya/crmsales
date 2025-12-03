@@ -367,12 +367,18 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       // Sanitize optional fields
       if (syncData.note1) syncData.note1 = sanitizeValue(syncData.note1);
       if (syncData.note2) syncData.note2 = sanitizeValue(syncData.note2);
-      if (syncData.street_address) syncData.street_address = sanitizeValue(syncData.street_address);
-      if (syncData.post_code) syncData.post_code = sanitizeValue(syncData.post_code);
-      if (syncData.lead_status) syncData.lead_status = sanitizeValue(syncData.lead_status);
-      if (syncData.electricity_bill) syncData.electricity_bill = sanitizeValue(syncData.electricity_bill);
-      if (syncData.type_of_property) syncData.type_of_property = sanitizeValue(syncData.type_of_property);
-      if (syncData.avg_monthly_bill) syncData.avg_monthly_bill = sanitizeValue(syncData.avg_monthly_bill);
+      if (syncData.street_address)
+        syncData.street_address = sanitizeValue(syncData.street_address);
+      if (syncData.post_code)
+        syncData.post_code = sanitizeValue(syncData.post_code);
+      if (syncData.lead_status)
+        syncData.lead_status = sanitizeValue(syncData.lead_status);
+      if (syncData.electricity_bill)
+        syncData.electricity_bill = sanitizeValue(syncData.electricity_bill);
+      if (syncData.type_of_property)
+        syncData.type_of_property = sanitizeValue(syncData.type_of_property);
+      if (syncData.avg_monthly_bill)
+        syncData.avg_monthly_bill = sanitizeValue(syncData.avg_monthly_bill);
 
       // Set timestamps to ensure they're properly recorded
       const now = new Date().toISOString();

@@ -98,9 +98,11 @@ export const handleSyncLeads: RequestHandler = async (req, res) => {
       };
 
       // Add optional fields only if they have values
-      if (lead.street_address) syncData.street_address = sanitizeValue(lead.street_address);
+      if (lead.street_address)
+        syncData.street_address = sanitizeValue(lead.street_address);
       if (lead.post_code) syncData.post_code = sanitizeValue(lead.post_code);
-      if (lead.lead_status) syncData.lead_status = sanitizeValue(lead.lead_status);
+      if (lead.lead_status)
+        syncData.lead_status = sanitizeValue(lead.lead_status);
       if (lead.electricity_bill)
         syncData.electricity_bill = sanitizeValue(lead.electricity_bill);
       if (lead.type_of_property)
