@@ -461,9 +461,9 @@ export default function Leads() {
 
       console.log(`Extracted ${extractedDateRows.length} date rows`);
 
-      // Sync all columns dynamically (no parsing, just pass raw data) with 60 second timeout
+      // Sync all columns dynamically (no parsing, just pass raw data) with 120 second timeout
       const syncController = new AbortController();
-      const syncTimeoutId = setTimeout(() => syncController.abort(), 60000);
+      const syncTimeoutId = setTimeout(() => syncController.abort(), 120000);
 
       const syncResponse = await fetch("/api/sync-leads-dynamic", {
         method: "POST",
