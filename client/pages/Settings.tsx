@@ -4,10 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertCircle, CheckCircle, RefreshCw } from "lucide-react";
+import { AlertCircle, CheckCircle, RefreshCw, Info } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { extractSpreadsheetId } from "@shared/googleSheets";
+
+interface Sheet {
+  id: string;
+  name: string;
+}
 
 export default function Settings() {
   const [leadsSheetUrl, setLeadsSheetUrl] = useState("");
@@ -15,6 +20,8 @@ export default function Settings() {
   const [supabaseStatus, setSupabaseStatus] = useState("connected");
   const [isSyncingLeads, setIsSyncingLeads] = useState(false);
   const [isSyncingSalespersons, setIsSyncingSalespersons] = useState(false);
+  const [leadsSheets, setLeadsSheets] = useState<Sheet[]>([]);
+  const [syncProgress, setSyncProgress] = useState("");
 
   const handleSyncLeads = async () => {
     if (!leadsSheetUrl.trim()) {
@@ -29,30 +36,99 @@ export default function Settings() {
     }
 
     setIsSyncingLeads(true);
+    setSyncProgress("");
     try {
-      const response = await fetch("/api/sync-google-sheet", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      // First, fetch all available sheets
+      const metadataResponse = await fetch(
+        `/api/fetch-google-sheets-metadata?spreadsheetId=${encodeURIComponent(
           spreadsheetId,
-          sheetId: "0",
-          type: "leads",
-        }),
-      });
+        )}`,
+      );
 
-      const result = await response.json();
+      if (!metadataResponse.ok) {
+        throw new Error("Failed to fetch sheet metadata");
+      }
 
-      if (response.ok && result.success) {
+      const metadataResult = await metadataResponse.json();
+      const sheetsToSync = metadataResult.sheets || [
+        { id: "0", name: "October" },
+        { id: "1892152973", name: "November" },
+        { id: "1355430272", name: "december" },
+      ];
+
+      setLeadsSheets(sheetsToSync);
+      setSyncProgress(
+        `Found ${sheetsToSync.length} sheets. Starting sync...`,
+      );
+
+      let totalSynced = 0;
+      let failedSheets = [];
+
+      // Sync each sheet
+      for (const sheet of sheetsToSync) {
+        setSyncProgress(
+          `Syncing "${sheet.name}"... (${sheetsToSync.indexOf(sheet) + 1}/${sheetsToSync.length})`,
+        );
+
+        try {
+          const response = await fetch("/api/sync-google-sheet", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              spreadsheetId,
+              sheetId: sheet.id,
+              type: "leads",
+            }),
+          });
+
+          const result = await response.json();
+
+          if (response.ok && result.success) {
+            totalSynced += result.synced || 0;
+            setSyncProgress(
+              `✓ Synced "${sheet.name}": ${result.synced || 0} leads`,
+            );
+          } else {
+            failedSheets.push({
+              name: sheet.name,
+              error: result.error || "Unknown error",
+            });
+            setSyncProgress(
+              `✗ Failed to sync "${sheet.name}": ${result.error || "Unknown error"}`,
+            );
+          }
+        } catch (error) {
+          failedSheets.push({
+            name: sheet.name,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          setSyncProgress(
+            `✗ Error syncing "${sheet.name}": ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+      }
+
+      // Show final result
+      if (failedSheets.length === 0) {
         toast.success(
-          `Successfully synced ${result.synced} leads from Google Sheet`,
+          `Successfully synced all ${sheetsToSync.length} sheets with ${totalSynced} total leads!`,
+        );
+        setSyncProgress(
+          `✓ Completed! Synced ${totalSynced} leads from ${sheetsToSync.length} sheets`,
         );
       } else {
-        toast.error(result.error || "Failed to sync leads");
+        toast.warning(
+          `Synced ${totalSynced} leads. ${failedSheets.length} sheet(s) failed.`,
+        );
+        setSyncProgress(
+          `Completed with errors. Synced ${totalSynced} leads. Failed: ${failedSheets.map((s) => s.name).join(", ")}`,
+        );
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error("Error syncing leads:", errorMessage);
-      toast.error("Failed to sync leads from Google Sheet");
+      toast.error("Failed to sync leads from Google Sheets");
+      setSyncProgress(`Error: ${errorMessage}`);
     } finally {
       setIsSyncingLeads(false);
     }
