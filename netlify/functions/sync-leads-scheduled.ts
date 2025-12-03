@@ -67,90 +67,35 @@ const validateLead = (lead: any): boolean => {
 };
 
 const normalizeLeadData = (lead: any, sheetId: string): any => {
-  // Create normalized keys mapping
+  // Map by column position (consistent across all sheets):
+  // 0: Type of property
+  // 1: Monthly electricity bill
+  // 2: Full name
+  // 3: Phone
+  // 4: Email
+  // 5: Street address
+  // 6: Post code
+  // 7: Lead status
+  const values = Object.values(lead);
+
   const normalized: any = {
     source: "google_sheet",
     sheet_id: sheetId,
+    type_of_property: String(values[0] || "").trim(),
+    avg_monthly_bill: String(values[1] || "").trim(),
+    name: String(values[2] || "").trim(),
+    phone: String(values[3] || "").trim(),
+    email: String(values[4] || "").trim(),
+    street_address: String(values[5] || "").trim(),
+    post_code: String(values[6] || "").trim(),
+    lead_status: String(values[7] || "").trim(),
   };
 
-  // Normalize column names to match Supabase schema
-  for (const [key, value] of Object.entries(lead)) {
-    if (!value) continue;
-
-    const normalizedKey = String(key)
-      .toLowerCase()
-      .trim()
-      .replace(/[\s_]+/g, "_") // Replace all spaces and underscores with single underscore
-      .replace(/[-–!?]/g, ""); // Remove special characters
-    const strValue = String(value).trim();
-
-    // Map common variations
-    if (normalizedKey.includes("full") && normalizedKey.includes("name")) {
-      normalized.name = strValue;
-    } else if (normalizedKey.includes("email")) {
-      normalized.email = strValue;
-    } else if (normalizedKey.includes("phone")) {
-      normalized.phone = strValue;
-    } else if (normalizedKey.includes("company")) {
-      normalized.company = strValue;
-    } else if (
-      normalizedKey.includes("street") ||
-      normalizedKey.includes("address")
-    ) {
-      normalized.street_address = strValue;
-    } else if (
-      normalizedKey.includes("post") ||
-      normalizedKey.includes("postal") ||
-      normalizedKey.includes("zip")
-    ) {
-      normalized.post_code = strValue;
-    } else if (
-      normalizedKey.includes("lead") &&
-      normalizedKey.includes("status")
-    ) {
-      normalized.lead_status = strValue;
-    } else if (
-      normalizedKey.includes("type") &&
-      normalizedKey.includes("property")
-    ) {
-      normalized.type_of_property = strValue;
-    } else if (
-      (normalizedKey.includes("avg") ||
-        normalizedKey.includes("current") ||
-        normalizedKey.includes("your")) &&
-      (normalizedKey.includes("monthly") ||
-        normalizedKey.includes("electricity") ||
-        normalizedKey.includes("bill"))
-    ) {
-      normalized.avg_monthly_bill = strValue;
-    } else if (
-      normalizedKey.includes("electricity") ||
-      (normalizedKey.includes("bill") && !normalizedKey.includes("monthly"))
-    ) {
-      normalized.electricity_bill = strValue;
-    } else if (
-      normalizedKey.includes("feedback") ||
-      normalizedKey.includes("note")
-    ) {
-      if (normalizedKey.includes("1")) {
-        normalized.note1 = strValue;
-      } else if (normalizedKey.includes("2")) {
-        normalized.note2 = strValue;
-      } else {
-        normalized.note1 = strValue;
-      }
-    } else if (normalizedKey.includes("whatsapp")) {
-      normalized.whatsapp_follow_up = strValue;
-    }
-  }
-
-  // Ensure required fields
-  normalized.name = normalized.name || "";
-  normalized.email = normalized.email || "";
-  normalized.phone = normalized.phone || "";
-  normalized.company = normalized.company || "";
+  // Set defaults for fields not coming from the sheet
+  normalized.company = "";
   normalized.status = "Not lifted";
   normalized.assigned_to = "Unassigned";
+  normalized.electricity_bill = normalized.avg_monthly_bill;
 
   return normalized;
 };
