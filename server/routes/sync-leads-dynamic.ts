@@ -257,6 +257,8 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           .toLowerCase()
           .trim()
           .replace(/\s+/g, "_")
+          .replace(/[-–]/g, "_")
+          .replace(/_+/g, "_")
           .replace(/[?]/g, "");
 
         // Ensure all values are properly formatted
@@ -318,6 +320,10 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           normalizedKey.includes("avg") ||
           (normalizedKey.includes("current") &&
             normalizedKey.includes("electricity")) ||
+          (normalizedKey.includes("your") &&
+            (normalizedKey.includes("monthly") ||
+              normalizedKey.includes("electricity") ||
+              normalizedKey.includes("bill"))) ||
           (normalizedKey.includes("monthly") && normalizedKey.includes("bill"))
         ) {
           dbColumn = "avg_monthly_bill";
@@ -329,15 +335,19 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         ) {
           dbColumn = "electricity_bill";
         } else if (
-          normalizedKey.includes("note") &&
+          (normalizedKey.includes("note") ||
+            normalizedKey.includes("feedback")) &&
           (normalizedKey.includes("1") || normalizedKey.endsWith("_1"))
         ) {
           dbColumn = "note1";
         } else if (
-          normalizedKey.includes("note") &&
+          (normalizedKey.includes("note") ||
+            normalizedKey.includes("feedback")) &&
           (normalizedKey.includes("2") || normalizedKey.endsWith("_2"))
         ) {
           dbColumn = "note2";
+        } else if (normalizedKey.includes("whatsapp")) {
+          dbColumn = "whatsapp_follow_up";
         }
 
         // Only add column if it exists in Supabase schema and has a mapped name
