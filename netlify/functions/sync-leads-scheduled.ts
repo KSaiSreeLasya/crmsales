@@ -12,11 +12,12 @@
  *   - "0 23 * * *" = 11:00 PM UTC (India Standard Time: 4:30 AM IST next day)
  *
  * Features:
- * - Syncs both October and November sheets from Google Sheets
+ * - Syncs October, November, and December sheets from Google Sheets
  * - Preserves existing lead assignments during sync
  * - Handles duplicate leads by updating existing records
  * - Logs all sync operations for debugging
  * - Returns detailed sync report with success/failure counts
+ * - Validation: Requires name and email (phone is optional for consistency with sync-leads-dynamic.ts)
  */
 
 import { Handler } from "@netlify/functions";
