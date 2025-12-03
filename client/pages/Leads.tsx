@@ -689,7 +689,18 @@ export default function Leads() {
       clearTimeout(timeoutId);
 
       if (!fetchResponse.ok) {
-        throw new Error("Failed to fetch from Google Sheet API");
+        let errorDetails = "";
+        try {
+          const errorData = await fetchResponse.json();
+          errorDetails =
+            errorData.error || errorData.message || "Unknown error";
+          if (errorData.hint) {
+            errorDetails += ` | ${errorData.hint}`;
+          }
+        } catch {
+          errorDetails = fetchResponse.statusText || "Unknown error";
+        }
+        throw new Error(`Failed to fetch from Google Sheet API: ${errorDetails}`);
       }
 
       const fetchData = await fetchResponse.json();
