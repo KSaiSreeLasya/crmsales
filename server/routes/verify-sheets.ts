@@ -1,11 +1,15 @@
 /**
  * API Route: GET /api/verify-sheets
  * Verifies Google Sheets configuration and tests connectivity
- * Tests sheet IDs for October, November, and December
+ * Automatically discovers all sheets from the spreadsheet
  */
 
 import { RequestHandler } from "express";
-import { fetchGoogleSheet } from "../../shared/googleSheets";
+import {
+  fetchGoogleSheet,
+  getSheetsList,
+  filterSheetsForSync,
+} from "../../shared/googleSheets";
 
 interface SheetVerification {
   name: string;
@@ -28,12 +32,6 @@ interface VerificationResult {
   allSheetsOk: boolean;
   message: string;
 }
-
-const SHEETS_TO_VERIFY = [
-  { id: "0", name: "October" },
-  { id: "1892152973", name: "November" },
-  { id: "1355430272", name: "december" },
-];
 
 export const handleVerifySheets: RequestHandler = async (req, res) => {
   try {
