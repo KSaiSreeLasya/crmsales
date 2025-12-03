@@ -9,6 +9,8 @@ import {
   fetchGoogleSheet,
   parseLeadRow,
   parseSalespersonRow,
+  isValidEmail,
+  sanitizeValue,
 } from "../../shared/googleSheets";
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || "";
@@ -76,48 +78,57 @@ export const handleSyncGoogleSheet: RequestHandler = async (req, res) => {
 
     if (type === "leads") {
       console.log(`Processing ${rows.length} rows from Google Sheet...`);
+
+      // Track invalid rows for better error reporting
+      const invalidRows: Array<{
+        rowIndex: number;
+        reason: string;
+        data: any;
+      }> = [];
+
       const leadsToSync = rows
-        .map((row) => {
+        .map((row, rowIndex) => {
           try {
             const parsed = parseLeadRow(row);
-            return parsed;
+            return { parsed, rowIndex };
           } catch (parseError) {
             console.error("Error parsing row:", parseError, row);
-            return {
-              name: "",
-              email: "",
-              phone: "",
-              company: "",
-              status: "Not lifted" as const,
-              assignedTo: "Unassigned",
-              note1: "",
-              note2: "",
-            };
+            invalidRows.push({
+              rowIndex,
+              reason: `Parse error: ${parseError instanceof Error ? parseError.message : String(parseError)}`,
+              data: row,
+            });
+            return { parsed: null, rowIndex };
           }
         })
-        .filter((lead) => {
-          const isValid = lead.name && lead.email;
+        .filter((item) => {
+          if (!item.parsed) return false;
+
+          const lead = item.parsed;
+          const isValid = lead.name && lead.email && isValidEmail(lead.email);
+
           if (!isValid) {
-            console.log(
-              "Filtering out invalid lead (missing name or email):",
-              lead,
-            );
+            let reason = "Unknown reason";
+            if (!lead.name) reason = "Missing name";
+            else if (!lead.email) reason = "Missing email";
+            else if (!isValidEmail(lead.email))
+              reason = `Invalid email format: "${lead.email}"`;
+
+            invalidRows.push({
+              rowIndex: item.rowIndex,
+              reason,
+              data: lead,
+            });
           }
           return isValid;
-        });
+        })
+        .map((item) => item.parsed);
 
       if (leadsToSync.length === 0) {
-        const sampleInvalidRows = rows
-          .filter((row) => {
-            const parsed = parseLeadRow(row);
-            return !parsed.name || !parsed.email;
-          })
-          .slice(0, 3);
-
         console.error("No valid leads after filtering:", {
           totalRows: rows.length,
-          sampleInvalidRows: sampleInvalidRows.slice(0, 2),
-          requiredFields: "name and email",
+          invalidCount: invalidRows.length,
+          sampleInvalid: invalidRows.slice(0, 3),
         });
 
         res.status(400).json({
@@ -126,7 +137,12 @@ export const handleSyncGoogleSheet: RequestHandler = async (req, res) => {
           processed: rows.length,
           valid: 0,
           sample_row: rows[0] || {},
-          hint: "Each row must have a Name (or Full Name) and Email address. Phone is optional.",
+          invalidRowsCount: invalidRows.length,
+          sampleInvalidRows: invalidRows.slice(0, 5).map((item) => ({
+            row: item.rowIndex + 1,
+            reason: item.reason,
+          })),
+          hint: "Each row must have: 1) A valid Name, 2) A valid Email address (name@domain.com). Phone is optional.",
         });
         return;
       }
@@ -136,20 +152,28 @@ export const handleSyncGoogleSheet: RequestHandler = async (req, res) => {
       );
 
       const leadsData = leadsToSync.map((lead) => ({
-        name: lead.name,
-        email: lead.email,
-        phone: lead.phone || "",
-        company: lead.company || "",
-        status: lead.status || "Not lifted",
-        assigned_to: lead.assignedTo || "Unassigned",
-        note1: lead.note1 || "",
-        note2: lead.note2 || "",
-        street_address: lead.street_address || null,
-        post_code: lead.post_code || null,
-        lead_status: lead.lead_status || null,
-        electricity_bill: lead.electricity_bill || null,
-        type_of_property: (lead as any).type_of_property || null,
-        avg_monthly_bill: (lead as any).avg_monthly_bill || null,
+        name: sanitizeValue(lead.name) || "Unknown",
+        email: sanitizeValue(lead.email),
+        phone: sanitizeValue(lead.phone || ""),
+        company: sanitizeValue(lead.company || ""),
+        status: sanitizeValue(lead.status || "Not lifted"),
+        assigned_to: sanitizeValue(lead.assignedTo || "Unassigned"),
+        note1: sanitizeValue(lead.note1 || ""),
+        note2: sanitizeValue(lead.note2 || ""),
+        street_address: lead.street_address
+          ? sanitizeValue(lead.street_address)
+          : null,
+        post_code: lead.post_code ? sanitizeValue(lead.post_code) : null,
+        lead_status: lead.lead_status ? sanitizeValue(lead.lead_status) : null,
+        electricity_bill: lead.electricity_bill
+          ? sanitizeValue(lead.electricity_bill)
+          : null,
+        type_of_property: (lead as any).type_of_property
+          ? sanitizeValue((lead as any).type_of_property)
+          : null,
+        avg_monthly_bill: (lead as any).avg_monthly_bill
+          ? sanitizeValue((lead as any).avg_monthly_bill)
+          : null,
         source: "google_sheet",
       }));
 

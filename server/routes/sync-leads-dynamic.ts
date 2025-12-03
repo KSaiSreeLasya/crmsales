@@ -6,6 +6,7 @@
 
 import { RequestHandler } from "express";
 import { createClient } from "@supabase/supabase-js";
+import { sanitizeValue, isValidEmail } from "../../shared/googleSheets";
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || "";
 const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || "";
@@ -263,11 +264,8 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           .replace(/[\s_]+/g, "_") // Replace all spaces and underscores with single underscore
           .replace(/[-–!?]/g, ""); // Remove special characters
 
-        // Ensure all values are properly formatted
-        let formattedValue = "";
-        if (value !== undefined && value !== null) {
-          formattedValue = String(value).trim();
-        }
+        // Ensure all values are properly formatted and sanitized
+        const formattedValue = sanitizeValue(value);
 
         if (!formattedValue) continue;
 
@@ -359,12 +357,28 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       }
 
       // Ensure required fields exist and are not empty
-      syncData.name = (syncData.name || "").trim() || "Unknown";
-      syncData.email = (syncData.email || "").trim();
-      syncData.phone = (syncData.phone || "").trim() || "";
-      syncData.company = (syncData.company || "").trim() || "";
-      syncData.status = syncData.status || "Not lifted";
+      syncData.name = sanitizeValue(syncData.name || "") || "Unknown";
+      syncData.email = sanitizeValue(syncData.email || "");
+      syncData.phone = sanitizeValue(syncData.phone || "");
+      syncData.company = sanitizeValue(syncData.company || "");
+      syncData.status = sanitizeValue(syncData.status || "Not lifted");
       // Note: Don't set assigned_to here - we'll preserve it from existing records
+
+      // Sanitize optional fields
+      if (syncData.note1) syncData.note1 = sanitizeValue(syncData.note1);
+      if (syncData.note2) syncData.note2 = sanitizeValue(syncData.note2);
+      if (syncData.street_address)
+        syncData.street_address = sanitizeValue(syncData.street_address);
+      if (syncData.post_code)
+        syncData.post_code = sanitizeValue(syncData.post_code);
+      if (syncData.lead_status)
+        syncData.lead_status = sanitizeValue(syncData.lead_status);
+      if (syncData.electricity_bill)
+        syncData.electricity_bill = sanitizeValue(syncData.electricity_bill);
+      if (syncData.type_of_property)
+        syncData.type_of_property = sanitizeValue(syncData.type_of_property);
+      if (syncData.avg_monthly_bill)
+        syncData.avg_monthly_bill = sanitizeValue(syncData.avg_monthly_bill);
 
       // Set timestamps to ensure they're properly recorded
       const now = new Date().toISOString();
