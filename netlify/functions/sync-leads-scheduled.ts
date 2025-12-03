@@ -48,18 +48,21 @@ interface SyncResult {
 }
 
 const validateLead = (lead: any): boolean => {
-  const nameValue = lead.name || lead.Name || lead.full_name || lead.Full_Name;
-  const emailValue =
-    lead.email || lead.Email || lead.email_address || lead.Email_Address;
+  // Use positional mapping (column order is consistent across all sheets)
+  // Position 2: Full name
+  // Position 4: Email
+  const values = Object.values(lead);
+  const nameValue = String(values[2] || "").trim();
+  const emailValue = String(values[4] || "").trim();
 
   // Email is required for upsert (unique constraint)
   // Name is required for meaningful records
   // Phone is optional (sync-leads-dynamic.ts also makes it optional for consistency)
   return (
     nameValue &&
-    String(nameValue).trim().length > 0 &&
+    nameValue.length > 0 &&
     emailValue &&
-    String(emailValue).trim().length > 0
+    emailValue.length > 0
   );
 };
 
