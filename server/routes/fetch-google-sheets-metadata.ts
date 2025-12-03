@@ -8,11 +8,6 @@
 import { RequestHandler } from "express";
 import { getSheetsList, filterSheetsForSync } from "../../shared/googleSheets";
 
-interface SheetMetadata {
-  id: string;
-  name: string;
-}
-
 export const handleFetchGoogleSheetsMetadata: RequestHandler = async (
   req,
   res,
