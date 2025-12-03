@@ -88,27 +88,27 @@ export const handleSyncLeads: RequestHandler = async (req, res) => {
     // Map leads to Supabase schema - only required fields
     const leadsToSync = validLeads.map((lead) => {
       const syncData: any = {
-        name: lead.name,
-        email: lead.email,
-        phone: lead.phone || "",
-        company: lead.company || "",
-        status: lead.status || "Not lifted",
-        assigned_to: lead.assignedTo || "Unassigned",
+        name: sanitizeValue(lead.name),
+        email: sanitizeValue(lead.email),
+        phone: sanitizeValue(lead.phone || ""),
+        company: sanitizeValue(lead.company || ""),
+        status: sanitizeValue(lead.status || "Not lifted"),
+        assigned_to: sanitizeValue(lead.assignedTo || "Unassigned"),
         source: source || "google_sheet",
       };
 
       // Add optional fields only if they have values
-      if (lead.street_address) syncData.street_address = lead.street_address;
-      if (lead.post_code) syncData.post_code = lead.post_code;
-      if (lead.lead_status) syncData.lead_status = lead.lead_status;
+      if (lead.street_address) syncData.street_address = sanitizeValue(lead.street_address);
+      if (lead.post_code) syncData.post_code = sanitizeValue(lead.post_code);
+      if (lead.lead_status) syncData.lead_status = sanitizeValue(lead.lead_status);
       if (lead.electricity_bill)
-        syncData.electricity_bill = lead.electricity_bill;
+        syncData.electricity_bill = sanitizeValue(lead.electricity_bill);
       if (lead.type_of_property)
-        syncData.type_of_property = lead.type_of_property;
+        syncData.type_of_property = sanitizeValue(lead.type_of_property);
       if (lead.avg_monthly_bill)
-        syncData.avg_monthly_bill = lead.avg_monthly_bill;
-      if (lead.note1) syncData.note1 = lead.note1;
-      if (lead.note2) syncData.note2 = lead.note2;
+        syncData.avg_monthly_bill = sanitizeValue(lead.avg_monthly_bill);
+      if (lead.note1) syncData.note1 = sanitizeValue(lead.note1);
+      if (lead.note2) syncData.note2 = sanitizeValue(lead.note2);
 
       return syncData;
     });
