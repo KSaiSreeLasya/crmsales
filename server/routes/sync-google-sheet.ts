@@ -9,6 +9,8 @@ import {
   fetchGoogleSheet,
   parseLeadRow,
   parseSalespersonRow,
+  isValidEmail,
+  sanitizeValue,
 } from "../../shared/googleSheets";
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || "";
