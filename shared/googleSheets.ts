@@ -105,7 +105,9 @@ export function parseLeadRow(row: GoogleSheetRow) {
 
   // Parse columns with flexible matching
   const type_of_property = findColumnValue([
+    "what_type_of_property_do_you_want_to_install_solar_on",
     "what_type_of_property_do_you_own",
+    "what_type__of_property__do_you_want__to_install_solar_on",
     "type_of_property",
     "type of property",
     "what_type_of_property",
@@ -113,6 +115,7 @@ export function parseLeadRow(row: GoogleSheetRow) {
   ]);
 
   const avg_monthly_bill = findColumnValue([
+    "what_is_your_average_monthly_electricity_bill",
     "what_is_your_current_electricity_bill",
     "current_electricity_bill",
     "monthly_electricity_bill",
