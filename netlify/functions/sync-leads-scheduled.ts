@@ -77,9 +77,8 @@ const normalizeLeadData = (lead: any, sheetId: string): any => {
     const normalizedKey = String(key)
       .toLowerCase()
       .trim()
-      .replace(/\s+/g, "_")
-      .replace(/[-–]/g, "_")
-      .replace(/[?]/g, "");
+      .replace(/[\s_]+/g, "_") // Replace all spaces and underscores with single underscore
+      .replace(/[-–!?]/g, ""); // Remove special characters
     const strValue = String(value).trim();
 
     // Map common variations
