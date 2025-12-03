@@ -105,7 +105,9 @@ export function parseLeadRow(row: GoogleSheetRow) {
 
   // Parse columns with flexible matching
   const type_of_property = findColumnValue([
+    "what_type_of_property_do_you_want_to_install_solar_on",
     "what_type_of_property_do_you_own",
+    "what_type__of_property__do_you_want__to_install_solar_on",
     "type_of_property",
     "type of property",
     "what_type_of_property",
@@ -113,6 +115,7 @@ export function parseLeadRow(row: GoogleSheetRow) {
   ]);
 
   const avg_monthly_bill = findColumnValue([
+    "what_is_your_average_monthly_electricity_bill",
     "what_is_your_current_electricity_bill",
     "current_electricity_bill",
     "monthly_electricity_bill",
@@ -148,6 +151,8 @@ export function parseLeadRow(row: GoogleSheetRow) {
   const lead_status = findColumnValue(["lead_status", "lead status"]);
 
   const note1 = findColumnValue([
+    "feedback_1",
+    "feedback-1",
     "note_1",
     "note 1",
     "note1",
@@ -156,11 +161,19 @@ export function parseLeadRow(row: GoogleSheetRow) {
   ]);
 
   const note2 = findColumnValue([
+    "feedback_2",
+    "feedback-2",
     "note_2",
     "note 2",
     "note2",
     "notes_2",
     "notes",
+  ]);
+
+  const whatsappFollowUp = findColumnValue([
+    "whatsapp_follow_up",
+    "whatsapp follow up",
+    "whatsapp follow-up",
   ]);
 
   const parsed = {
@@ -178,6 +191,7 @@ export function parseLeadRow(row: GoogleSheetRow) {
     assignedTo: "Unassigned",
     note1: note1 || "",
     note2: note2 || "",
+    whatsapp_follow_up: whatsappFollowUp || "",
   };
 
   return parsed;
