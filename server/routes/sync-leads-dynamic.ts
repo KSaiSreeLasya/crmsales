@@ -264,11 +264,8 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           .replace(/[\s_]+/g, "_") // Replace all spaces and underscores with single underscore
           .replace(/[-–!?]/g, ""); // Remove special characters
 
-        // Ensure all values are properly formatted
-        let formattedValue = "";
-        if (value !== undefined && value !== null) {
-          formattedValue = String(value).trim();
-        }
+        // Ensure all values are properly formatted and sanitized
+        const formattedValue = sanitizeValue(value);
 
         if (!formattedValue) continue;
 
