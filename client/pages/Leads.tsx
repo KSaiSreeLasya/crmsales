@@ -690,7 +690,6 @@ export default function Leads() {
 
       if (!fetchResponse.ok) {
         let errorDetails = "";
-        let apiKeyMissing = false;
         try {
           const errorData = await fetchResponse.json();
           errorDetails =
@@ -698,135 +697,130 @@ export default function Leads() {
           if (errorData.hint) {
             errorDetails += ` | ${errorData.hint}`;
           }
-          // Check if the error is due to missing API key
-          apiKeyMissing =
-            fetchResponse.status === 500 &&
-            errorDetails.includes("API key not configured");
         } catch {
           errorDetails = fetchResponse.statusText || "Unknown error";
         }
 
-        // Fallback to CSV export method if API key is missing
-        if (apiKeyMissing) {
-          console.log(
-            "API key not available, falling back to CSV export method...",
+        // Fallback to CSV export method for ANY API failure
+        console.warn(
+          `API fetch failed (${fetchResponse.status}), falling back to CSV export method...`,
+        );
+        if (showNotification && loadingToastId !== undefined) {
+          toast.dismiss(loadingToastId);
+          loadingToastId = toast.loading(
+            "Syncing leads using CSV export...",
           );
-          if (showNotification && loadingToastId !== undefined) {
-            toast.dismiss(loadingToastId);
-            loadingToastId = toast.loading(
-              "Syncing leads using CSV export... (no API key needed)",
-            );
+        }
+
+        // Use the CSV-based endpoint with sheet ID instead
+        const csvController = new AbortController();
+        const csvTimeoutId = setTimeout(
+          () => csvController.abort(),
+          180000,
+        );
+
+        const csvResponse = await fetch(
+          `/api/fetch-google-sheet?spreadsheetId=${SPREADSHEET_ID}&sheetId=${sheetId}`,
+          { signal: csvController.signal },
+        );
+        clearTimeout(csvTimeoutId);
+
+        if (!csvResponse.ok) {
+          let csvErrorDetails = "";
+          try {
+            const errorData = await csvResponse.json();
+            csvErrorDetails =
+              errorData.error || errorData.message || "Unknown error";
+          } catch {
+            csvErrorDetails =
+              csvResponse.statusText || "Unknown error";
           }
-
-          // Use the CSV-based endpoint with sheet ID
-          const csvController = new AbortController();
-          const csvTimeoutId = setTimeout(
-            () => csvController.abort(),
-            180000,
+          throw new Error(
+            `Failed to fetch using CSV export: ${csvErrorDetails}`,
           );
+        }
 
-          const csvResponse = await fetch(
-            `/api/fetch-google-sheet?spreadsheetId=${SPREADSHEET_ID}&sheetId=${sheetId}`,
-            { signal: csvController.signal },
-          );
-          clearTimeout(csvTimeoutId);
+        const csvData = await csvResponse.json();
+        const rows = csvData.rows;
 
-          if (!csvResponse.ok) {
-            let csvErrorDetails = "";
-            try {
-              const errorData = await csvResponse.json();
-              csvErrorDetails =
-                errorData.error || errorData.message || "Unknown error";
-            } catch {
-              csvErrorDetails =
-                csvResponse.statusText || "Unknown error";
-            }
-            throw new Error(
-              `Failed to fetch using CSV export: ${csvErrorDetails}`,
-            );
-          }
+        console.log(
+          `✓ Fetched ${rows.length} rows from sheet ${sheetName} via CSV export (fallback from API)`,
+        );
 
-          const csvData = await csvResponse.json();
-          const rows = csvData.rows;
-
-          console.log(
-            `✓ Fetched ${rows.length} rows from sheet ${sheetName} via CSV export (fallback)`,
-          );
-
-          // Continue with the CSV data (same processing as API data)
-          if (rows.length === 0) {
-            if (showNotification) {
-              if (loadingToastId !== undefined) toast.dismiss(loadingToastId);
-              toast.error("Selected sheet is empty");
-            }
-            setIsSyncing(false);
-            return;
-          }
-
-          // Extract date rows and process the data
-          const extractedDateRows: DateRowMarker[] = [];
-          let currentDate: string | null = null;
-          const dataRows = rows
-            .map((row: any, index: number) => {
-              if (row._isDateRow === "true" || row._isDateRow === true) {
-                extractedDateRows.push(row as DateRowMarker);
-                const dateStr = row._dateValue;
-                if (dateStr && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-                  currentDate = `${dateStr}T00:00:00.000Z`;
-                  console.log(`✓ Date marker found: ${dateStr}`);
-                }
-                return null;
-              }
-
-              if (currentDate && !row.created_at) {
-                row.created_at = currentDate;
-              }
-
-              return row;
-            })
-            .filter((row): row is any => row !== null);
-
-          console.log(
-            `Extracted ${extractedDateRows.length} date rows, applied to ${dataRows.length} leads`,
-          );
-
-          // Sync to Supabase
-          const syncResponse = await fetch("/api/sync-leads-dynamic", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              leads: dataRows,
-              source: "google_sheet",
-              sheetId: sheetId,
-              dateRows: extractedDateRows,
-            }),
-          });
-
-          const syncResult = await syncResponse.json();
-
-          if (!syncResponse.ok || !syncResult.success) {
-            throw new Error(
-              syncResult.error ||
-                "Failed to sync leads - check console for details",
-            );
-          }
-
-          // Success - load the leads
-          await loadLeadsForSheet(sheetId, true);
-
+        // Continue with the CSV data (same processing as API data)
+        if (rows.length === 0) {
           if (showNotification) {
             if (loadingToastId !== undefined) toast.dismiss(loadingToastId);
-            toast.success(
-              `✓ Synced ${syncResult.synced} leads from ${sheetName}`,
-            );
+            toast.error("Selected sheet is empty");
           }
-
+          setIsSyncing(false);
           return;
         }
 
-        throw new Error(
-          `Failed to fetch from Google Sheet API: ${errorDetails}`,
+        // Extract date rows and process the data
+        const extractedDateRows: DateRowMarker[] = [];
+        let currentDate: string | null = null;
+        const dataRows = rows
+          .map((row: any, index: number) => {
+            if (row._isDateRow === "true" || row._isDateRow === true) {
+              extractedDateRows.push(row as DateRowMarker);
+              const dateStr = row._dateValue;
+              if (dateStr && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+                currentDate = `${dateStr}T00:00:00.000Z`;
+                console.log(`✓ Date marker found: ${dateStr}`);
+              }
+              return null;
+            }
+
+            if (currentDate && !row.created_at) {
+              row.created_at = currentDate;
+            }
+
+            return row;
+          })
+          .filter((row): row is any => row !== null);
+
+        console.log(
+          `Extracted ${extractedDateRows.length} date rows, applied to ${dataRows.length} leads`,
         );
+
+        // Sync to Supabase
+        const syncResponse = await fetch("/api/sync-leads-dynamic", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            leads: dataRows,
+            source: "google_sheet",
+            sheetId: sheetId,
+            dateRows: extractedDateRows,
+          }),
+        });
+
+        const syncResult = await syncResponse.json();
+
+        if (!syncResponse.ok || !syncResult.success) {
+          throw new Error(
+            syncResult.error ||
+              "Failed to sync leads - check console for details",
+          );
+        }
+
+        // Success - reload the leads from Supabase
+        await new Promise((resolve) => {
+          setTimeout(() => {
+            loadLeads();
+            resolve(null);
+          }, 500);
+        });
+
+        if (showNotification) {
+          if (loadingToastId !== undefined) toast.dismiss(loadingToastId);
+          toast.success(
+            `✓ Synced ${syncResult.synced} leads from ${sheetName}`,
+          );
+        }
+
+        return;
       }
 
       const fetchData = await fetchResponse.json();
