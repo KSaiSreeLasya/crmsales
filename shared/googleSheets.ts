@@ -16,7 +16,8 @@ function normalizeKey(key: string): string {
     .trim()
     .replace(/^["']|["']$/g, "") // Remove leading/trailing quotes
     .replace(/[\s_]+/g, "_") // Replace all spaces and underscores with single underscore
-    .replace(/[?!-]/g, ""); // Remove special characters like ?, !, -
+    .replace(/[?!]/g, "") // Remove special characters like ? and !
+    .replace(/-/g, ""); // Remove dashes
 }
 
 /**
@@ -54,16 +55,6 @@ function getColumnValue(
  * H: Lead status
  */
 export function parseLeadRow(row: GoogleSheetRow) {
-  // Normalize a key by converting all whitespace and multiple underscores to single underscores
-  const normalizeKey = (key: string): string => {
-    return key
-      .toLowerCase()
-      .trim()
-      .replace(/^["']|["']$/g, "") // Remove leading/trailing quotes
-      .replace(/[\s_]+/g, "_") // Replace all spaces and underscores with single underscore
-      .replace(/[?!-]/g, ""); // Remove special characters like ?, !, -
-  };
-
   // Create a map of normalized keys to values for flexible matching
   const columnMap: { [normalizedKey: string]: string } = {};
   const allKeys: string[] = [];
