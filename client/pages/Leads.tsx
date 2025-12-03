@@ -155,7 +155,7 @@ export default function Leads() {
   >([
     { id: "0", name: "Hyderabad Leads" },
     { id: "1892152973", name: "November" },
-    { id: "1355430272", name: "December" },
+    { id: "1355430272", name: "december" },
   ]);
   const [isLoadingSheets, setIsLoadingSheets] = useState(false);
 
@@ -689,7 +689,20 @@ export default function Leads() {
       clearTimeout(timeoutId);
 
       if (!fetchResponse.ok) {
-        throw new Error("Failed to fetch from Google Sheet API");
+        let errorDetails = "";
+        try {
+          const errorData = await fetchResponse.json();
+          errorDetails =
+            errorData.error || errorData.message || "Unknown error";
+          if (errorData.hint) {
+            errorDetails += ` | ${errorData.hint}`;
+          }
+        } catch {
+          errorDetails = fetchResponse.statusText || "Unknown error";
+        }
+        throw new Error(
+          `Failed to fetch from Google Sheet API: ${errorDetails}`,
+        );
       }
 
       const fetchData = await fetchResponse.json();

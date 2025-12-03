@@ -32,7 +32,7 @@ interface VerificationResult {
 const SHEETS_TO_VERIFY = [
   { id: "0", name: "October" },
   { id: "1892152973", name: "November" },
-  { id: "1355430272", name: "December" },
+  { id: "1355430272", name: "december" },
 ];
 
 export const handleVerifySheets: RequestHandler = async (req, res) => {

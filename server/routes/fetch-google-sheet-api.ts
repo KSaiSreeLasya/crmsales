@@ -83,9 +83,12 @@ export const handleFetchGoogleSheetApi: RequestHandler = async (req, res) => {
     }
 
     if (!GOOGLE_SHEETS_API_KEY) {
+      console.error("[FETCH API] ERROR: GOOGLE_SHEETS_API_KEY not configured");
+      console.error("[FETCH API] Requested sheet name:", sheetName);
       res.status(500).json({
         error: "Google Sheets API key not configured",
-        hint: "Set GOOGLE_SHEETS_API_KEY environment variable",
+        hint: "Set GOOGLE_SHEETS_API_KEY environment variable. Sync will not work for November/December sheets.",
+        requestedSheetName: sheetName,
       });
       return;
     }
@@ -94,24 +97,50 @@ export const handleFetchGoogleSheetApi: RequestHandler = async (req, res) => {
     const resolvedSheetName = sheetName || "Sheet1";
 
     console.log(
-      `Fetching Google Sheet via API: ${spreadsheetId}, Sheet: ${resolvedSheetName}`,
+      `[FETCH API] Fetching Google Sheet via API: ${spreadsheetId}, Sheet: ${resolvedSheetName}`,
     );
 
     // Fetch all values from the sheet
-    const allRows = await fetchSheetValues(
-      spreadsheetId,
-      resolvedSheetName,
-      GOOGLE_SHEETS_API_KEY,
-    );
+    try {
+      const allRows = await fetchSheetValues(
+        spreadsheetId,
+        resolvedSheetName,
+        GOOGLE_SHEETS_API_KEY,
+      );
 
-    if (allRows.length === 0) {
-      res.json({
-        success: true,
-        rows: [],
-        count: 0,
-        message: "Sheet is empty",
-      });
-      return;
+      if (allRows.length === 0) {
+        console.log(`[FETCH API] Sheet "${resolvedSheetName}" is empty`);
+        res.json({
+          success: true,
+          rows: [],
+          count: 0,
+          message: "Sheet is empty",
+        });
+        return;
+      }
+    } catch (fetchError) {
+      const errorMsg =
+        fetchError instanceof Error ? fetchError.message : String(fetchError);
+      console.error(
+        `[FETCH API] Failed to fetch sheet "${resolvedSheetName}":`,
+        errorMsg,
+      );
+
+      if (
+        errorMsg.includes("404") ||
+        errorMsg.includes("not found") ||
+        errorMsg.includes("does not exist")
+      ) {
+        res.status(404).json({
+          error: `Sheet "${resolvedSheetName}" not found in spreadsheet`,
+          hint: "Check that the sheet name matches exactly (case-sensitive). Available sheets may be different from expected.",
+          requestedSheetName: resolvedSheetName,
+          message: errorMsg,
+        });
+        return;
+      }
+
+      throw fetchError;
     }
 
     // First row should be headers
