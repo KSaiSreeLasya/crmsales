@@ -256,10 +256,8 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         const normalizedKey = key
           .toLowerCase()
           .trim()
-          .replace(/\s+/g, "_")
-          .replace(/[-–]/g, "_")
-          .replace(/_+/g, "_")
-          .replace(/[?]/g, "");
+          .replace(/[\s_]+/g, "_") // Replace all spaces and underscores with single underscore
+          .replace(/[-–!?]/g, ""); // Remove special characters
 
         // Ensure all values are properly formatted
         let formattedValue = "";
