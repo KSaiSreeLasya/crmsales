@@ -135,10 +135,16 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     // Prepare leads data - normalize column names to match Supabase schema
     const leadsToSync = validLeads.map((lead) => {
       // Map Google Sheet column names to Supabase column names
+      // Ensure sheet_id is always a string
+      const finalSheetId = String(sheetId || "0").trim();
       const syncData: any = {
         source: source || "google_sheet",
-        sheet_id: sheetId || "0",
+        sheet_id: finalSheetId,
       };
+
+      console.log(
+        `Preparing lead with sheet_id: "${finalSheetId}" (type: ${typeof finalSheetId})`,
+      );
 
       // Normalize column names and map to Supabase schema
       for (const [key, value] of Object.entries(lead)) {
