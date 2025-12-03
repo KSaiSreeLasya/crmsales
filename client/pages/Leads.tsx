@@ -223,6 +223,26 @@ export default function Leads() {
             "type:",
             typeof data[0].sheet_id,
           );
+          console.log(
+            "All sheet_ids in loaded data:",
+            [...new Set(data.map((d) => d.sheet_id))],
+          );
+        } else {
+          console.log(
+            "No leads found for sheet_id:",
+            selectedSheetId,
+            "- checking if data exists in other sheets...",
+          );
+          const { data: allLeads } = await supabase
+            .from("leads")
+            .select("sheet_id")
+            .limit(10);
+          if (allLeads) {
+            console.log(
+              "Sample of all sheet_ids in database:",
+              allLeads.map((d) => d.sheet_id),
+            );
+          }
         }
         setLeads(data || []);
       }
