@@ -128,22 +128,11 @@ export function parseLeadRow(row: GoogleSheetRow) {
     "current_bill",
   ]);
 
-  const name = findColumnValue([
-    "full_name",
-    "full_name",
-    "name",
-  ]);
+  const name = findColumnValue(["full_name", "full_name", "name"]);
 
-  const phone = findColumnValue([
-    "phone",
-    "phone_no",
-    "phone_number",
-  ]);
+  const phone = findColumnValue(["phone", "phone_no", "phone_number"]);
 
-  const email = findColumnValue([
-    "email",
-    "email_address",
-  ]);
+  const email = findColumnValue(["email", "email_address"]);
 
   const street_address = findColumnValue([
     "street_address",
@@ -151,16 +140,9 @@ export function parseLeadRow(row: GoogleSheetRow) {
     "address",
   ]);
 
-  const post_code = findColumnValue([
-    "postal_code",
-    "post_code",
-    "postcode",
-  ]);
+  const post_code = findColumnValue(["postal_code", "post_code", "postcode"]);
 
-  const lead_status = findColumnValue([
-    "lead_status",
-    "status",
-  ]);
+  const lead_status = findColumnValue(["lead_status", "status"]);
 
   // Handle feedback variations: "FEEDBACK -1", "FEEDBACK- 2", "FEEDBACK_1", "FEEDBACK-1", etc.
   const note1 = findColumnValue([
@@ -177,10 +159,7 @@ export function parseLeadRow(row: GoogleSheetRow) {
     "notes_2",
   ]);
 
-  const whatsappFollowUp = findColumnValue([
-    "whatsapp_follow_up",
-    "whatsapp",
-  ]);
+  const whatsappFollowUp = findColumnValue(["whatsapp_follow_up", "whatsapp"]);
 
   const parsed = {
     name,
