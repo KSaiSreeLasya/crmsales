@@ -8,14 +8,15 @@ export interface GoogleSheetRow {
 }
 
 /**
- * Normalize column names (case-insensitive, trim whitespace, remove quotes)
+ * Normalize column names (case-insensitive, trim whitespace, remove quotes, handle multiple underscores)
  */
 function normalizeKey(key: string): string {
   return key
-    .trim()
     .toLowerCase()
+    .trim()
     .replace(/^["']|["']$/g, "") // Remove leading/trailing quotes
-    .replace(/\s+/g, "_");
+    .replace(/[\s_]+/g, "_") // Replace all spaces and underscores with single underscore
+    .replace(/[?!-]/g, ""); // Remove special characters like ?, !, -
 }
 
 /**
@@ -53,38 +54,41 @@ function getColumnValue(
  * H: Lead status
  */
 export function parseLeadRow(row: GoogleSheetRow) {
+  // Normalize a key by converting all whitespace and multiple underscores to single underscores
+  const normalizeKey = (key: string): string => {
+    return key
+      .toLowerCase()
+      .trim()
+      .replace(/^["']|["']$/g, "") // Remove leading/trailing quotes
+      .replace(/[\s_]+/g, "_") // Replace all spaces and underscores with single underscore
+      .replace(/[?!-]/g, ""); // Remove special characters like ?, !, -
+  };
+
   // Create a map of normalized keys to values for flexible matching
   const columnMap: { [normalizedKey: string]: string } = {};
   const allKeys: string[] = [];
 
   for (const [key, value] of Object.entries(row)) {
     allKeys.push(key);
-    const normalizedKey = key
-      .toLowerCase()
-      .trim()
-      .replace(/\s+/g, "_")
-      .replace(/^["']|["']$/g, "");
+    const normalizedKey = normalizeKey(key);
     const trimmedValue = String(value || "").trim();
     columnMap[normalizedKey] = trimmedValue;
   }
 
   // Helper function to find a column value by searching for key patterns
   const findColumnValue = (patterns: string[]): string => {
-    // Try exact matches first
+    // Try exact normalized matches first
     for (const pattern of patterns) {
-      const normalizedPattern = pattern
-        .toLowerCase()
-        .trim()
-        .replace(/\s+/g, "_");
+      const normalizedPattern = normalizeKey(pattern);
 
       if (columnMap[normalizedPattern]) {
         return columnMap[normalizedPattern];
       }
     }
 
-    // Try partial/fuzzy matching
+    // Try fuzzy matching with normalized keys
     for (const pattern of patterns) {
-      const normalizedPattern = pattern.toLowerCase().trim();
+      const normalizedPattern = normalizeKey(pattern);
 
       for (const key in columnMap) {
         // Check if pattern appears in key or key appears in pattern
@@ -104,19 +108,19 @@ export function parseLeadRow(row: GoogleSheetRow) {
   };
 
   // Parse columns with flexible matching
+  // Including all variations with spaces, underscores, hyphens, and question marks
   const type_of_property = findColumnValue([
     "what_type_of_property_do_you_want_to_install_solar_on",
     "what_type_of_property_do_you_own",
-    "what_type__of_property__do_you_want__to_install_solar_on",
-    "type_of_property",
-    "type of property",
     "what_type_of_property",
+    "type_of_property",
     "property_type",
   ]);
 
   const avg_monthly_bill = findColumnValue([
     "what_is_your_average_monthly_electricity_bill",
     "what_is_your_current_electricity_bill",
+    "average_monthly_electricity_bill",
     "current_electricity_bill",
     "monthly_electricity_bill",
     "electricity_bill",
@@ -124,57 +128,38 @@ export function parseLeadRow(row: GoogleSheetRow) {
     "current_bill",
   ]);
 
-  const name = findColumnValue(["full_name", "full name", "name"]);
+  const name = findColumnValue(["full_name", "full_name", "name"]);
 
-  const phone = findColumnValue([
-    "phone",
-    "phone_no",
-    "phone no",
-    "phone_number",
-  ]);
+  const phone = findColumnValue(["phone", "phone_no", "phone_number"]);
 
   const email = findColumnValue(["email", "email_address"]);
 
   const street_address = findColumnValue([
     "street_address",
-    "street address",
+    "street",
     "address",
   ]);
 
-  const post_code = findColumnValue([
-    "postal_code",
-    "postal code",
-    "post_code",
-    "postcode",
-  ]);
+  const post_code = findColumnValue(["postal_code", "post_code", "postcode"]);
 
-  const lead_status = findColumnValue(["lead_status", "lead status"]);
+  const lead_status = findColumnValue(["lead_status", "status"]);
 
+  // Handle feedback variations: "FEEDBACK -1", "FEEDBACK- 2", "FEEDBACK_1", "FEEDBACK-1", etc.
   const note1 = findColumnValue([
     "feedback_1",
-    "feedback-1",
+    "feedback_1",
     "note_1",
-    "note 1",
-    "note1",
     "notes_1",
-    "feedback",
   ]);
 
   const note2 = findColumnValue([
     "feedback_2",
-    "feedback-2",
+    "feedback_2",
     "note_2",
-    "note 2",
-    "note2",
     "notes_2",
-    "notes",
   ]);
 
-  const whatsappFollowUp = findColumnValue([
-    "whatsapp_follow_up",
-    "whatsapp follow up",
-    "whatsapp follow-up",
-  ]);
+  const whatsappFollowUp = findColumnValue(["whatsapp_follow_up", "whatsapp"]);
 
   const parsed = {
     name,

@@ -96,7 +96,11 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
         // Find name, email, phone across all columns with flexible matching
         for (const [key, value] of Object.entries(lead)) {
-          const normalizedKey = key.toLowerCase().trim().replace(/\s+/g, "_");
+          const normalizedKey = key
+            .toLowerCase()
+            .trim()
+            .replace(/[\s_]+/g, "_") // Replace all spaces and underscores with single underscore
+            .replace(/[-–!?]/g, ""); // Remove special characters
           const strValue = String(value || "").trim();
 
           if (!strValue) continue; // Skip empty values
@@ -256,10 +260,8 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         const normalizedKey = key
           .toLowerCase()
           .trim()
-          .replace(/\s+/g, "_")
-          .replace(/[-–]/g, "_")
-          .replace(/_+/g, "_")
-          .replace(/[?]/g, "");
+          .replace(/[\s_]+/g, "_") // Replace all spaces and underscores with single underscore
+          .replace(/[-–!?]/g, ""); // Remove special characters
 
         // Ensure all values are properly formatted
         let formattedValue = "";
