@@ -1,11 +1,17 @@
 /**
  * API Route: POST /api/test-sync-all-sheets
- * Tests syncing all sheets (October, November, December) without saving to database
+ * Tests syncing all sheets without saving to database
+ * Automatically discovers all sheets from Google Sheets
  * Useful for verification and debugging sheet configuration
  */
 
 import { RequestHandler } from "express";
-import { fetchGoogleSheet, parseRowDynamic } from "../../shared/googleSheets";
+import {
+  fetchGoogleSheet,
+  parseRowDynamic,
+  getSheetsList,
+  filterSheetsForSync,
+} from "../../shared/googleSheets";
 
 interface SheetTestResult {
   name: string;
@@ -35,12 +41,6 @@ interface TestAllSheetsResult {
   allSheetsOk: boolean;
   message: string;
 }
-
-const SHEETS_TO_TEST = [
-  { id: "0", name: "October" },
-  { id: "1892152973", name: "November" },
-  { id: "1355430272", name: "december" },
-];
 
 const validateLead = (lead: any): boolean => {
   const nameValue = lead.name || lead.Name || lead.full_name || lead.Full_Name;
