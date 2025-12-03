@@ -545,12 +545,16 @@ export default function Leads() {
         syncData.message,
         "Columns:",
         syncData.columnsIncluded,
+        "Saved with sheet_id:",
+        syncData.sheetId,
       );
 
       // Store date rows for display
       setDateRows(extractedDateRows);
 
-      console.log(`About to reload leads for sheet_id: ${sheetId}`);
+      console.log(
+        `About to reload leads for sheet_id: ${sheetId} (Server saved with: ${syncData.sheetId})`,
+      );
       await loadLeads();
       console.log("Leads reloaded after sync");
 
@@ -564,7 +568,7 @@ export default function Leads() {
             ? ` (${extractedDateRows.length} date separators)`
             : "";
         toast.success(
-          `Synced ${syncData.synced} leads${emptyRowsMsg}${dateRowsMsg} with all columns`,
+          `Synced ${syncData.synced} leads${emptyRowsMsg}${dateRowsMsg} with all columns (sheet_id: ${syncData.sheetId})`,
         );
       }
     } catch (error) {
