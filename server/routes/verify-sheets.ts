@@ -1,11 +1,15 @@
 /**
  * API Route: GET /api/verify-sheets
  * Verifies Google Sheets configuration and tests connectivity
- * Tests sheet IDs for October, November, and December
+ * Automatically discovers all sheets from the spreadsheet
  */
 
 import { RequestHandler } from "express";
-import { fetchGoogleSheet } from "../../shared/googleSheets";
+import {
+  fetchGoogleSheet,
+  getSheetsList,
+  filterSheetsForSync,
+} from "../../shared/googleSheets";
 
 interface SheetVerification {
   name: string;
@@ -29,12 +33,6 @@ interface VerificationResult {
   message: string;
 }
 
-const SHEETS_TO_VERIFY = [
-  { id: "0", name: "October" },
-  { id: "1892152973", name: "November" },
-  { id: "1355430272", name: "december" },
-];
-
 export const handleVerifySheets: RequestHandler = async (req, res) => {
   try {
     const { spreadsheetId } = req.query;
@@ -44,12 +42,35 @@ export const handleVerifySheets: RequestHandler = async (req, res) => {
       (spreadsheetId as string) ||
       "1QY8_Q8-ybLKNVs4hynPZslZDwUfC-PIJrViJfL0-tpM";
 
+    console.log(`[VERIFY] Starting sheet verification for: ${sheetId}`);
+
+    // Dynamically fetch sheets from the spreadsheet
+    let sheetsToVerify: Array<{ id: string; name: string }>;
+    try {
+      const allSheets = await getSheetsList(sheetId);
+      sheetsToVerify = filterSheetsForSync(allSheets);
+      console.log(
+        `[VERIFY] Found ${sheetsToVerify.length} sheets to verify: ${sheetsToVerify.map((s) => s.name).join(", ")}`,
+      );
+    } catch (error) {
+      console.warn(
+        "[VERIFY] Failed to fetch sheets dynamically, falling back to default sheets",
+        error,
+      );
+      // Fallback to default sheets if dynamic fetch fails
+      sheetsToVerify = [
+        { id: "0", name: "October" },
+        { id: "1892152973", name: "November" },
+        { id: "1355430272", name: "december" },
+      ];
+    }
+
     const result: VerificationResult = {
       spreadsheetId: sheetId,
       timestamp: new Date().toISOString(),
       sheets: [],
       summary: {
-        total: SHEETS_TO_VERIFY.length,
+        total: sheetsToVerify.length,
         accessible: 0,
         failed: 0,
       },
@@ -57,11 +78,10 @@ export const handleVerifySheets: RequestHandler = async (req, res) => {
       message: "",
     };
 
-    console.log(`[VERIFY] Starting sheet verification for: ${sheetId}`);
-    console.log(`[VERIFY] Testing ${SHEETS_TO_VERIFY.length} sheets...`);
+    console.log(`[VERIFY] Testing ${sheetsToVerify.length} sheets...`);
 
     // Test each sheet
-    for (const sheet of SHEETS_TO_VERIFY) {
+    for (const sheet of sheetsToVerify) {
       const verification: SheetVerification = {
         name: sheet.name,
         id: sheet.id,

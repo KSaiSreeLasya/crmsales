@@ -1,11 +1,17 @@
 /**
  * API Route: POST /api/test-sync-all-sheets
- * Tests syncing all sheets (October, November, December) without saving to database
+ * Tests syncing all sheets without saving to database
+ * Automatically discovers all sheets from Google Sheets
  * Useful for verification and debugging sheet configuration
  */
 
 import { RequestHandler } from "express";
-import { fetchGoogleSheet, parseRowDynamic } from "../../shared/googleSheets";
+import {
+  fetchGoogleSheet,
+  parseRowDynamic,
+  getSheetsList,
+  filterSheetsForSync,
+} from "../../shared/googleSheets";
 
 interface SheetTestResult {
   name: string;
@@ -36,12 +42,6 @@ interface TestAllSheetsResult {
   message: string;
 }
 
-const SHEETS_TO_TEST = [
-  { id: "0", name: "October" },
-  { id: "1892152973", name: "November" },
-  { id: "1355430272", name: "december" },
-];
-
 const validateLead = (lead: any): boolean => {
   const nameValue = lead.name || lead.Name || lead.full_name || lead.Full_Name;
   const emailValue =
@@ -65,13 +65,38 @@ export const handleTestSyncAllSheets: RequestHandler = async (req, res) => {
       "1QY8_Q8-ybLKNVs4hynPZslZDwUfC-PIJrViJfL0-tpM";
     const isDryRun = dryRun !== "false"; // Default to true (dry run)
 
+    console.log(`[TEST SYNC] Starting test sync for all sheets...`);
+    console.log(`[TEST SYNC] Spreadsheet ID: ${sheetId}`);
+    console.log(`[TEST SYNC] Dry run: ${isDryRun}`);
+
+    // Dynamically fetch sheets from the spreadsheet
+    let sheetsToTest: Array<{ id: string; name: string }>;
+    try {
+      const allSheets = await getSheetsList(sheetId);
+      sheetsToTest = filterSheetsForSync(allSheets);
+      console.log(
+        `[TEST SYNC] Found ${sheetsToTest.length} sheets to test: ${sheetsToTest.map((s) => s.name).join(", ")}`,
+      );
+    } catch (error) {
+      console.warn(
+        "[TEST SYNC] Failed to fetch sheets dynamically, falling back to default sheets",
+        error,
+      );
+      // Fallback to default sheets if dynamic fetch fails
+      sheetsToTest = [
+        { id: "0", name: "October" },
+        { id: "1892152973", name: "November" },
+        { id: "1355430272", name: "december" },
+      ];
+    }
+
     const result: TestAllSheetsResult = {
       spreadsheetId: sheetId,
       timestamp: new Date().toISOString(),
       dryRun: isDryRun,
       sheets: [],
       summary: {
-        totalSheets: SHEETS_TO_TEST.length,
+        totalSheets: sheetsToTest.length,
         successfulSheets: 0,
         failedSheets: 0,
         totalLeadsFound: 0,
@@ -81,12 +106,8 @@ export const handleTestSyncAllSheets: RequestHandler = async (req, res) => {
       message: "",
     };
 
-    console.log(`[TEST SYNC] Starting test sync for all sheets...`);
-    console.log(`[TEST SYNC] Spreadsheet ID: ${sheetId}`);
-    console.log(`[TEST SYNC] Dry run: ${isDryRun}`);
-
     // Test each sheet
-    for (const sheet of SHEETS_TO_TEST) {
+    for (const sheet of sheetsToTest) {
       const testResult: SheetTestResult = {
         name: sheet.name,
         sheetId: sheet.id,

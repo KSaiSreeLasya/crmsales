@@ -12,24 +12,26 @@
  *   - "0 23 * * *" = 11:00 PM UTC (India Standard Time: 4:30 AM IST next day)
  *
  * Features:
- * - Syncs October, November, and December sheets from Google Sheets
+ * - Automatically discovers and syncs all sheets from Google Sheets
+ * - New sheets are synced automatically without code changes
  * - Preserves existing lead assignments during sync
  * - Handles duplicate leads by updating existing records
  * - Logs all sync operations for debugging
  * - Returns detailed sync report with success/failure counts
  * - Validation: Requires name and email (phone is optional for consistency with sync-leads-dynamic.ts)
+ * - Excludes archive, template, and system sheets from sync
  */
 
 import { Handler } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
-import { fetchGoogleSheet, parseRowDynamic } from "../../shared/googleSheets";
+import {
+  fetchGoogleSheet,
+  parseRowDynamic,
+  getSheetsList,
+  filterSheetsForSync,
+} from "../../shared/googleSheets";
 
 const SPREADSHEET_ID = "1QY8_Q8-ybLKNVs4hynPZslZDwUfC-PIJrViJfL0-tpM";
-const SHEETS_TO_SYNC = [
-  { id: "0", name: "October" },
-  { id: "1892152973", name: "November" },
-  { id: "1355430272", name: "december" },
-];
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || "";
 const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || "";
@@ -167,8 +169,29 @@ export const handler: Handler = async (event) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Sync all configured sheets (October, November, December)
-    for (const sheet of SHEETS_TO_SYNC) {
+    // Dynamically fetch sheets from the spreadsheet
+    let sheetsToSync: Array<{ id: string; name: string }>;
+    try {
+      const allSheets = await getSheetsList(SPREADSHEET_ID);
+      sheetsToSync = filterSheetsForSync(allSheets);
+      console.log(
+        `[SCHEDULED] Found ${sheetsToSync.length} sheets to sync: ${sheetsToSync.map((s) => s.name).join(", ")}`,
+      );
+    } catch (error) {
+      console.warn(
+        "[SCHEDULED] Failed to fetch sheets dynamically, falling back to default sheets",
+        error,
+      );
+      // Fallback to default sheets if dynamic fetch fails
+      sheetsToSync = [
+        { id: "0", name: "October" },
+        { id: "1892152973", name: "November" },
+        { id: "1355430272", name: "december" },
+      ];
+    }
+
+    // Sync all detected sheets
+    for (const sheet of sheetsToSync) {
       const sheetId = sheet.id;
       const sheetName = sheet.name;
 

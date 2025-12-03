@@ -445,3 +445,74 @@ export async function fetchGoogleSheet(
     throw error;
   }
 }
+
+/**
+ * Get all sheets from a Google Spreadsheet dynamically
+ * Requires GOOGLE_SHEETS_API_KEY environment variable
+ * Returns metadata about all sheets (id and name)
+ */
+export async function getSheetsList(
+  spreadsheetId: string,
+  apiKey?: string,
+): Promise<Array<{ id: string; name: string }>> {
+  const key = apiKey || process.env.GOOGLE_SHEETS_API_KEY || "";
+
+  if (!key) {
+    throw new Error(
+      "GOOGLE_SHEETS_API_KEY is required to fetch sheet metadata",
+    );
+  }
+
+  try {
+    const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?key=${key}&fields=sheets(properties(sheetId,title))`;
+
+    const response = await fetch(apiUrl);
+
+    if (!response.ok) {
+      console.error(
+        "Failed to fetch from Google Sheets API:",
+        response.status,
+        response.statusText,
+      );
+      throw new Error(`Failed to fetch sheet metadata: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const sheets = (data.sheets || []).map((sheet: any) => ({
+      id: String(sheet.properties.sheetId),
+      name: sheet.properties.title,
+    }));
+
+    console.log(`[SHEETS LIST] Found ${sheets.length} total sheets`);
+    sheets.forEach((sheet) => {
+      console.log(`[SHEETS LIST]   - ${sheet.name} (ID: ${sheet.id})`);
+    });
+
+    return sheets;
+  } catch (error) {
+    console.error("Error fetching sheets list:", error);
+    throw error;
+  }
+}
+
+/**
+ * Get sheets to sync - filters out system sheets and archives
+ * Returns only sheets that should be synced for data
+ */
+export function filterSheetsForSync(
+  sheets: Array<{ id: string; name: string }>,
+): Array<{ id: string; name: string }> {
+  // Exclude sheets with these patterns (case-insensitive)
+  const excludePatterns = [
+    /^archive/i,
+    /^template/i,
+    /^backup/i,
+    /^\[.*\]/,
+    /^_/,
+  ];
+
+  return sheets.filter((sheet) => {
+    const name = sheet.name || "";
+    return !excludePatterns.some((pattern) => pattern.test(name));
+  });
+}

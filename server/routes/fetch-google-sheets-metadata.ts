@@ -2,14 +2,11 @@
  * API Route: GET /api/fetch-google-sheets-metadata
  * Fetches metadata about all sheets in a Google Spreadsheet
  * Uses the Google Sheets API to get sheet names and IDs
+ * Excludes archive, template, and system sheets from the results
  */
 
 import { RequestHandler } from "express";
-
-interface SheetMetadata {
-  id: string;
-  name: string;
-}
+import { getSheetsList, filterSheetsForSync } from "../../shared/googleSheets";
 
 export const handleFetchGoogleSheetsMetadata: RequestHandler = async (
   req,
@@ -47,35 +44,20 @@ export const handleFetchGoogleSheetsMetadata: RequestHandler = async (
 
     console.log(`Fetching sheet metadata for spreadsheet: ${spreadsheetId}`);
 
-    // Fetch sheet metadata using Google Sheets API
-    const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?key=${googleSheetsApiKey}&fields=sheets(properties(sheetId,title))`;
+    // Use the shared utility to fetch sheets dynamically
+    const allSheets = await getSheetsList(spreadsheetId, googleSheetsApiKey);
 
-    const response = await fetch(apiUrl);
+    // Filter out archive, template, and system sheets
+    const filteredSheets = filterSheetsForSync(allSheets);
 
-    if (!response.ok) {
-      console.error(
-        "Failed to fetch from Google Sheets API:",
-        response.status,
-        response.statusText,
-      );
-      throw new Error(`Failed to fetch sheet metadata: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    const sheets: SheetMetadata[] = (data.sheets || []).map((sheet: any) => ({
-      id: String(sheet.properties.sheetId),
-      name: sheet.properties.title,
-    }));
-
-    console.log(`Successfully fetched ${sheets.length} sheets`);
-    sheets.forEach((sheet) => {
-      console.log(`  - Sheet: ${sheet.name} (ID: ${sheet.id})`);
-    });
+    console.log(
+      `Successfully fetched ${allSheets.length} total sheets, ${filteredSheets.length} available for sync`,
+    );
 
     res.json({
       success: true,
-      sheets: sheets,
-      count: sheets.length,
+      sheets: filteredSheets,
+      count: filteredSheets.length,
     });
   } catch (error) {
     console.error("Error fetching Google Sheets metadata:", error);
