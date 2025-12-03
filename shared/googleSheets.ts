@@ -55,7 +55,6 @@ function getColumnValue(
  * H: Lead status
  */
 export function parseLeadRow(row: GoogleSheetRow) {
-
   // Create a map of normalized keys to values for flexible matching
   const columnMap: { [normalizedKey: string]: string } = {};
   const allKeys: string[] = [];
