@@ -180,28 +180,47 @@ export const handleTestSyncAllSheets: RequestHandler = async (req, res) => {
           testResult.invalidRows = invalidRows;
 
           // Get sample leads for display
-          testResult.sampleLeads = validLeads.slice(0, 2).map((lead) => ({
-            name:
-              lead.name ||
-              lead.Name ||
-              lead.full_name ||
-              lead.Full_Name ||
-              "N/A",
-            email:
-              lead.email ||
-              lead.Email ||
-              lead.email_address ||
-              lead.Email_Address ||
-              "N/A",
-            phone:
-              lead.phone ||
-              lead.Phone ||
-              lead.phone_no ||
-              lead.Phone_No ||
-              lead.contact ||
-              lead.Contact ||
-              "(optional)",
-          }));
+          testResult.sampleLeads = validLeads.slice(0, 2).map((lead) => {
+            let name = "N/A";
+            let email = "N/A";
+            let phone = "(optional)";
+
+            for (const [key, value] of Object.entries(lead)) {
+              const strValue = String(value || "").trim();
+              if (!strValue) continue;
+
+              const normalizedKey = key
+                .toLowerCase()
+                .replace(/[\s_]+/g, "_")
+                .replace(/[-–!?]/g, "");
+
+              if (
+                name === "N/A" &&
+                ((normalizedKey.includes("full") && normalizedKey.includes("name")) ||
+                  normalizedKey === "name")
+              ) {
+                name = strValue;
+              }
+
+              if (
+                email === "N/A" &&
+                (normalizedKey.includes("email") || normalizedKey.includes("mail"))
+              ) {
+                email = strValue;
+              }
+
+              if (
+                phone === "(optional)" &&
+                (normalizedKey.includes("phone") ||
+                  normalizedKey.includes("contact") ||
+                  normalizedKey.includes("mobile"))
+              ) {
+                phone = strValue;
+              }
+            }
+
+            return { name, email, phone };
+          });
 
           testResult.success = true;
           result.summary.successfulSheets++;
