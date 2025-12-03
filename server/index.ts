@@ -27,6 +27,8 @@ import {
 import { handleTestSupabase } from "./routes/test-supabase";
 import { handleDiagnoseGoogleSheet } from "./routes/diagnose-google-sheet";
 import { handleSplitSheet } from "./routes/split-sheet";
+import { handleVerifySheets } from "./routes/verify-sheets";
+import { handleTestSyncAllSheets } from "./routes/test-sync-all-sheets";
 
 export function createServer() {
   const app = express();
@@ -61,6 +63,8 @@ export function createServer() {
   app.post("/api/sync-google-sheet", handleSyncGoogleSheet);
   app.get("/api/diagnose-google-sheet", handleDiagnoseGoogleSheet);
   app.post("/api/split-sheet", handleSplitSheet);
+  app.get("/api/verify-sheets", handleVerifySheets);
+  app.post("/api/test-sync-all-sheets", handleTestSyncAllSheets);
 
   // CRM API routes
   app.post("/api/sync-leads", handleSyncLeads);

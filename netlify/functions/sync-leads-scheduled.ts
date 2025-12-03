@@ -12,11 +12,12 @@
  *   - "0 23 * * *" = 11:00 PM UTC (India Standard Time: 4:30 AM IST next day)
  *
  * Features:
- * - Syncs both October and November sheets from Google Sheets
+ * - Syncs October, November, and December sheets from Google Sheets
  * - Preserves existing lead assignments during sync
  * - Handles duplicate leads by updating existing records
  * - Logs all sync operations for debugging
  * - Returns detailed sync report with success/failure counts
+ * - Validation: Requires name and email (phone is optional for consistency with sync-leads-dynamic.ts)
  */
 
 import { Handler } from "@netlify/functions";
@@ -46,22 +47,15 @@ interface SyncResult {
 
 const validateLead = (lead: any): boolean => {
   const nameValue = lead.name || lead.Name || lead.full_name || lead.Full_Name;
-  const phoneValue =
-    lead.phone ||
-    lead.Phone ||
-    lead.phone_no ||
-    lead.Phone_No ||
-    lead.contact ||
-    lead.Contact;
   const emailValue =
     lead.email || lead.Email || lead.email_address || lead.Email_Address;
 
   // Email is required for upsert (unique constraint)
+  // Name is required for meaningful records
+  // Phone is optional (sync-leads-dynamic.ts also makes it optional for consistency)
   return (
     nameValue &&
     String(nameValue).trim().length > 0 &&
-    phoneValue &&
-    String(phoneValue).trim().length > 0 &&
     emailValue &&
     String(emailValue).trim().length > 0
   );
@@ -173,7 +167,7 @@ export const handler: Handler = async (event) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Sync both October and November sheets
+    // Sync all configured sheets (October, November, December)
     for (const sheet of SHEETS_TO_SYNC) {
       const sheetId = sheet.id;
       const sheetName = sheet.name;
