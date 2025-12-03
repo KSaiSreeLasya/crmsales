@@ -62,6 +62,7 @@ export function createServer() {
   app.post("/api/sync-google-sheet", handleSyncGoogleSheet);
   app.get("/api/diagnose-google-sheet", handleDiagnoseGoogleSheet);
   app.post("/api/split-sheet", handleSplitSheet);
+  app.get("/api/verify-sheets", handleVerifySheets);
 
   // CRM API routes
   app.post("/api/sync-leads", handleSyncLeads);
