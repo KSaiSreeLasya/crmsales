@@ -38,32 +38,36 @@ async function fetchSheetValues(
   }
 }
 
+function normalizeHeader(header: string): string {
+  return header
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "_")
+    .replace(/^["']|["']$/g, "");
+}
+
 function convertRowsToObjects(
   headers: string[],
   rows: any[][],
 ): GoogleSheetRow[] {
   const result: GoogleSheetRow[] = [];
 
+  // Normalize all headers once
+  const normalizedHeaders = headers.map(normalizeHeader);
+
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     const obj: GoogleSheetRow = {};
 
-    for (let j = 0; j < headers.length; j++) {
-      const header = headers[j];
+    for (let j = 0; j < normalizedHeaders.length; j++) {
+      const normalizedHeader = normalizedHeaders[j];
       const value = row[j];
-
-      // Normalize header (trim, lowercase, replace spaces with underscores)
-      const normalizedHeader = header
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, "_")
-        .replace(/^["']|["']$/g, "");
 
       // Store with normalized key
       if (normalizedHeader) {
         const trimmedValue =
           value === undefined || value === null ? "" : String(value).trim();
-        obj[header] = trimmedValue; // Use original header for display
+        obj[normalizedHeader] = trimmedValue;
       }
     }
 
