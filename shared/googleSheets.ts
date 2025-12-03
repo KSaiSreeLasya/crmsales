@@ -107,8 +107,8 @@ export function parseLeadRow(row: GoogleSheetRow) {
   for (const [key, value] of Object.entries(row)) {
     allKeys.push(key);
     const normalizedKey = normalizeKey(key);
-    const trimmedValue = String(value || "").trim();
-    columnMap[normalizedKey] = trimmedValue;
+    const sanitized = sanitizeValue(value);
+    columnMap[normalizedKey] = sanitized;
   }
 
   // Helper function to find a column value by searching for key patterns
