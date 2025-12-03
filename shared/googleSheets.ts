@@ -16,29 +16,8 @@ function normalizeKey(key: string): string {
     .trim()
     .replace(/^["']|["']$/g, "") // Remove leading/trailing quotes
     .replace(/[\s_]+/g, "_") // Replace all spaces and underscores with single underscore
-    .replace(/[?!-]/g, ""); // Remove special characters like ?, !, -
-}
-
-/**
- * Find a column value by multiple possible names
- */
-function getColumnValue(
-  row: GoogleSheetRow,
-  ...possibleNames: string[]
-): string {
-  for (const name of possibleNames) {
-    const normalizedName = normalizeKey(name);
-    for (const [key, value] of Object.entries(row)) {
-      const normalizedKey = normalizeKey(key);
-      if (normalizedKey === normalizedName && value) {
-        const result = String(value)
-          .trim()
-          .replace(/^["']|["']$/g, "");
-        if (result) return result;
-      }
-    }
-  }
-  return "";
+    .replace(/[?!]/g, "") // Remove special characters like ? and !
+    .replace(/-/g, ""); // Remove dashes
 }
 
 /**
