@@ -74,6 +74,18 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     if (leads.length > 0) {
       console.log("First lead sample:", leads[0]);
       console.log("Available columns:", Object.keys(leads[0]));
+      console.log("Column count:", Object.keys(leads[0]).length);
+
+      // Show first few column values to debug
+      const columnPreview: any = {};
+      Object.keys(leads[0])
+        .slice(0, 10)
+        .forEach((key) => {
+          const val = String(leads[0][key] || "").trim();
+          columnPreview[key] = val.substring(0, 50);
+        });
+      console.log("Column preview:", columnPreview);
+
       if (leads[0].created_at) {
         console.log(
           "[SYNC DEBUG] First lead has created_at:",
@@ -110,10 +122,13 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
     if (validLeads.length === 0) {
       // Provide detailed debugging info
-      const sampleRows = leads.slice(0, 3).map((lead) => {
+      const sampleRows = leads.slice(0, 5).map((lead) => {
         const cleaned: any = {};
         for (const [k, v] of Object.entries(lead)) {
-          if (v && String(v).trim()) cleaned[k] = String(v).substring(0, 50);
+          const strVal = String(v || "").trim();
+          if (strVal) {
+            cleaned[k] = strVal.substring(0, 100);
+          }
         }
         return cleaned;
       });
@@ -121,14 +136,32 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       console.error("No valid leads after filtering:", {
         totalRows: leads.length,
         sampleRows,
+        firstRowKeys: leads.length > 0 ? Object.keys(leads[0]) : [],
         note: "No rows with data found - all rows appear to be empty",
       });
+
+      // Also log which rows were considered empty
+      const emptyRowsExample = leads.slice(0, 3).map((lead, idx) => {
+        const fieldCount = Object.values(lead).filter(
+          (v) => v && String(v).trim() !== "",
+        ).length;
+        return {
+          index: idx,
+          fieldCount,
+          keys: Object.keys(lead).slice(0, 5),
+          values: Object.values(lead)
+            .slice(0, 5)
+            .map((v) => String(v || "").substring(0, 30)),
+        };
+      });
+
+      console.error("Empty row analysis:", emptyRowsExample);
 
       res.status(400).json({
         error:
           "No valid leads found - sheet appears to be empty or all rows have no data.",
         totalRowsFetched: leads.length,
-        sampleDebug: sampleRows.length > 0 ? sampleRows[0] : null,
+        sampleDebug: sampleRows.length > 0 ? sampleRows.slice(0, 3) : null,
         hint: "Ensure your sheet has data in at least one column per row.",
       });
       return;
@@ -211,9 +244,32 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       // Map columns with flexible name matching
       syncData.name =
         mapColumn(["full name", "full_name", "name"]) || "Unknown";
-      syncData.email = mapColumn(["email", "email_address"]) || "";
-      syncData.phone = mapColumn(["phone", "phone_no", "phone_number"]) || "";
-      syncData.company = mapColumn(["company"]) || "";
+
+      // Email is REQUIRED in database (NOT NULL UNIQUE)
+      // Try multiple patterns to find email column with extended matching
+      syncData.email =
+        mapColumn([
+          "email",
+          "email_address",
+          "email address",
+          "e-mail",
+          "e mail",
+          "contact email",
+        ]) || "";
+
+      syncData.phone =
+        mapColumn([
+          "phone",
+          "phone_no",
+          "phone_number",
+          "telephone",
+          "contact phone",
+        ]) || "N/A";
+
+      syncData.company =
+        mapColumn(["company", "organization", "business", "company name"]) ||
+        "N/A";
+
       syncData.street_address =
         mapColumn(["street address", "street_address", "street", "address"]) ||
         "";
@@ -226,12 +282,15 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           "what_is_your_average_monthly_electricity_bill",
           "average_monthly_electricity_bill",
           "monthly_electricity_bill",
+          "avg_bill",
+          "monthly_bill",
         ]) || "";
       syncData.type_of_property =
         mapColumn([
           "what_type_of_property_do_you_want_to_install_solar_on",
           "type_of_property",
           "property_type",
+          "property",
         ]) || "";
       syncData.avg_monthly_bill = syncData.electricity_bill;
       syncData.status = "Not lifted";
@@ -261,11 +320,47 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       return syncData;
     });
 
+    // Validate required fields and filter out invalid leads
+    const requiredFields = ["name", "email", "phone", "company"];
+    const validLeadsForSync = leadsToSync.filter((lead, idx) => {
+      const missing = requiredFields.filter((field) => {
+        const value = lead[field] || "";
+        return String(value).trim() === "" || String(value).trim() === "N/A";
+      });
+
+      if (missing.length > 0) {
+        console.warn(
+          `[SYNC] Row ${idx} skipped - missing required fields: ${missing.join(", ")}. Data: name="${lead.name}", email="${lead.email}"`,
+        );
+        return false;
+      }
+      return true;
+    });
+
+    if (validLeadsForSync.length === 0) {
+      console.error(
+        `[SYNC] All ${leadsToSync.length} leads were filtered out due to missing required fields (name, email, phone, company)`,
+      );
+      console.error("[SYNC] Sample problematic lead:", leadsToSync[0]);
+
+      res.status(400).json({
+        error:
+          "All leads were skipped - missing required fields (name, email, phone, company)",
+        hint: "Ensure your sheet has columns for: Full Name, Email, Phone, and Company",
+        totalProcessed: leadsToSync.length,
+        validLeads: validLeadsForSync.length,
+        sampleLead: leadsToSync[0],
+      });
+      return;
+    }
+
     console.log("Attempting to sync leads to Supabase...");
-    console.log("Total leads to sync:", leadsToSync.length);
-    console.log("Sample lead:", leadsToSync[0]);
-    console.log("Sample lead sheet_id:", leadsToSync[0].sheet_id);
-    console.log("Columns:", Object.keys(leadsToSync[0]));
+    console.log("Total leads to sync:", validLeadsForSync.length);
+    if (validLeadsForSync.length > 0) {
+      console.log("Sample lead:", validLeadsForSync[0]);
+      console.log("Sample lead sheet_id:", validLeadsForSync[0].sheet_id);
+      console.log("Columns:", Object.keys(validLeadsForSync[0]));
+    }
 
     try {
       // Pre-check: Fetch existing leads for this sheet to preserve assignments
@@ -292,10 +387,10 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
       // Separate leads into new and existing (for this sheet only)
       // For leads without email, treat them as new
-      const newLeads = leadsToSync.filter(
+      const newLeads = validLeadsForSync.filter(
         (lead) => !lead.email || !existingEmails.has(lead.email),
       );
-      const existingLeadsToUpdate = leadsToSync.filter(
+      const existingLeadsToUpdate = validLeadsForSync.filter(
         (lead) => lead.email && existingEmails.has(lead.email),
       );
 
@@ -370,20 +465,23 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       }
 
       console.log(
-        `Sync complete: ${insertCount} new, ${updateCount} updated, ${failureCount} failed`,
+        `Sync complete: ${insertCount} new, ${updateCount} updated, ${failureCount} failed (${leadsToSync.length - validLeadsForSync.length} leads skipped due to missing required fields)`,
       );
 
       res.json({
         success: true,
-        message: `Successfully synced ${updateCount + insertCount} leads${failureCount > 0 ? ` (${failureCount} failed)` : ""} (${leads.length - leadsToSync.length} empty rows removed)`,
+        message: `Successfully synced ${updateCount + insertCount} leads${failureCount > 0 ? ` (${failureCount} failed)` : ""} (${leads.length - validLeadsForSync.length} empty rows or invalid leads removed)`,
         synced: updateCount + insertCount,
         newLeads: insertCount,
         updatedLeads: updateCount,
         failed: failureCount,
+        skippedMissingFields: leadsToSync.length - validLeadsForSync.length,
         totalFetched: leads.length,
         emptyRowsRemoved: leads.length - leadsToSync.length,
+        validRowsProcessed: validLeadsForSync.length,
         source: source,
-        columnsIncluded: Object.keys(leadsToSync[0]),
+        columnsIncluded:
+          validLeadsForSync.length > 0 ? Object.keys(validLeadsForSync[0]) : [],
       });
     } catch (err) {
       console.error("Error during sync operation:", err);

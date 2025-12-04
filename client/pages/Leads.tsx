@@ -741,6 +741,15 @@ export default function Leads() {
           `✓ Fetched ${rows.length} rows from sheet ${sheetName} via CSV export (fallback from API)`,
         );
 
+        // Log sample data to understand structure
+        if (rows.length > 0) {
+          console.log(
+            "[SYNC] Sample row from CSV:",
+            JSON.stringify(rows[0]).substring(0, 200),
+          );
+          console.log("[SYNC] Column names:", Object.keys(rows[0]));
+        }
+
         // Continue with the CSV data (same processing as API data)
         if (rows.length === 0) {
           if (showNotification) {
@@ -778,6 +787,13 @@ export default function Leads() {
           `Extracted ${extractedDateRows.length} date rows, applied to ${dataRows.length} leads`,
         );
 
+        if (dataRows.length > 0) {
+          console.log(
+            "[SYNC] First data row after processing:",
+            JSON.stringify(dataRows[0]).substring(0, 200),
+          );
+        }
+
         // Sync to Supabase
         const syncResponse = await fetch("/api/sync-leads-dynamic", {
           method: "POST",
@@ -793,10 +809,15 @@ export default function Leads() {
         const syncResult = await syncResponse.json();
 
         if (!syncResponse.ok || !syncResult.success) {
-          throw new Error(
-            syncResult.error ||
-              "Failed to sync leads - check console for details",
-          );
+          // Build detailed error message
+          let errorMsg = syncResult.error || "Failed to sync leads";
+          if (syncResult.hint) {
+            errorMsg += `\n\n${syncResult.hint}`;
+          }
+          if (syncResult.skippedMissingFields) {
+            errorMsg += `\n\nNote: ${syncResult.skippedMissingFields} rows were skipped due to missing required fields (name, email, phone, company)`;
+          }
+          throw new Error(errorMsg);
         }
 
         // Success - reload the leads from Supabase
@@ -809,9 +830,17 @@ export default function Leads() {
 
         if (showNotification) {
           if (loadingToastId !== undefined) toast.dismiss(loadingToastId);
-          toast.success(
-            `✓ Synced ${syncResult.synced} leads from ${sheetName}`,
-          );
+
+          // Show detailed success message if there were skipped rows
+          let successMsg = `✓ Synced ${syncResult.synced} leads from ${sheetName}`;
+          if (
+            syncResult.skippedMissingFields &&
+            syncResult.skippedMissingFields > 0
+          ) {
+            successMsg += ` (${syncResult.skippedMissingFields} rows skipped - missing required fields)`;
+          }
+
+          toast.success(successMsg);
         }
 
         return;
