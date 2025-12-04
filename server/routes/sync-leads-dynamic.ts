@@ -491,6 +491,29 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     }
 
     try {
+      // Final validation: Ensure all leads have non-empty emails before proceeding
+      const leadsWithEmptyEmails = validLeadsForSync.filter(
+        (lead) => !lead.email || String(lead.email).trim() === "",
+      );
+
+      if (leadsWithEmptyEmails.length > 0) {
+        console.error(
+          `[SYNC] CRITICAL: ${leadsWithEmptyEmails.length} leads still have empty emails after processing!`,
+        );
+        console.error(
+          "[SYNC] Sample leads with empty emails:",
+          leadsWithEmptyEmails.slice(0, 3),
+        );
+
+        res.status(400).json({
+          error: "Email generation failed",
+          message: `${leadsWithEmptyEmails.length} leads have empty emails even after synthetic generation. This indicates a configuration issue.`,
+          totalProcessed: validLeadsForSync.length,
+          failedCount: leadsWithEmptyEmails.length,
+        });
+        return;
+      }
+
       // Pre-check: Fetch existing leads for this sheet to preserve assignments
       console.log("Checking for existing leads to preserve assignments...");
       const { data: existingLeads } = await supabase
@@ -511,6 +534,16 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
       console.log(
         `Found ${existingEmails.size} existing leads for sheet ${sheetId}`,
+      );
+
+      // Log sample of leads being synced with their emails
+      console.log(
+        "[SYNC] Sample leads about to sync (first 3):",
+        validLeadsForSync.slice(0, 3).map((l) => ({
+          name: l.name,
+          email: l.email,
+          phone: l.phone,
+        })),
       );
 
       // Separate leads into new and existing (for this sheet only)
