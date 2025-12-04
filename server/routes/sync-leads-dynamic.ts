@@ -350,6 +350,17 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       // Always use the sanitized, trimmed email value
       syncData.email = emailTrimmed || emailValue;
 
+      // Explicit logging for every row to track what email is being assigned
+      if (rowIndex < 5) {
+        console.log(`[SYNC EXPLICIT] Row ${rowIndex}:`, {
+          originalEmail: lead.email,
+          emailTrimmed,
+          emailValue,
+          finalAssignedEmail: syncData.email,
+          hasEmail: !!syncData.email,
+        });
+      }
+
       syncData.phone =
         mapColumn([
           "phone",
