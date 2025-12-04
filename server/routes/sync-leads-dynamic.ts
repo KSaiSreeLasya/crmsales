@@ -110,10 +110,13 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
     if (validLeads.length === 0) {
       // Provide detailed debugging info
-      const sampleRows = leads.slice(0, 3).map((lead) => {
+      const sampleRows = leads.slice(0, 5).map((lead) => {
         const cleaned: any = {};
         for (const [k, v] of Object.entries(lead)) {
-          if (v && String(v).trim()) cleaned[k] = String(v).substring(0, 50);
+          const strVal = String(v || "").trim();
+          if (strVal) {
+            cleaned[k] = strVal.substring(0, 100);
+          }
         }
         return cleaned;
       });
@@ -121,14 +124,32 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       console.error("No valid leads after filtering:", {
         totalRows: leads.length,
         sampleRows,
+        firstRowKeys: leads.length > 0 ? Object.keys(leads[0]) : [],
         note: "No rows with data found - all rows appear to be empty",
       });
+
+      // Also log which rows were considered empty
+      const emptyRowsExample = leads.slice(0, 3).map((lead, idx) => {
+        const fieldCount = Object.values(lead).filter(
+          (v) => v && String(v).trim() !== "",
+        ).length;
+        return {
+          index: idx,
+          fieldCount,
+          keys: Object.keys(lead).slice(0, 5),
+          values: Object.values(lead).slice(0, 5).map((v) =>
+            String(v || "").substring(0, 30),
+          ),
+        };
+      });
+
+      console.error("Empty row analysis:", emptyRowsExample);
 
       res.status(400).json({
         error:
           "No valid leads found - sheet appears to be empty or all rows have no data.",
         totalRowsFetched: leads.length,
-        sampleDebug: sampleRows.length > 0 ? sampleRows[0] : null,
+        sampleDebug: sampleRows.length > 0 ? sampleRows.slice(0, 3) : null,
         hint: "Ensure your sheet has data in at least one column per row.",
       });
       return;
