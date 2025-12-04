@@ -205,7 +205,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     ]);
 
     // Prepare leads data - normalize column names to match Supabase schema
-    const leadsToSync = validLeads.map((lead) => {
+    const leadsToSync = validLeads.map((lead, rowIndex) => {
       const syncData: any = {
         source: source || "google_sheet",
         sheet_id: sheetId || "0",
@@ -247,7 +247,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
       // Email is REQUIRED in database (NOT NULL UNIQUE)
       // Try multiple patterns to find email column with extended matching
-      syncData.email =
+      let emailValue =
         mapColumn([
           "email",
           "email_address",
@@ -255,7 +255,40 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           "e-mail",
           "e mail",
           "contact email",
+        ]);
+
+      // If email is not found, generate synthetic email to ensure uniqueness
+      if (!emailValue || !emailValue.trim()) {
+        const name = syncData.name || "unknown";
+        const phone = mapColumn([
+          "phone",
+          "phone_no",
+          "phone_number",
+          "telephone",
+          "contact phone",
         ]) || "";
+
+        // Generate unique synthetic email
+        const sanitizedName = String(name)
+          .toLowerCase()
+          .trim()
+          .replace(/\s+/g, ".")
+          .replace(/[^a-z0-9.]/g, "");
+
+        const sanitizedPhone = String(phone)
+          .replace(/\D/g, "")
+          .slice(-4);
+
+        const uniqueSuffix = `${Date.now()}.${rowIndex}`;
+        const baseEmail = `${(sanitizedName || "unknown").substring(0, 50)}.${sanitizedPhone || "nophone"}`;
+        emailValue = `${baseEmail}.${uniqueSuffix}@synced-lead.local`.substring(0, 254);
+
+        console.log(
+          `[SYNC] Row ${rowIndex}: Generated synthetic email for lead "${name}": ${emailValue}`,
+        );
+      }
+
+      syncData.email = emailValue;
 
       syncData.phone =
         mapColumn([
