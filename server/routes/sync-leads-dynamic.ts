@@ -305,13 +305,14 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       // If email is not found or is empty/whitespace-only, generate synthetic email to ensure uniqueness
       if (!hasValidEmail) {
         const name = syncData.name || "unknown";
-        const phoneRaw = mapColumn([
-          "phone",
-          "phone_no",
-          "phone_number",
-          "telephone",
-          "contact phone",
-        ]) || "";
+        const phoneRaw =
+          mapColumn([
+            "phone",
+            "phone_no",
+            "phone_number",
+            "telephone",
+            "contact phone",
+          ]) || "";
 
         // Sanitize the phone value
         const phone = String(phoneRaw).trim();
