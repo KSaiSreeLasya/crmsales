@@ -453,38 +453,51 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       const processedLead = { ...lead };
 
       // Name: Use what we have, log if defaulting
-      const name = String(processedLead.name || "").trim();
-      if (!name || name === "unknown" || name === "Unknown") {
+      let name = String(processedLead.name || "").trim();
+      if (!name || name.toLowerCase() === "unknown") {
         console.warn(`[SYNC] Row ${idx}: No name found, using "Unknown"`);
+        name = "Unknown";
         processedLead.name = "Unknown";
+      } else {
+        processedLead.name = name;
       }
 
       // Email: Should have been generated synthetically in mapColumn stage
-      const email = String(processedLead.email || "").trim();
+      let email = String(processedLead.email || "").trim();
       if (!email) {
         // This should not happen, but if it does, generate a fallback
         console.error(
           `[SYNC] Row ${idx}: NO EMAIL AFTER PROCESSING - This should not happen!`,
         );
-        const fallbackEmail = `unknown.nophone.${Date.now()}${idx}@synced-lead.local`;
+        const timestamp = Date.now().toString().slice(-6);
+        const fallbackEmail = `synced.lead.${timestamp}.${idx}@synced-lead.local`;
+        email = fallbackEmail;
         processedLead.email = fallbackEmail;
         console.warn(
           `[SYNC] Row ${idx}: Generated fallback email: ${fallbackEmail}`,
         );
+      } else {
+        processedLead.email = email;
       }
 
       // Phone: Default to "N/A" if missing
-      const phone = String(processedLead.phone || "").trim();
+      let phone = String(processedLead.phone || "").trim();
       if (!phone) {
         console.log(`[SYNC] Row ${idx}: No phone, using "N/A"`);
+        phone = "N/A";
         processedLead.phone = "N/A";
+      } else {
+        processedLead.phone = phone;
       }
 
       // Company: Default to "Solar Lead" if missing (since company is required by schema)
-      const company = String(processedLead.company || "").trim();
+      let company = String(processedLead.company || "").trim();
       if (!company) {
         console.log(`[SYNC] Row ${idx}: No company, using "Solar Lead"`);
+        company = "Solar Lead";
         processedLead.company = "Solar Lead";
+      } else {
+        processedLead.company = company;
       }
 
       if (idx < 3) {
