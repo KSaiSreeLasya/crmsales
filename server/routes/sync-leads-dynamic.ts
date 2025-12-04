@@ -369,14 +369,16 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         });
       }
 
-      syncData.phone =
-        mapColumn([
-          "phone",
-          "phone_no",
-          "phone_number",
-          "telephone",
-          "contact phone",
-        ]) || "N/A";
+      const phoneValue = mapColumn([
+        "phone",
+        "phone_no",
+        "phone_number",
+        "telephone",
+        "contact phone",
+      ]);
+
+      // Phone is required in database - must not be empty
+      syncData.phone = (phoneValue && String(phoneValue).trim()) || "N/A";
 
       syncData.company =
         mapColumn(["company", "organization", "business", "company name"]) ||
