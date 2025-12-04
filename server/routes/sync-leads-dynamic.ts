@@ -316,6 +316,8 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         );
       }
 
+      let finalEmail = "";
+
       if (!hasValidEmail) {
         const name = syncData.name || "unknown";
         const phoneRaw =
@@ -347,21 +349,22 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         const baseEmail = (sanitizedName || "unknown").substring(0, 40);
         const emailDomain = `${baseEmail}${sanitizedPhone ? "." + sanitizedPhone : ""}`;
 
-        emailValue = `${emailDomain}.${uniqueSuffix}@synced-lead.local`
+        finalEmail = `${emailDomain}.${uniqueSuffix}@synced-lead.local`
           .substring(0, 254)
           .toLowerCase();
 
         console.log(
-          `[SYNC] Row ${rowIndex}: Generated synthetic email for lead "${name}" (phone: ${phone}): ${emailValue}`,
+          `[SYNC] Row ${rowIndex}: Generated synthetic email for lead "${name}" (phone: ${phone}): ${finalEmail}`,
         );
       } else {
+        finalEmail = emailTrimmed;
         console.log(
-          `[SYNC] Row ${rowIndex}: Using email from sheet for lead "${syncData.name}": ${emailTrimmed}`,
+          `[SYNC] Row ${rowIndex}: Using email from sheet for lead "${syncData.name}": ${finalEmail}`,
         );
       }
 
-      // Always use the sanitized, trimmed email value
-      syncData.email = emailTrimmed || emailValue;
+      // Ensure email is ALWAYS set and non-empty
+      syncData.email = finalEmail;
 
       // Explicit logging for every row to track what email is being assigned
       if (rowIndex < 5) {
@@ -450,38 +453,51 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       const processedLead = { ...lead };
 
       // Name: Use what we have, log if defaulting
-      const name = String(processedLead.name || "").trim();
-      if (!name || name === "unknown" || name === "Unknown") {
+      let name = String(processedLead.name || "").trim();
+      if (!name || name.toLowerCase() === "unknown") {
         console.warn(`[SYNC] Row ${idx}: No name found, using "Unknown"`);
+        name = "Unknown";
         processedLead.name = "Unknown";
+      } else {
+        processedLead.name = name;
       }
 
       // Email: Should have been generated synthetically in mapColumn stage
-      const email = String(processedLead.email || "").trim();
+      let email = String(processedLead.email || "").trim();
       if (!email) {
         // This should not happen, but if it does, generate a fallback
         console.error(
           `[SYNC] Row ${idx}: NO EMAIL AFTER PROCESSING - This should not happen!`,
         );
-        const fallbackEmail = `unknown.nophone.${Date.now()}${idx}@synced-lead.local`;
+        const timestamp = Date.now().toString().slice(-6);
+        const fallbackEmail = `synced.lead.${timestamp}.${idx}@synced-lead.local`;
+        email = fallbackEmail;
         processedLead.email = fallbackEmail;
         console.warn(
           `[SYNC] Row ${idx}: Generated fallback email: ${fallbackEmail}`,
         );
+      } else {
+        processedLead.email = email;
       }
 
       // Phone: Default to "N/A" if missing
-      const phone = String(processedLead.phone || "").trim();
+      let phone = String(processedLead.phone || "").trim();
       if (!phone) {
         console.log(`[SYNC] Row ${idx}: No phone, using "N/A"`);
+        phone = "N/A";
         processedLead.phone = "N/A";
+      } else {
+        processedLead.phone = phone;
       }
 
       // Company: Default to "Solar Lead" if missing (since company is required by schema)
-      const company = String(processedLead.company || "").trim();
+      let company = String(processedLead.company || "").trim();
       if (!company) {
         console.log(`[SYNC] Row ${idx}: No company, using "Solar Lead"`);
+        company = "Solar Lead";
         processedLead.company = "Solar Lead";
+      } else {
+        processedLead.company = company;
       }
 
       if (idx < 3) {
@@ -537,36 +553,31 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     }
 
     try {
-      // Verify all leads have required fields before proceeding to database
+      // Validation has already been done with strict filtering above
       console.log(
-        `[SYNC] Final pre-sync verification of ${validLeadsForSync.length} leads...`,
+        `[SYNC] Proceeding with ${validatedLeads.length} validated leads (rejected ${rejectedCount})`,
       );
-      let leadsWithIssues = 0;
-      validLeadsForSync.forEach((lead, idx) => {
-        const name = String(lead.name || "").trim();
-        const email = String(lead.email || "").trim();
-        const phone = String(lead.phone || "").trim();
-        const company = String(lead.company || "").trim();
 
-        if (!name || !email || !phone || !company) {
-          if (idx < 3) {
-            console.warn(`[SYNC] Row ${idx} missing fields:`, {
-              name: name || "MISSING",
-              email: email || "MISSING",
-              phone: phone || "MISSING",
-              company: company || "MISSING",
-            });
-          }
-          leadsWithIssues++;
-        }
-      });
-
-      if (leadsWithIssues > 0) {
-        console.warn(
-          `[SYNC] Found ${leadsWithIssues} leads with missing fields - these should have been filled with defaults. Investigating...`,
-        );
-      } else {
-        console.log(`[SYNC] ✓ All leads have required fields`);
+      if (validatedLeads.length === 0) {
+        console.warn("[SYNC] No validated leads to sync after filtering.");
+        res.json({
+          success: true,
+          message: "No leads to sync (all leads were missing required fields)",
+          synced: 0,
+          newLeads: 0,
+          updatedLeads: 0,
+          failed: 0,
+          rejected: rejectedCount,
+          skippedMissingFields: leadsToSync.length - validLeadsForSync.length,
+          totalFetched: leads.length,
+          emptyRowsRemoved: leads.length - leadsToSync.length,
+          validRowsProcessed: validLeadsForSync.length,
+          validatedRowsAfterFiltering: validatedLeads.length,
+          source: source,
+          sheetId: sheetId,
+          columnsIncluded: [],
+        });
+        return;
       }
 
       // Pre-check: Fetch existing leads for this sheet to preserve assignments
@@ -601,12 +612,47 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         })),
       );
 
+      // Strict validation: Filter out any leads missing required fields
+      const validatedLeads = validLeadsForSync.filter((lead, idx) => {
+        const name = String(lead.name || "").trim();
+        const email = String(lead.email || "").trim();
+        const phone = String(lead.phone || "").trim();
+        const company = String(lead.company || "").trim();
+
+        const isValid =
+          name.length > 0 &&
+          email.length > 0 &&
+          phone.length > 0 &&
+          company.length > 0;
+
+        if (!isValid) {
+          console.error(
+            `[SYNC] Row ${idx} REJECTED due to missing required fields:`,
+            {
+              name: name || "MISSING",
+              email: email || "MISSING",
+              phone: phone || "MISSING",
+              company: company || "MISSING",
+            },
+          );
+        }
+
+        return isValid;
+      });
+
+      const rejectedCount = validLeadsForSync.length - validatedLeads.length;
+      if (rejectedCount > 0) {
+        console.error(
+          `[SYNC] CRITICAL: ${rejectedCount} leads rejected due to missing required fields. This indicates a bug in default application.`,
+        );
+      }
+
       // Separate leads into new and existing (for this sheet only)
       // For leads without email, treat them as new
-      const newLeads = validLeadsForSync.filter(
+      const newLeads = validatedLeads.filter(
         (lead) => !lead.email || !existingEmails.has(lead.email),
       );
-      const existingLeadsToUpdate = validLeadsForSync.filter(
+      const existingLeadsToUpdate = validatedLeads.filter(
         (lead) => lead.email && existingEmails.has(lead.email),
       );
 
@@ -808,19 +854,21 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
       res.json({
         success: true,
-        message: `Successfully synced ${updateCount + insertCount} leads${failureCount > 0 ? ` (${failureCount} failed)` : ""} (${leads.length - validLeadsForSync.length} empty rows or invalid leads removed)`,
+        message: `Successfully synced ${updateCount + insertCount} leads${failureCount > 0 ? ` (${failureCount} failed)` : ""} (${leads.length - validLeadsForSync.length} empty rows, ${rejectedCount} rejected for missing fields)`,
         synced: updateCount + insertCount,
         newLeads: insertCount,
         updatedLeads: updateCount,
         failed: failureCount,
+        rejected: rejectedCount,
         skippedMissingFields: leadsToSync.length - validLeadsForSync.length,
         totalFetched: leads.length,
         emptyRowsRemoved: leads.length - leadsToSync.length,
         validRowsProcessed: validLeadsForSync.length,
+        validatedRowsAfterFiltering: validatedLeads.length,
         source: source,
         sheetId: sheetId,
         columnsIncluded:
-          validLeadsForSync.length > 0 ? Object.keys(validLeadsForSync[0]) : [],
+          validatedLeads.length > 0 ? Object.keys(validatedLeads[0]) : [],
       });
     } catch (err) {
       console.error("Error during sync operation:", err);
