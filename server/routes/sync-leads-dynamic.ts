@@ -78,10 +78,12 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
       // Show first few column values to debug
       const columnPreview: any = {};
-      Object.keys(leads[0]).slice(0, 10).forEach(key => {
-        const val = String(leads[0][key] || "").trim();
-        columnPreview[key] = val.substring(0, 50);
-      });
+      Object.keys(leads[0])
+        .slice(0, 10)
+        .forEach((key) => {
+          const val = String(leads[0][key] || "").trim();
+          columnPreview[key] = val.substring(0, 50);
+        });
       console.log("Column preview:", columnPreview);
 
       if (leads[0].created_at) {
@@ -147,9 +149,9 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           index: idx,
           fieldCount,
           keys: Object.keys(lead).slice(0, 5),
-          values: Object.values(lead).slice(0, 5).map((v) =>
-            String(v || "").substring(0, 30),
-          ),
+          values: Object.values(lead)
+            .slice(0, 5)
+            .map((v) => String(v || "").substring(0, 30)),
         };
       });
 
@@ -245,29 +247,28 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
       // Email is REQUIRED in database (NOT NULL UNIQUE)
       // Try multiple patterns to find email column with extended matching
-      syncData.email = mapColumn([
-        "email",
-        "email_address",
-        "email address",
-        "e-mail",
-        "e mail",
-        "contact email",
-      ]) || "";
+      syncData.email =
+        mapColumn([
+          "email",
+          "email_address",
+          "email address",
+          "e-mail",
+          "e mail",
+          "contact email",
+        ]) || "";
 
-      syncData.phone = mapColumn([
-        "phone",
-        "phone_no",
-        "phone_number",
-        "telephone",
-        "contact phone",
-      ]) || "N/A";
+      syncData.phone =
+        mapColumn([
+          "phone",
+          "phone_no",
+          "phone_number",
+          "telephone",
+          "contact phone",
+        ]) || "N/A";
 
-      syncData.company = mapColumn([
-        "company",
-        "organization",
-        "business",
-        "company name",
-      ]) || "N/A";
+      syncData.company =
+        mapColumn(["company", "organization", "business", "company name"]) ||
+        "N/A";
 
       syncData.street_address =
         mapColumn(["street address", "street_address", "street", "address"]) ||
@@ -340,10 +341,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       console.error(
         `[SYNC] All ${leadsToSync.length} leads were filtered out due to missing required fields (name, email, phone, company)`,
       );
-      console.error(
-        "[SYNC] Sample problematic lead:",
-        leadsToSync[0],
-      );
+      console.error("[SYNC] Sample problematic lead:", leadsToSync[0]);
 
       res.status(400).json({
         error:
@@ -482,7 +480,8 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         emptyRowsRemoved: leads.length - leadsToSync.length,
         validRowsProcessed: validLeadsForSync.length,
         source: source,
-        columnsIncluded: validLeadsForSync.length > 0 ? Object.keys(validLeadsForSync[0]) : [],
+        columnsIncluded:
+          validLeadsForSync.length > 0 ? Object.keys(validLeadsForSync[0]) : [],
       });
     } catch (err) {
       console.error("Error during sync operation:", err);

@@ -833,7 +833,10 @@ export default function Leads() {
 
           // Show detailed success message if there were skipped rows
           let successMsg = `✓ Synced ${syncResult.synced} leads from ${sheetName}`;
-          if (syncResult.skippedMissingFields && syncResult.skippedMissingFields > 0) {
+          if (
+            syncResult.skippedMissingFields &&
+            syncResult.skippedMissingFields > 0
+          ) {
             successMsg += ` (${syncResult.skippedMissingFields} rows skipped - missing required fields)`;
           }
 

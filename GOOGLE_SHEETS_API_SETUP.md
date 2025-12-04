@@ -1,7 +1,9 @@
 # Google Sheets API Key Setup Guide
 
 ## Why You Need This
+
 When syncing Google Sheets with more than 250 rows, the CSV export method has limitations. Setting up the Google Sheets API allows:
+
 - ✅ Unlimited row syncing (tested with 1000+ rows)
 - ✅ Faster data loading
 - ✅ Better error handling
@@ -48,7 +50,9 @@ When syncing Google Sheets with more than 250 rows, the CSV export method has li
 ## Step 5: Add API Key to Your Application
 
 ### For Local Development:
+
 1. Create or edit `.env` file in your project root:
+
    ```
    GOOGLE_SHEETS_API_KEY=AIzaSyD_xxxxxxxxxxxxxxxxxxxxxxxxxxx
    ```
@@ -59,6 +63,7 @@ When syncing Google Sheets with more than 250 rows, the CSV export method has li
    ```
 
 ### For Production (Netlify):
+
 1. Go to your Netlify project settings
 2. Navigate to **"Build & Deploy"** → **"Environment"**
 3. Click **"Edit variables"**
@@ -70,6 +75,7 @@ When syncing Google Sheets with more than 250 rows, the CSV export method has li
    - Click **"Trigger deploy"** → **"Deploy site"**
 
 ### For Other Hosting Platforms:
+
 - **Vercel**: Project Settings → Environment Variables
 - **Render**: Environment → Add Environment Variable
 - **Railway**: Variables section
@@ -86,22 +92,27 @@ When syncing Google Sheets with more than 250 rows, the CSV export method has li
 ## Troubleshooting
 
 ### "API key not configured" Error
+
 - Verify the API key is set in `.env` (local) or environment variables (hosting)
 - Restart your dev server after changing `.env`
 - Check that the key is copied correctly (no extra spaces)
 
 ### "Invalid API key" Error
+
 - Verify you're using the correct API key
 - Check that Google Sheets API is enabled in Cloud Console
 - Make sure the API key has no application restrictions (or is properly configured)
 
 ### Still Getting CSV Export Fallback
+
 - Ensure `GOOGLE_SHEETS_API_KEY` environment variable is set
 - The system will automatically fall back to CSV if API key is not found
 - Check browser console for logs like: `[FETCH API] Fetching Google Sheet via API`
 
 ### Rate Limiting
+
 Google Sheets API has free tier quotas:
+
 - **300 requests per minute** per project
 - **10 million cells read per month**
 
@@ -118,6 +129,7 @@ If you exceed limits, contact Google Cloud to upgrade your quota.
 ## Next Steps
 
 Once API key is configured:
+
 1. **Large sheets sync faster**: 500+ rows load in seconds instead of minutes
 2. **Better reliability**: Less likely to hit CSV export limits
 3. **Enhanced features**: Can detect sheet names dynamically
