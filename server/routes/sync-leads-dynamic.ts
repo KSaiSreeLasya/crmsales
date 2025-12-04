@@ -354,16 +354,18 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     });
 
     // Validate required fields and filter out invalid leads
-    const requiredFields = ["name", "email", "phone", "company"];
+    // Note: Email is now generated synthetically if missing, so we don't reject for missing email
+    const requiredFields = ["name", "phone", "company"]; // Removed "email" - we generate it
     const validLeadsForSync = leadsToSync.filter((lead, idx) => {
       const missing = requiredFields.filter((field) => {
         const value = lead[field] || "";
-        return String(value).trim() === "" || String(value).trim() === "N/A";
+        const trimmed = String(value).trim();
+        return trimmed === "" || trimmed === "N/A" || trimmed === "unknown";
       });
 
       if (missing.length > 0) {
         console.warn(
-          `[SYNC] Row ${idx} skipped - missing required fields: ${missing.join(", ")}. Data: name="${lead.name}", email="${lead.email}"`,
+          `[SYNC] Row ${idx} skipped - missing required fields: ${missing.join(", ")}. Data: name="${lead.name}"`,
         );
         return false;
       }
@@ -372,14 +374,14 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
     if (validLeadsForSync.length === 0) {
       console.error(
-        `[SYNC] All ${leadsToSync.length} leads were filtered out due to missing required fields (name, email, phone, company)`,
+        `[SYNC] All ${leadsToSync.length} leads were filtered out due to missing required fields (name, phone, company)`,
       );
       console.error("[SYNC] Sample problematic lead:", leadsToSync[0]);
 
       res.status(400).json({
         error:
-          "All leads were skipped - missing required fields (name, email, phone, company)",
-        hint: "Ensure your sheet has columns for: Full Name, Email, Phone, and Company",
+          "All leads were skipped - missing required fields (name, phone, company)",
+        hint: "Ensure your sheet has columns for: Full Name, Phone, and Company. Email will be generated if missing.",
         totalProcessed: leadsToSync.length,
         validLeads: validLeadsForSync.length,
         sampleLead: leadsToSync[0],
