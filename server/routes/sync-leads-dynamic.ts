@@ -50,7 +50,10 @@ function parseDate(dateStr: string): string | null {
 
 export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
   try {
-    const { leads, dateRows, source, sheetId } = req.body as DynamicLeadRequest;
+    const { leads, dateRows, source, sheetId: rawSheetId } = req.body as DynamicLeadRequest;
+
+    // Ensure sheetId is properly converted to string and logged
+    const sheetId = String(rawSheetId || "0");
 
     console.log(
       "Dynamic sync request received with leads:",
@@ -58,12 +61,17 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       "from sheet:",
       sheetId,
     );
-    console.log("Sheet ID received:", sheetId, "Type:", typeof sheetId);
+    console.log("[SYNC DEBUG] Raw sheetId from request:", rawSheetId);
+    console.log("[SYNC DEBUG] Converted sheetId:", sheetId);
+    console.log("[SYNC DEBUG] sheetId Type:", typeof sheetId);
     console.log("[SYNC DEBUG] Full request body keys:", Object.keys(req.body));
+    console.log("[SYNC DEBUG] Full request body:", JSON.stringify(req.body, null, 2).substring(0, 500));
     if (req.body.sheetId === undefined) {
       console.warn(
         "[SYNC DEBUG] WARNING: sheetId is undefined in request body!",
       );
+    } else {
+      console.log("[SYNC DEBUG] sheetId was provided in request body");
     }
     console.log("[SYNC DEBUG] Supabase URL configured:", !!supabaseUrl);
     console.log("[SYNC DEBUG] Supabase Key configured:", !!supabaseKey);
