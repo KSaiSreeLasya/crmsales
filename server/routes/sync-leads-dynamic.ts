@@ -389,10 +389,10 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
       // Separate leads into new and existing (for this sheet only)
       // For leads without email, treat them as new
-      const newLeads = leadsToSync.filter(
+      const newLeads = validLeadsForSync.filter(
         (lead) => !lead.email || !existingEmails.has(lead.email),
       );
-      const existingLeadsToUpdate = leadsToSync.filter(
+      const existingLeadsToUpdate = validLeadsForSync.filter(
         (lead) => lead.email && existingEmails.has(lead.email),
       );
 
