@@ -238,9 +238,11 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       };
 
       // Helper function to find and map column values
+      // This function searches through the lead object for values that match the given patterns
       const mapColumn = (patterns: string[]): string => {
         for (const [key, value] of Object.entries(lead)) {
-          if (!value) continue;
+          // Skip null/undefined values, but NOT empty strings (they might be valid columns)
+          if (value === null || value === undefined) continue;
 
           const normalizedKey = key
             .toLowerCase()
@@ -260,7 +262,10 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
               normalizedKey.includes(normalizedPattern) ||
               normalizedPattern.includes(normalizedKey)
             ) {
-              return sanitizeValue(value);
+              // Return sanitized value, even if it's an empty string
+              // Empty values will be caught by the caller's validation logic
+              const sanitized = sanitizeValue(value);
+              return sanitized;
             }
           }
         }
@@ -282,21 +287,25 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         "contact email",
       ]);
 
+      // Ensure we have a non-empty, non-whitespace email value
+      const emailTrimmed = String(emailValue || "").trim();
+      const hasValidEmail = emailTrimmed.length > 0;
+
       // Debug: Log email extraction for first few rows
       if (rowIndex < 3) {
         console.log(`[SYNC DEBUG] Row ${rowIndex} email extraction:`, {
           emailValue,
-          emailTrimmed: emailValue?.trim(),
-          hasEmail: !!emailValue,
+          emailTrimmed,
+          hasValidEmail,
           allKeys: Object.keys(lead),
           rawEmail: lead.email || lead.Email || lead["email"],
         });
       }
 
-      // If email is not found, generate synthetic email to ensure uniqueness
-      if (!emailValue || !emailValue.trim()) {
+      // If email is not found or is empty/whitespace-only, generate synthetic email to ensure uniqueness
+      if (!hasValidEmail) {
         const name = syncData.name || "unknown";
-        const phone =
+        const phoneRaw =
           mapColumn([
             "phone",
             "phone_no",
@@ -304,6 +313,9 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
             "telephone",
             "contact phone",
           ]) || "";
+
+        // Sanitize the phone value
+        const phone = String(phoneRaw).trim();
 
         // Generate unique synthetic email
         const sanitizedName = String(name)
@@ -314,19 +326,29 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
         const sanitizedPhone = String(phone).replace(/\D/g, "").slice(-4);
 
-        const uniqueSuffix = `${Date.now()}.${rowIndex}`;
-        const baseEmail = `${(sanitizedName || "unknown").substring(0, 50)}.${sanitizedPhone || "nophone"}`;
-        emailValue = `${baseEmail}.${uniqueSuffix}@synced-lead.local`.substring(
-          0,
-          254,
-        );
+        // Create a more unique suffix using timestamp and row index
+        const timestamp = Date.now().toString().slice(-6); // Last 6 digits of timestamp for variation
+        const uniqueSuffix = `${timestamp}${rowIndex.toString().padStart(4, "0")}`;
+
+        // Build the synthetic email with better uniqueness
+        const baseEmail = (sanitizedName || "unknown").substring(0, 40);
+        const emailDomain = `${baseEmail}${sanitizedPhone ? "." + sanitizedPhone : ""}`;
+
+        emailValue = `${emailDomain}.${uniqueSuffix}@synced-lead.local`
+          .substring(0, 254)
+          .toLowerCase();
 
         console.log(
-          `[SYNC] Row ${rowIndex}: Generated synthetic email for lead "${name}": ${emailValue}`,
+          `[SYNC] Row ${rowIndex}: Generated synthetic email for lead "${name}" (phone: ${phone}): ${emailValue}`,
+        );
+      } else {
+        console.log(
+          `[SYNC] Row ${rowIndex}: Using email from sheet for lead "${syncData.name}": ${emailTrimmed}`,
         );
       }
 
-      syncData.email = emailValue;
+      // Always use the sanitized, trimmed email value
+      syncData.email = emailTrimmed || emailValue;
 
       syncData.phone =
         mapColumn([
@@ -394,12 +416,14 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     // Validate required fields and filter out invalid leads
     // Note: Email is now generated synthetically if missing
     // Phone and Company default to "N/A" which is acceptable
-    // Only reject if Name is truly missing
+    // Name and Email are required (Email is either from sheet or synthetically generated)
     const validLeadsForSync = leadsToSync.filter((lead, idx) => {
       const name = lead.name || "";
+      const email = lead.email || "";
       const trimmedName = String(name).trim();
+      const trimmedEmail = String(email).trim();
 
-      // Only reject if name is empty or unknown
+      // Reject if name is empty/invalid
       if (
         trimmedName === "" ||
         trimmedName === "unknown" ||
@@ -407,6 +431,14 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       ) {
         console.warn(
           `[SYNC] Row ${idx} skipped - missing name. Data: "${JSON.stringify(lead).substring(0, 100)}"`,
+        );
+        return false;
+      }
+
+      // Reject if email is still empty after synthetic generation (this should NOT happen)
+      if (trimmedEmail === "") {
+        console.error(
+          `[SYNC] Row ${idx} skipped - email is empty after processing. Lead: "${JSON.stringify(lead).substring(0, 150)}"`,
         );
         return false;
       }
@@ -460,6 +492,29 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     }
 
     try {
+      // Final validation: Ensure all leads have non-empty emails before proceeding
+      const leadsWithEmptyEmails = validLeadsForSync.filter(
+        (lead) => !lead.email || String(lead.email).trim() === "",
+      );
+
+      if (leadsWithEmptyEmails.length > 0) {
+        console.error(
+          `[SYNC] CRITICAL: ${leadsWithEmptyEmails.length} leads still have empty emails after processing!`,
+        );
+        console.error(
+          "[SYNC] Sample leads with empty emails:",
+          leadsWithEmptyEmails.slice(0, 3),
+        );
+
+        res.status(400).json({
+          error: "Email generation failed",
+          message: `${leadsWithEmptyEmails.length} leads have empty emails even after synthetic generation. This indicates a configuration issue.`,
+          totalProcessed: validLeadsForSync.length,
+          failedCount: leadsWithEmptyEmails.length,
+        });
+        return;
+      }
+
       // Pre-check: Fetch existing leads for this sheet to preserve assignments
       console.log("Checking for existing leads to preserve assignments...");
       const { data: existingLeads } = await supabase
@@ -480,6 +535,16 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
       console.log(
         `Found ${existingEmails.size} existing leads for sheet ${sheetId}`,
+      );
+
+      // Log sample of leads being synced with their emails
+      console.log(
+        "[SYNC] Sample leads about to sync (first 3):",
+        validLeadsForSync.slice(0, 3).map((l) => ({
+          name: l.name,
+          email: l.email,
+          phone: l.phone,
+        })),
       );
 
       // Separate leads into new and existing (for this sheet only)
