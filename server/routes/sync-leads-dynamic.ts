@@ -231,7 +231,12 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     ]);
 
     // Prepare leads data - normalize column names to match Supabase schema
+    console.log(`[SYNC] Starting to map ${validLeads.length} leads...`);
     const leadsToSync = validLeads.map((lead, rowIndex) => {
+      if (rowIndex === 0) {
+        console.log(`[SYNC] Processing first lead, keys:`, Object.keys(lead));
+        console.log(`[SYNC] First lead raw email value: "${lead.email}" (type: ${typeof lead.email})`);
+      }
       const syncData: any = {
         source: source || "google_sheet",
         sheet_id: sheetId || "0",
