@@ -434,52 +434,61 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       return syncData;
     });
 
-    // Validate required fields and filter out invalid leads
-    // Note: Email is now generated synthetically if missing
-    // Phone and Company default to "N/A" which is acceptable
-    // Name and Email are required (Email is either from sheet or synthetically generated)
-    console.log(`[SYNC] Validating ${leadsToSync.length} leads for sync...`);
-    const validLeadsForSync = leadsToSync.filter((lead, idx) => {
-      const name = lead.name || "";
-      const email = lead.email || "";
-      const trimmedName = String(name).trim();
-      const trimmedEmail = String(email).trim();
+    // Validate and prepare leads for sync
+    // POLICY: Accept ALL rows. Generate defaults for missing required fields.
+    // - Name: Required field, will default to "Unknown" if missing (but log warning)
+    // - Email: Required field, will generate synthetic email if missing
+    // - Phone: Required by DB but defaults to "N/A" if missing (acceptable)
+    // - Company: Required by DB but defaults to "Solar Lead" if missing (acceptable)
+    console.log(`[SYNC] Processing ${leadsToSync.length} leads for sync...`);
+    const validLeadsForSync = leadsToSync.map((lead, idx) => {
+      // Ensure all required fields have values
+      const processedLead = { ...lead };
 
-      // Reject if name is empty/invalid
-      if (
-        trimmedName === "" ||
-        trimmedName === "unknown" ||
-        trimmedName === "Unknown"
-      ) {
-        console.warn(
-          `[SYNC] Row ${idx} skipped - missing name. Data: "${JSON.stringify(lead).substring(0, 100)}"`,
-        );
-        return false;
+      // Name: Use what we have, log if defaulting
+      const name = String(processedLead.name || "").trim();
+      if (!name || name === "unknown" || name === "Unknown") {
+        console.warn(`[SYNC] Row ${idx}: No name found, using "Unknown"`);
+        processedLead.name = "Unknown";
       }
 
-      // Reject if email is still empty after synthetic generation (this should NOT happen)
-      if (trimmedEmail === "") {
-        console.error(
-          `[SYNC] Row ${idx} CRITICAL: email is EMPTY after processing!`,
-        );
-        if (idx < 3) {
-          console.error(`[SYNC] Row ${idx} lead data:`, {
-            name,
-            email,
-            allKeys: Object.keys(lead),
-          });
-        }
-        return false;
+      // Email: Should have been generated synthetically in mapColumn stage
+      const email = String(processedLead.email || "").trim();
+      if (!email) {
+        // This should not happen, but if it does, generate a fallback
+        console.error(`[SYNC] Row ${idx}: NO EMAIL AFTER PROCESSING - This should not happen!`);
+        const fallbackEmail = `unknown.nophone.${Date.now()}${idx}@synced-lead.local`;
+        processedLead.email = fallbackEmail;
+        console.warn(`[SYNC] Row ${idx}: Generated fallback email: ${fallbackEmail}`);
+      }
+
+      // Phone: Default to "N/A" if missing
+      const phone = String(processedLead.phone || "").trim();
+      if (!phone) {
+        console.log(`[SYNC] Row ${idx}: No phone, using "N/A"`);
+        processedLead.phone = "N/A";
+      }
+
+      // Company: Default to "Solar Lead" if missing (since company is required by schema)
+      const company = String(processedLead.company || "").trim();
+      if (!company) {
+        console.log(`[SYNC] Row ${idx}: No company, using "Solar Lead"`);
+        processedLead.company = "Solar Lead";
       }
 
       if (idx < 3) {
-        console.log(`[SYNC] Row ${idx} PASSED validation: name="${trimmedName.substring(0, 30)}", email="${trimmedEmail.substring(0, 40)}"`);
+        console.log(`[SYNC] Row ${idx} after processing:`, {
+          name: processedLead.name,
+          email: processedLead.email,
+          phone: processedLead.phone,
+          company: processedLead.company,
+        });
       }
 
-      // All other fields are either populated from sheet or have sensible defaults
-      return true;
+      return processedLead;
     });
-    console.log(`[SYNC] After validation: ${validLeadsForSync.length} leads passed, ${leadsToSync.length - validLeadsForSync.length} rejected`);
+
+    console.log(`[SYNC] All ${validLeadsForSync.length} leads processed with defaults applied`);
 
     if (validLeadsForSync.length === 0) {
       console.error(
