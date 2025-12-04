@@ -238,9 +238,11 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       };
 
       // Helper function to find and map column values
+      // This function searches through the lead object for values that match the given patterns
       const mapColumn = (patterns: string[]): string => {
         for (const [key, value] of Object.entries(lead)) {
-          if (!value) continue;
+          // Skip null/undefined values, but NOT empty strings (they might be valid columns)
+          if (value === null || value === undefined) continue;
 
           const normalizedKey = key
             .toLowerCase()
@@ -260,7 +262,10 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
               normalizedKey.includes(normalizedPattern) ||
               normalizedPattern.includes(normalizedKey)
             ) {
-              return sanitizeValue(value);
+              // Return sanitized value, even if it's an empty string
+              // Empty values will be caught by the caller's validation logic
+              const sanitized = sanitizeValue(value);
+              return sanitized;
             }
           }
         }
@@ -282,28 +287,34 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         "contact email",
       ]);
 
+      // Ensure we have a non-empty, non-whitespace email value
+      const emailTrimmed = String(emailValue || "").trim();
+      const hasValidEmail = emailTrimmed.length > 0;
+
       // Debug: Log email extraction for first few rows
       if (rowIndex < 3) {
         console.log(`[SYNC DEBUG] Row ${rowIndex} email extraction:`, {
           emailValue,
-          emailTrimmed: emailValue?.trim(),
-          hasEmail: !!emailValue,
+          emailTrimmed,
+          hasValidEmail,
           allKeys: Object.keys(lead),
           rawEmail: lead.email || lead.Email || lead["email"],
         });
       }
 
-      // If email is not found, generate synthetic email to ensure uniqueness
-      if (!emailValue || !emailValue.trim()) {
+      // If email is not found or is empty/whitespace-only, generate synthetic email to ensure uniqueness
+      if (!hasValidEmail) {
         const name = syncData.name || "unknown";
-        const phone =
-          mapColumn([
-            "phone",
-            "phone_no",
-            "phone_number",
-            "telephone",
-            "contact phone",
-          ]) || "";
+        const phoneRaw = mapColumn([
+          "phone",
+          "phone_no",
+          "phone_number",
+          "telephone",
+          "contact phone",
+        ]) || "";
+
+        // Sanitize the phone value
+        const phone = String(phoneRaw).trim();
 
         // Generate unique synthetic email
         const sanitizedName = String(name)
@@ -314,19 +325,29 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
         const sanitizedPhone = String(phone).replace(/\D/g, "").slice(-4);
 
-        const uniqueSuffix = `${Date.now()}.${rowIndex}`;
-        const baseEmail = `${(sanitizedName || "unknown").substring(0, 50)}.${sanitizedPhone || "nophone"}`;
-        emailValue = `${baseEmail}.${uniqueSuffix}@synced-lead.local`.substring(
-          0,
-          254,
-        );
+        // Create a more unique suffix using timestamp and row index
+        const timestamp = Date.now().toString().slice(-6); // Last 6 digits of timestamp for variation
+        const uniqueSuffix = `${timestamp}${rowIndex.toString().padStart(4, "0")}`;
+
+        // Build the synthetic email with better uniqueness
+        const baseEmail = (sanitizedName || "unknown").substring(0, 40);
+        const emailDomain = `${baseEmail}${sanitizedPhone ? "." + sanitizedPhone : ""}`;
+
+        emailValue = `${emailDomain}.${uniqueSuffix}@synced-lead.local`
+          .substring(0, 254)
+          .toLowerCase();
 
         console.log(
-          `[SYNC] Row ${rowIndex}: Generated synthetic email for lead "${name}": ${emailValue}`,
+          `[SYNC] Row ${rowIndex}: Generated synthetic email for lead "${name}" (phone: ${phone}): ${emailValue}`,
+        );
+      } else {
+        console.log(
+          `[SYNC] Row ${rowIndex}: Using email from sheet for lead "${syncData.name}": ${emailTrimmed}`,
         );
       }
 
-      syncData.email = emailValue;
+      // Always use the sanitized, trimmed email value
+      syncData.email = emailTrimmed || emailValue;
 
       syncData.phone =
         mapColumn([
