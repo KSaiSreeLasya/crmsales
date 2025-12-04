@@ -243,6 +243,20 @@ export default function Leads() {
         console.log(
           `✓ Successfully loaded ${data?.length || 0} leads for sheet ${sheetIdToUse}`,
         );
+
+        // Log leads with missing data for debugging
+        if (data && data.length > 0) {
+          const leadsWithMissingData = data.filter(
+            (lead) => !lead.name || !lead.email || !lead.phone || !lead.company,
+          );
+          if (leadsWithMissingData.length > 0) {
+            console.warn(
+              `⚠️ ${leadsWithMissingData.length} lead(s) have missing fields:`,
+              leadsWithMissingData,
+            );
+          }
+        }
+
         setLeads(data || []);
       }
     } catch (error) {
@@ -823,6 +837,21 @@ export default function Leads() {
 
         const syncResult = await syncResponse.json();
 
+        console.log("[SYNC-CSV-FALLBACK] Sync response:", syncResult);
+        console.log(
+          "[SYNC-CSV-FALLBACK] Response status:",
+          syncResponse.status,
+        );
+        console.log("[SYNC-CSV-FALLBACK] Response OK:", syncResponse.ok);
+        console.log(
+          "[SYNC-CSV-FALLBACK] Synced leads count:",
+          syncResult.synced,
+        );
+        console.log(
+          "[SYNC-CSV-FALLBACK] About to call loadLeads(sheetId) with sheetId:",
+          sheetId,
+        );
+
         if (!syncResponse.ok || !syncResult.success) {
           // Build detailed error message
           let errorMsg = syncResult.error || "Failed to sync leads";
@@ -836,9 +865,10 @@ export default function Leads() {
         }
 
         // Success - reload the leads from Supabase
+        console.log("[SYNC-CSV-FALLBACK] Sync successful, reloading leads...");
         await new Promise((resolve) => {
           setTimeout(() => {
-            loadLeads();
+            loadLeads(sheetId);
             resolve(null);
           }, 500);
         });
@@ -1307,11 +1337,20 @@ export default function Leads() {
   };
 
   const filteredLeads = displayRows.filter((lead) => {
+    // Filter out date rows (which have _isDateRow property)
+    if (isDateRow(lead)) {
+      return false;
+    }
+
     const matchesSearch =
-      lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.phone.includes(searchTerm) ||
-      lead.company.toLowerCase().includes(searchTerm.toLowerCase());
+      !searchTerm ||
+      (lead.name &&
+        lead.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (lead.email &&
+        lead.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (lead.phone && lead.phone.includes(searchTerm)) ||
+      (lead.company &&
+        lead.company.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const matchesStatus =
       filterStatus === "all" || lead.status === filterStatus;
