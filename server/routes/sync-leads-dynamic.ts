@@ -490,20 +490,12 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
     console.log(`[SYNC] All ${validLeadsForSync.length} leads processed with defaults applied`);
 
+    // All leads should be processed with defaults, but log if something unexpected happens
     if (validLeadsForSync.length === 0) {
-      console.error(
-        `[SYNC] All ${leadsToSync.length} leads were filtered out due to missing name field`,
+      console.warn(
+        `[SYNC] WARNING: 0 leads after processing defaults. This is unexpected.`,
       );
-      console.error("[SYNC] Sample problematic lead:", leadsToSync[0]);
-
-      res.status(400).json({
-        error: "All leads were skipped - missing name (Full Name) field",
-        hint: "Ensure your sheet has a column for: Full Name. Phone, Company, and Email will be generated/defaulted if missing.",
-        totalProcessed: leadsToSync.length,
-        validLeads: validLeadsForSync.length,
-        sampleLead: leadsToSync[0],
-      });
-      return;
+      // Don't reject - return success with 0 synced (edge case)
     }
 
     console.log("Attempting to sync leads to Supabase...");
