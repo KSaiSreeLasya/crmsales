@@ -793,10 +793,15 @@ export default function Leads() {
         const syncResult = await syncResponse.json();
 
         if (!syncResponse.ok || !syncResult.success) {
-          throw new Error(
-            syncResult.error ||
-              "Failed to sync leads - check console for details",
-          );
+          // Build detailed error message
+          let errorMsg = syncResult.error || "Failed to sync leads";
+          if (syncResult.hint) {
+            errorMsg += `\n\n${syncResult.hint}`;
+          }
+          if (syncResult.skippedMissingFields) {
+            errorMsg += `\n\nNote: ${syncResult.skippedMissingFields} rows were skipped due to missing required fields (name, email, phone, company)`;
+          }
+          throw new Error(errorMsg);
         }
 
         // Success - reload the leads from Supabase
@@ -809,9 +814,14 @@ export default function Leads() {
 
         if (showNotification) {
           if (loadingToastId !== undefined) toast.dismiss(loadingToastId);
-          toast.success(
-            `✓ Synced ${syncResult.synced} leads from ${sheetName}`,
-          );
+
+          // Show detailed success message if there were skipped rows
+          let successMsg = `✓ Synced ${syncResult.synced} leads from ${sheetName}`;
+          if (syncResult.skippedMissingFields && syncResult.skippedMissingFields > 0) {
+            successMsg += ` (${syncResult.skippedMissingFields} rows skipped - missing required fields)`;
+          }
+
+          toast.success(successMsg);
         }
 
         return;
