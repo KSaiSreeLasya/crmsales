@@ -179,17 +179,18 @@ export default function Leads() {
     setDisplayRows(leads);
   }, [leads]);
 
-  const loadLeads = async () => {
+  const loadLeads = async (sheetIdOverride?: string) => {
     setIsLoading(true);
+    const sheetIdToUse = sheetIdOverride || selectedSheetId;
     try {
       console.log(
-        `Loading leads for sheet_id: "${selectedSheetId}" (type: ${typeof selectedSheetId})`,
+        `Loading leads for sheet_id: "${sheetIdToUse}" (type: ${typeof sheetIdToUse})`,
       );
 
       const { data, error } = await supabase
         .from("leads")
         .select("*")
-        .eq("sheet_id", selectedSheetId)
+        .eq("sheet_id", sheetIdToUse)
         .order("created_at", { ascending: false })
         .order("id", { ascending: false });
 
@@ -240,7 +241,7 @@ export default function Leads() {
         }
       } else {
         console.log(
-          `✓ Successfully loaded ${data?.length || 0} leads for sheet ${selectedSheetId}`,
+          `✓ Successfully loaded ${data?.length || 0} leads for sheet ${sheetIdToUse}`,
         );
         setLeads(data || []);
       }
@@ -540,14 +541,20 @@ export default function Leads() {
       const syncTimeoutId = setTimeout(() => syncController.abort(), 300000);
 
       try {
+        const syncPayload = {
+          leads: dataRows,
+          source: "google_sheet",
+          sheetId: sheetId,
+        };
+        console.log("[SYNC-DYN] Sending to /api/sync-leads-dynamic");
+        console.log("[SYNC-DYN] sheetId value:", sheetId);
+        console.log("[SYNC-DYN] sheetId type:", typeof sheetId);
+        console.log("[SYNC-DYN] dataRows count:", dataRows.length);
+
         const syncResponse = await fetch("/api/sync-leads-dynamic", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            leads: dataRows,
-            source: "google_sheet",
-            sheetId: sheetId,
-          }),
+          body: JSON.stringify(syncPayload),
           signal: syncController.signal,
         });
         clearTimeout(syncTimeoutId);
@@ -612,7 +619,7 @@ export default function Leads() {
         setDateRows(extractedDateRows);
 
         console.log(`About to reload leads for sheet_id: ${sheetId}`);
-        await loadLeads();
+        await loadLeads(sheetId);
         console.log("Leads reloaded after sync");
 
         if (showNotification) {
@@ -630,7 +637,7 @@ export default function Leads() {
         }
 
         // Reload leads to display synced data
-        await loadLeads();
+        await loadLeads(sheetId);
       } catch (fetchError) {
         clearTimeout(syncTimeoutId);
         throw fetchError;
@@ -795,15 +802,23 @@ export default function Leads() {
         }
 
         // Sync to Supabase
+        const fallbackSyncPayload = {
+          leads: dataRows,
+          source: "google_sheet",
+          sheetId: sheetId,
+          dateRows: extractedDateRows,
+        };
+        console.log(
+          "[SYNC-CSV-FALLBACK] Sending CSV fallback to /api/sync-leads-dynamic",
+        );
+        console.log("[SYNC-CSV-FALLBACK] sheetId value:", sheetId);
+        console.log("[SYNC-CSV-FALLBACK] sheetId type:", typeof sheetId);
+        console.log("[SYNC-CSV-FALLBACK] dataRows count:", dataRows.length);
+
         const syncResponse = await fetch("/api/sync-leads-dynamic", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            leads: dataRows,
-            source: "google_sheet",
-            sheetId: sheetId,
-            dateRows: extractedDateRows,
-          }),
+          body: JSON.stringify(fallbackSyncPayload),
         });
 
         const syncResult = await syncResponse.json();
@@ -896,14 +911,20 @@ export default function Leads() {
       const syncTimeoutId = setTimeout(() => syncController.abort(), 300000);
 
       try {
+        const syncPayload = {
+          leads: dataRows,
+          source: "api",
+          sheetId: sheetId,
+        };
+        console.log("[SYNC-API-V4] Sending to /api/sync-leads-dynamic");
+        console.log("[SYNC-API-V4] sheetId value:", sheetId);
+        console.log("[SYNC-API-V4] sheetId type:", typeof sheetId);
+        console.log("[SYNC-API-V4] dataRows count:", dataRows.length);
+
         const syncResponse = await fetch("/api/sync-leads-dynamic", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            leads: dataRows,
-            source: "api",
-            sheetId: sheetId,
-          }),
+          body: JSON.stringify(syncPayload),
           signal: syncController.signal,
         });
         clearTimeout(syncTimeoutId);
@@ -968,7 +989,7 @@ export default function Leads() {
         setDateRows(extractedDateRows);
 
         console.log(`About to reload leads for sheet_id: ${sheetId}`);
-        await loadLeads();
+        await loadLeads(sheetId);
         console.log("Leads reloaded after sync");
 
         if (showNotification) {
