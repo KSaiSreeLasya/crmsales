@@ -1318,6 +1318,11 @@ export default function Leads() {
   };
 
   const filteredLeads = displayRows.filter((lead) => {
+    // Filter out date rows (which have _isDateRow property)
+    if (isDateRow(lead)) {
+      return false;
+    }
+
     const matchesSearch =
       !searchTerm ||
       (lead.name && lead.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
