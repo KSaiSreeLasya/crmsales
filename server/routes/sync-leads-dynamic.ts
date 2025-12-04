@@ -134,6 +134,16 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     if (validLeads.length > 0) {
       console.log("First valid lead:", validLeads[0]);
       console.log("Columns in first lead:", Object.keys(validLeads[0]));
+      console.log("[SYNC DEBUG] Sample data from CSV:");
+      validLeads.slice(0, 3).forEach((lead, idx) => {
+        console.log(`  Row ${idx}:`, {
+          name: lead["full name"] || lead["Full Name"] || "",
+          email: lead.email || lead.Email || "",
+          phone: lead.phone || lead.Phone || "",
+          hasEmail: !!lead.email || !!lead.Email,
+          allKeys: Object.keys(lead),
+        });
+      });
     }
 
     if (validLeads.length === 0) {
