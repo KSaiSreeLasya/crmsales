@@ -396,10 +396,30 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
     console.log("Attempting to sync leads to Supabase...");
     console.log("Total leads to sync:", validLeadsForSync.length);
+    console.log("Target sheet_id for sync:", String(sheetId || "0"));
     if (validLeadsForSync.length > 0) {
       console.log("Sample lead:", validLeadsForSync[0]);
       console.log("Sample lead sheet_id:", validLeadsForSync[0].sheet_id);
-      console.log("Columns:", Object.keys(validLeadsForSync[0]));
+      console.log("Sample lead name:", validLeadsForSync[0].name);
+      console.log("Sample lead email:", validLeadsForSync[0].email);
+      console.log("Columns in first lead:", Object.keys(validLeadsForSync[0]));
+
+      // Verify all leads have the correct sheet_id
+      const allHaveCorrectSheetId = validLeadsForSync.every(
+        (lead) => lead.sheet_id === String(sheetId || "0")
+      );
+      console.log(
+        `[SYNC DEBUG] All leads have correct sheet_id (${String(sheetId || "0")}):`,
+        allHaveCorrectSheetId
+      );
+
+      // Count leads by sheet_id
+      const sheetIdCounts: { [key: string]: number } = {};
+      validLeadsForSync.forEach((lead) => {
+        const sid = lead.sheet_id || "unknown";
+        sheetIdCounts[sid] = (sheetIdCounts[sid] || 0) + 1;
+      });
+      console.log("[SYNC DEBUG] Leads by sheet_id:", sheetIdCounts);
     }
 
     try {
