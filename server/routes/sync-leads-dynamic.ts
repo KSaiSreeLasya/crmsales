@@ -74,6 +74,16 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     if (leads.length > 0) {
       console.log("First lead sample:", leads[0]);
       console.log("Available columns:", Object.keys(leads[0]));
+      console.log("Column count:", Object.keys(leads[0]).length);
+
+      // Show first few column values to debug
+      const columnPreview: any = {};
+      Object.keys(leads[0]).slice(0, 10).forEach(key => {
+        const val = String(leads[0][key] || "").trim();
+        columnPreview[key] = val.substring(0, 50);
+      });
+      console.log("Column preview:", columnPreview);
+
       if (leads[0].created_at) {
         console.log(
           "[SYNC DEBUG] First lead has created_at:",
