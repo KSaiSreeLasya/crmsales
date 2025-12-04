@@ -319,11 +319,50 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       return syncData;
     });
 
+    // Validate required fields and filter out invalid leads
+    const requiredFields = ["name", "email", "phone", "company"];
+    const validLeadsForSync = leadsToSync.filter((lead, idx) => {
+      const missing = requiredFields.filter((field) => {
+        const value = lead[field] || "";
+        return String(value).trim() === "" || String(value).trim() === "N/A";
+      });
+
+      if (missing.length > 0) {
+        console.warn(
+          `[SYNC] Row ${idx} skipped - missing required fields: ${missing.join(", ")}. Data: name="${lead.name}", email="${lead.email}"`,
+        );
+        return false;
+      }
+      return true;
+    });
+
+    if (validLeadsForSync.length === 0) {
+      console.error(
+        `[SYNC] All ${leadsToSync.length} leads were filtered out due to missing required fields (name, email, phone, company)`,
+      );
+      console.error(
+        "[SYNC] Sample problematic lead:",
+        leadsToSync[0],
+      );
+
+      res.status(400).json({
+        error:
+          "All leads were skipped - missing required fields (name, email, phone, company)",
+        hint: "Ensure your sheet has columns for: Full Name, Email, Phone, and Company",
+        totalProcessed: leadsToSync.length,
+        validLeads: validLeadsForSync.length,
+        sampleLead: leadsToSync[0],
+      });
+      return;
+    }
+
     console.log("Attempting to sync leads to Supabase...");
-    console.log("Total leads to sync:", leadsToSync.length);
-    console.log("Sample lead:", leadsToSync[0]);
-    console.log("Sample lead sheet_id:", leadsToSync[0].sheet_id);
-    console.log("Columns:", Object.keys(leadsToSync[0]));
+    console.log("Total leads to sync:", validLeadsForSync.length);
+    if (validLeadsForSync.length > 0) {
+      console.log("Sample lead:", validLeadsForSync[0]);
+      console.log("Sample lead sheet_id:", validLeadsForSync[0].sheet_id);
+      console.log("Columns:", Object.keys(validLeadsForSync[0]));
+    }
 
     try {
       // Pre-check: Fetch existing leads for this sheet to preserve assignments
