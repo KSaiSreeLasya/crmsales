@@ -613,7 +613,7 @@ export default function Leads() {
         setDateRows(extractedDateRows);
 
         console.log(`About to reload leads for sheet_id: ${sheetId}`);
-        await loadLeads();
+        await loadLeads(sheetId);
         console.log("Leads reloaded after sync");
 
         if (showNotification) {
@@ -631,7 +631,7 @@ export default function Leads() {
         }
 
         // Reload leads to display synced data
-        await loadLeads();
+        await loadLeads(sheetId);
       } catch (fetchError) {
         clearTimeout(syncTimeoutId);
         throw fetchError;
@@ -969,7 +969,7 @@ export default function Leads() {
         setDateRows(extractedDateRows);
 
         console.log(`About to reload leads for sheet_id: ${sheetId}`);
-        await loadLeads();
+        await loadLeads(sheetId);
         console.log("Leads reloaded after sync");
 
         if (showNotification) {
