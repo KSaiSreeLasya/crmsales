@@ -179,17 +179,18 @@ export default function Leads() {
     setDisplayRows(leads);
   }, [leads]);
 
-  const loadLeads = async () => {
+  const loadLeads = async (sheetIdOverride?: string) => {
     setIsLoading(true);
+    const sheetIdToUse = sheetIdOverride || selectedSheetId;
     try {
       console.log(
-        `Loading leads for sheet_id: "${selectedSheetId}" (type: ${typeof selectedSheetId})`,
+        `Loading leads for sheet_id: "${sheetIdToUse}" (type: ${typeof sheetIdToUse})`,
       );
 
       const { data, error } = await supabase
         .from("leads")
         .select("*")
-        .eq("sheet_id", selectedSheetId)
+        .eq("sheet_id", sheetIdToUse)
         .order("created_at", { ascending: false })
         .order("id", { ascending: false });
 
@@ -240,7 +241,7 @@ export default function Leads() {
         }
       } else {
         console.log(
-          `✓ Successfully loaded ${data?.length || 0} leads for sheet ${selectedSheetId}`,
+          `✓ Successfully loaded ${data?.length || 0} leads for sheet ${sheetIdToUse}`,
         );
         setLeads(data || []);
       }
