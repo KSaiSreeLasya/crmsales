@@ -808,7 +808,9 @@ export default function Leads() {
           sheetId: sheetId,
           dateRows: extractedDateRows,
         };
-        console.log("[SYNC-CSV-FALLBACK] Sending CSV fallback to /api/sync-leads-dynamic");
+        console.log(
+          "[SYNC-CSV-FALLBACK] Sending CSV fallback to /api/sync-leads-dynamic",
+        );
         console.log("[SYNC-CSV-FALLBACK] sheetId value:", sheetId);
         console.log("[SYNC-CSV-FALLBACK] sheetId type:", typeof sheetId);
         console.log("[SYNC-CSV-FALLBACK] dataRows count:", dataRows.length);

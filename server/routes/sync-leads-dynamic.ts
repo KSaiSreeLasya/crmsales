@@ -50,7 +50,12 @@ function parseDate(dateStr: string): string | null {
 
 export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
   try {
-    const { leads, dateRows, source, sheetId: rawSheetId } = req.body as DynamicLeadRequest;
+    const {
+      leads,
+      dateRows,
+      source,
+      sheetId: rawSheetId,
+    } = req.body as DynamicLeadRequest;
 
     // Ensure sheetId is properly converted to string and logged
     const sheetId = String(rawSheetId || "0");
@@ -65,7 +70,10 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     console.log("[SYNC DEBUG] Converted sheetId:", sheetId);
     console.log("[SYNC DEBUG] sheetId Type:", typeof sheetId);
     console.log("[SYNC DEBUG] Full request body keys:", Object.keys(req.body));
-    console.log("[SYNC DEBUG] Full request body:", JSON.stringify(req.body, null, 2).substring(0, 500));
+    console.log(
+      "[SYNC DEBUG] Full request body:",
+      JSON.stringify(req.body, null, 2).substring(0, 500),
+    );
     if (req.body.sheetId === undefined) {
       console.warn(
         "[SYNC DEBUG] WARNING: sheetId is undefined in request body!",
@@ -414,11 +422,11 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
       // Verify all leads have the correct sheet_id
       const allHaveCorrectSheetId = validLeadsForSync.every(
-        (lead) => lead.sheet_id === String(sheetId || "0")
+        (lead) => lead.sheet_id === String(sheetId || "0"),
       );
       console.log(
         `[SYNC DEBUG] All leads have correct sheet_id (${String(sheetId || "0")}):`,
-        allHaveCorrectSheetId
+        allHaveCorrectSheetId,
       );
 
       // Count leads by sheet_id
@@ -490,7 +498,10 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       if (newLeads.length > 0) {
         console.log(`Inserting ${newLeads.length} new leads into Supabase...`);
         console.log("[SYNC DEBUG] First lead to insert:", newLeads[0]);
-        console.log("[SYNC DEBUG] Sheet ID in first lead:", newLeads[0].sheet_id);
+        console.log(
+          "[SYNC DEBUG] Sheet ID in first lead:",
+          newLeads[0].sheet_id,
+        );
         const { data, error } = await supabase
           .from("leads")
           .insert(newLeads)
@@ -501,7 +512,10 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           console.log(`✓ Inserted ${insertCount} new leads`);
           if (data && data.length > 0) {
             console.log("[SYNC DEBUG] First inserted record:", data[0]);
-            console.log("[SYNC DEBUG] Sheet ID in first inserted record:", data[0].sheet_id);
+            console.log(
+              "[SYNC DEBUG] Sheet ID in first inserted record:",
+              data[0].sheet_id,
+            );
           }
 
           // Verify the data was actually saved
@@ -512,11 +526,16 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
             .limit(1);
 
           if (!verifyError && verifyData && verifyData.length > 0) {
-            console.log(`[SYNC DEBUG] Verification: Found lead in sheet ${sheetId}:`, verifyData[0]);
+            console.log(
+              `[SYNC DEBUG] Verification: Found lead in sheet ${sheetId}:`,
+              verifyData[0],
+            );
           } else if (verifyError) {
             console.warn(`[SYNC DEBUG] Verification failed:`, verifyError);
           } else {
-            console.warn(`[SYNC DEBUG] Verification: No leads found in sheet ${sheetId}`);
+            console.warn(
+              `[SYNC DEBUG] Verification: No leads found in sheet ${sheetId}`,
+            );
           }
         } else {
           console.warn(`Failed to insert ${newLeads.length} new leads:`, error);
@@ -558,7 +577,9 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         `Sync complete: ${insertCount} new, ${updateCount} updated, ${failureCount} failed (${leadsToSync.length - validLeadsForSync.length} leads skipped due to missing required fields)`,
       );
       console.log(`[SYNC DEBUG] Final sheet_id being synced: ${sheetId}`);
-      console.log(`[SYNC DEBUG] Total synced to sheet: ${updateCount + insertCount}`);
+      console.log(
+        `[SYNC DEBUG] Total synced to sheet: ${updateCount + insertCount}`,
+      );
 
       // Do a final verification query to confirm data was saved
       const { data: finalVerify, error: finalVerifyError } = await supabase
@@ -569,7 +590,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       console.log(
         `[SYNC DEBUG] Final verification - leads in sheet ${sheetId}:`,
         finalVerify?.[0]?.count || "unknown",
-        finalVerifyError ? `(Error: ${finalVerifyError.message})` : ""
+        finalVerifyError ? `(Error: ${finalVerifyError.message})` : "",
       );
 
       res.json({
