@@ -553,36 +553,31 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     }
 
     try {
-      // Verify all leads have required fields before proceeding to database
+      // Validation has already been done with strict filtering above
       console.log(
-        `[SYNC] Final pre-sync verification of ${validLeadsForSync.length} leads...`,
+        `[SYNC] Proceeding with ${validatedLeads.length} validated leads (rejected ${rejectedCount})`,
       );
-      let leadsWithIssues = 0;
-      validLeadsForSync.forEach((lead, idx) => {
-        const name = String(lead.name || "").trim();
-        const email = String(lead.email || "").trim();
-        const phone = String(lead.phone || "").trim();
-        const company = String(lead.company || "").trim();
 
-        if (!name || !email || !phone || !company) {
-          if (idx < 3) {
-            console.warn(`[SYNC] Row ${idx} missing fields:`, {
-              name: name || "MISSING",
-              email: email || "MISSING",
-              phone: phone || "MISSING",
-              company: company || "MISSING",
-            });
-          }
-          leadsWithIssues++;
-        }
-      });
-
-      if (leadsWithIssues > 0) {
-        console.warn(
-          `[SYNC] Found ${leadsWithIssues} leads with missing fields - these should have been filled with defaults. Investigating...`,
-        );
-      } else {
-        console.log(`[SYNC] ✓ All leads have required fields`);
+      if (validatedLeads.length === 0) {
+        console.warn("[SYNC] No validated leads to sync after filtering.");
+        res.json({
+          success: true,
+          message: "No leads to sync (all leads were missing required fields)",
+          synced: 0,
+          newLeads: 0,
+          updatedLeads: 0,
+          failed: 0,
+          rejected: rejectedCount,
+          skippedMissingFields: leadsToSync.length - validLeadsForSync.length,
+          totalFetched: leads.length,
+          emptyRowsRemoved: leads.length - leadsToSync.length,
+          validRowsProcessed: validLeadsForSync.length,
+          validatedRowsAfterFiltering: validatedLeads.length,
+          source: source,
+          sheetId: sheetId,
+          columnsIncluded: [],
+        });
+        return;
       }
 
       // Pre-check: Fetch existing leads for this sheet to preserve assignments
