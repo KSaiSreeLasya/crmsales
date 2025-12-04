@@ -282,6 +282,17 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         "contact email",
       ]);
 
+      // Debug: Log email extraction for first few rows
+      if (rowIndex < 3) {
+        console.log(`[SYNC DEBUG] Row ${rowIndex} email extraction:`, {
+          emailValue,
+          emailTrimmed: emailValue?.trim(),
+          hasEmail: !!emailValue,
+          allKeys: Object.keys(lead),
+          rawEmail: lead.email || lead.Email || lead["email"],
+        });
+      }
+
       // If email is not found, generate synthetic email to ensure uniqueness
       if (!emailValue || !emailValue.trim()) {
         const name = syncData.name || "unknown";
