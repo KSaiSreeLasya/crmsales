@@ -903,14 +903,20 @@ export default function Leads() {
       const syncTimeoutId = setTimeout(() => syncController.abort(), 300000);
 
       try {
+        const syncPayload = {
+          leads: dataRows,
+          source: "api",
+          sheetId: sheetId,
+        };
+        console.log("[SYNC-API-V4] Sending to /api/sync-leads-dynamic");
+        console.log("[SYNC-API-V4] sheetId value:", sheetId);
+        console.log("[SYNC-API-V4] sheetId type:", typeof sheetId);
+        console.log("[SYNC-API-V4] dataRows count:", dataRows.length);
+
         const syncResponse = await fetch("/api/sync-leads-dynamic", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            leads: dataRows,
-            source: "api",
-            sheetId: sheetId,
-          }),
+          body: JSON.stringify(syncPayload),
           signal: syncController.signal,
         });
         clearTimeout(syncTimeoutId);
