@@ -348,6 +348,18 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
     console.log("First data row:", rows[0]);
     console.log("First data row keys:", Object.keys(rows[0]));
     console.log("Sample rows:", rows.slice(0, 3));
+
+    // Check which columns have data
+    const firstRow = rows[0];
+    const columnsWithData = Object.entries(firstRow)
+      .filter(([k, v]) => v && String(v).trim())
+      .map(([k, v]) => `${k}: ${String(v).substring(0, 50)}`)
+      .join(" | ");
+    console.log("First row columns with data:", columnsWithData);
+
+    // Check email specifically
+    const emailVal = firstRow.email || firstRow.Email || firstRow.EMAIL || "";
+    console.log("First row email value:", `"${emailVal}"`, `(length: ${String(emailVal).length})`);
   }
 
   return rows;
