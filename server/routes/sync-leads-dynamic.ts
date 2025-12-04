@@ -549,6 +549,20 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       console.log(
         `Sync complete: ${insertCount} new, ${updateCount} updated, ${failureCount} failed (${leadsToSync.length - validLeadsForSync.length} leads skipped due to missing required fields)`,
       );
+      console.log(`[SYNC DEBUG] Final sheet_id being synced: ${sheetId}`);
+      console.log(`[SYNC DEBUG] Total synced to sheet: ${updateCount + insertCount}`);
+
+      // Do a final verification query to confirm data was saved
+      const { data: finalVerify, error: finalVerifyError } = await supabase
+        .from("leads")
+        .select("count")
+        .eq("sheet_id", sheetId);
+
+      console.log(
+        `[SYNC DEBUG] Final verification - leads in sheet ${sheetId}:`,
+        finalVerify?.[0]?.count || "unknown",
+        finalVerifyError ? `(Error: ${finalVerifyError.message})` : ""
+      );
 
       res.json({
         success: true,
@@ -562,6 +576,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         emptyRowsRemoved: leads.length - leadsToSync.length,
         validRowsProcessed: validLeadsForSync.length,
         source: source,
+        sheetId: sheetId,
         columnsIncluded:
           validLeadsForSync.length > 0 ? Object.keys(validLeadsForSync[0]) : [],
       });
