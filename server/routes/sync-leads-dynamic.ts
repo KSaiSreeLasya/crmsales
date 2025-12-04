@@ -480,7 +480,9 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
       // First, try to insert new records
       if (newLeads.length > 0) {
-        console.log("Inserting new leads into Supabase...");
+        console.log(`Inserting ${newLeads.length} new leads into Supabase...`);
+        console.log("[SYNC DEBUG] First lead to insert:", newLeads[0]);
+        console.log("[SYNC DEBUG] Sheet ID in first lead:", newLeads[0].sheet_id);
         const { data, error } = await supabase
           .from("leads")
           .insert(newLeads)
@@ -489,8 +491,28 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         if (!error) {
           insertCount = data?.length || newLeads.length;
           console.log(`✓ Inserted ${insertCount} new leads`);
+          if (data && data.length > 0) {
+            console.log("[SYNC DEBUG] First inserted record:", data[0]);
+            console.log("[SYNC DEBUG] Sheet ID in first inserted record:", data[0].sheet_id);
+          }
+
+          // Verify the data was actually saved
+          const { data: verifyData, error: verifyError } = await supabase
+            .from("leads")
+            .select("id, name, email, sheet_id")
+            .eq("sheet_id", sheetId)
+            .limit(1);
+
+          if (!verifyError && verifyData && verifyData.length > 0) {
+            console.log(`[SYNC DEBUG] Verification: Found lead in sheet ${sheetId}:`, verifyData[0]);
+          } else if (verifyError) {
+            console.warn(`[SYNC DEBUG] Verification failed:`, verifyError);
+          } else {
+            console.warn(`[SYNC DEBUG] Verification: No leads found in sheet ${sheetId}`);
+          }
         } else {
           console.warn(`Failed to insert ${newLeads.length} new leads:`, error);
+          console.warn("[SYNC DEBUG] Error details:", JSON.stringify(error));
           failureCount += newLeads.length;
         }
       }
