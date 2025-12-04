@@ -286,6 +286,8 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
         headers = possibleHeaders;
         startIndex = i + 1;
         break;
+      } else if (i < 5) {
+        console.log(`  Line ${i} is not header (E:${hasEmailColumn} P:${hasPhoneColumn} N:${hasNameColumn}):`, possibleHeaders.slice(0, 3));
       }
     }
   }
