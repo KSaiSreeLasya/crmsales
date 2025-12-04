@@ -247,26 +247,26 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
       // Email is REQUIRED in database (NOT NULL UNIQUE)
       // Try multiple patterns to find email column with extended matching
-      let emailValue =
-        mapColumn([
-          "email",
-          "email_address",
-          "email address",
-          "e-mail",
-          "e mail",
-          "contact email",
-        ]);
+      let emailValue = mapColumn([
+        "email",
+        "email_address",
+        "email address",
+        "e-mail",
+        "e mail",
+        "contact email",
+      ]);
 
       // If email is not found, generate synthetic email to ensure uniqueness
       if (!emailValue || !emailValue.trim()) {
         const name = syncData.name || "unknown";
-        const phone = mapColumn([
-          "phone",
-          "phone_no",
-          "phone_number",
-          "telephone",
-          "contact phone",
-        ]) || "";
+        const phone =
+          mapColumn([
+            "phone",
+            "phone_no",
+            "phone_number",
+            "telephone",
+            "contact phone",
+          ]) || "";
 
         // Generate unique synthetic email
         const sanitizedName = String(name)
@@ -275,13 +275,14 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           .replace(/\s+/g, ".")
           .replace(/[^a-z0-9.]/g, "");
 
-        const sanitizedPhone = String(phone)
-          .replace(/\D/g, "")
-          .slice(-4);
+        const sanitizedPhone = String(phone).replace(/\D/g, "").slice(-4);
 
         const uniqueSuffix = `${Date.now()}.${rowIndex}`;
         const baseEmail = `${(sanitizedName || "unknown").substring(0, 50)}.${sanitizedPhone || "nophone"}`;
-        emailValue = `${baseEmail}.${uniqueSuffix}@synced-lead.local`.substring(0, 254);
+        emailValue = `${baseEmail}.${uniqueSuffix}@synced-lead.local`.substring(
+          0,
+          254,
+        );
 
         console.log(
           `[SYNC] Row ${rowIndex}: Generated synthetic email for lead "${name}": ${emailValue}`,
@@ -362,7 +363,11 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       const trimmedName = String(name).trim();
 
       // Only reject if name is empty or unknown
-      if (trimmedName === "" || trimmedName === "unknown" || trimmedName === "Unknown") {
+      if (
+        trimmedName === "" ||
+        trimmedName === "unknown" ||
+        trimmedName === "Unknown"
+      ) {
         console.warn(
           `[SYNC] Row ${idx} skipped - missing name. Data: "${JSON.stringify(lead).substring(0, 100)}"`,
         );
@@ -380,8 +385,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       console.error("[SYNC] Sample problematic lead:", leadsToSync[0]);
 
       res.status(400).json({
-        error:
-          "All leads were skipped - missing name (Full Name) field",
+        error: "All leads were skipped - missing name (Full Name) field",
         hint: "Ensure your sheet has a column for: Full Name. Phone, Company, and Email will be generated/defaulted if missing.",
         totalProcessed: leadsToSync.length,
         validLeads: validLeadsForSync.length,
