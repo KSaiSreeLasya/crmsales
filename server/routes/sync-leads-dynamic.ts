@@ -361,12 +361,11 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
       // Explicit logging for every row to track what email is being assigned
       if (rowIndex < 5) {
-        console.log(`[SYNC EXPLICIT] Row ${rowIndex}:`, {
-          originalEmail: lead.email,
-          emailTrimmed,
-          emailValue,
-          finalAssignedEmail: syncData.email,
-          hasEmail: !!syncData.email,
+        console.log(`[SYNC] Row ${rowIndex} final email assignment:`, {
+          originalCSVEmail: lead.email,
+          afterMapColumn: emailValue,
+          finalSyncDataEmail: syncData.email,
+          isEmpty: !syncData.email || String(syncData.email).trim() === "",
         });
       }
 
