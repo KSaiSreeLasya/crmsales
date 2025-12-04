@@ -436,6 +436,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     // Note: Email is now generated synthetically if missing
     // Phone and Company default to "N/A" which is acceptable
     // Name and Email are required (Email is either from sheet or synthetically generated)
+    console.log(`[SYNC] Validating ${leadsToSync.length} leads for sync...`);
     const validLeadsForSync = leadsToSync.filter((lead, idx) => {
       const name = lead.name || "";
       const email = lead.email || "";
@@ -457,14 +458,26 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       // Reject if email is still empty after synthetic generation (this should NOT happen)
       if (trimmedEmail === "") {
         console.error(
-          `[SYNC] Row ${idx} skipped - email is empty after processing. Lead: "${JSON.stringify(lead).substring(0, 150)}"`,
+          `[SYNC] Row ${idx} CRITICAL: email is EMPTY after processing!`,
         );
+        if (idx < 3) {
+          console.error(`[SYNC] Row ${idx} lead data:`, {
+            name,
+            email,
+            allKeys: Object.keys(lead),
+          });
+        }
         return false;
+      }
+
+      if (idx < 3) {
+        console.log(`[SYNC] Row ${idx} PASSED validation: name="${trimmedName.substring(0, 30)}", email="${trimmedEmail.substring(0, 40)}"`);
       }
 
       // All other fields are either populated from sheet or have sensible defaults
       return true;
     });
+    console.log(`[SYNC] After validation: ${validLeadsForSync.length} leads passed, ${leadsToSync.length - validLeadsForSync.length} rejected`);
 
     if (validLeadsForSync.length === 0) {
       console.error(
