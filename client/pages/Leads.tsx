@@ -243,6 +243,17 @@ export default function Leads() {
         console.log(
           `✓ Successfully loaded ${data?.length || 0} leads for sheet ${sheetIdToUse}`,
         );
+
+        // Log leads with missing data for debugging
+        if (data && data.length > 0) {
+          const leadsWithMissingData = data.filter(lead =>
+            !lead.name || !lead.email || !lead.phone || !lead.company
+          );
+          if (leadsWithMissingData.length > 0) {
+            console.warn(`⚠️ ${leadsWithMissingData.length} lead(s) have missing fields:`, leadsWithMissingData);
+          }
+        }
+
         setLeads(data || []);
       }
     } catch (error) {
