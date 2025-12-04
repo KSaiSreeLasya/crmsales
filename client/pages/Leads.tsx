@@ -1308,10 +1308,11 @@ export default function Leads() {
 
   const filteredLeads = displayRows.filter((lead) => {
     const matchesSearch =
-      lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.phone.includes(searchTerm) ||
-      lead.company.toLowerCase().includes(searchTerm.toLowerCase());
+      !searchTerm ||
+      (lead.name && lead.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (lead.email && lead.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (lead.phone && lead.phone.includes(searchTerm)) ||
+      (lead.company && lead.company.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const matchesStatus =
       filterStatus === "all" || lead.status === filterStatus;
