@@ -287,7 +287,10 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
         startIndex = i + 1;
         break;
       } else if (i < 5) {
-        console.log(`  Line ${i} is not header (E:${hasEmailColumn} P:${hasPhoneColumn} N:${hasNameColumn}):`, possibleHeaders.slice(0, 3));
+        console.log(
+          `  Line ${i} is not header (E:${hasEmailColumn} P:${hasPhoneColumn} N:${hasNameColumn}):`,
+          possibleHeaders.slice(0, 3),
+        );
       }
     }
   }
@@ -359,7 +362,11 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
 
     // Check email specifically
     const emailVal = firstRow.email || firstRow.Email || firstRow.EMAIL || "";
-    console.log("First row email value:", `"${emailVal}"`, `(length: ${String(emailVal).length})`);
+    console.log(
+      "First row email value:",
+      `"${emailVal}"`,
+      `(length: ${String(emailVal).length})`,
+    );
   }
 
   return rows;

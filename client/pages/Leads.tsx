@@ -246,11 +246,14 @@ export default function Leads() {
 
         // Log leads with missing data for debugging
         if (data && data.length > 0) {
-          const leadsWithMissingData = data.filter(lead =>
-            !lead.name || !lead.email || !lead.phone || !lead.company
+          const leadsWithMissingData = data.filter(
+            (lead) => !lead.name || !lead.email || !lead.phone || !lead.company,
           );
           if (leadsWithMissingData.length > 0) {
-            console.warn(`⚠️ ${leadsWithMissingData.length} lead(s) have missing fields:`, leadsWithMissingData);
+            console.warn(
+              `⚠️ ${leadsWithMissingData.length} lead(s) have missing fields:`,
+              leadsWithMissingData,
+            );
           }
         }
 
@@ -835,10 +838,19 @@ export default function Leads() {
         const syncResult = await syncResponse.json();
 
         console.log("[SYNC-CSV-FALLBACK] Sync response:", syncResult);
-        console.log("[SYNC-CSV-FALLBACK] Response status:", syncResponse.status);
+        console.log(
+          "[SYNC-CSV-FALLBACK] Response status:",
+          syncResponse.status,
+        );
         console.log("[SYNC-CSV-FALLBACK] Response OK:", syncResponse.ok);
-        console.log("[SYNC-CSV-FALLBACK] Synced leads count:", syncResult.synced);
-        console.log("[SYNC-CSV-FALLBACK] About to call loadLeads(sheetId) with sheetId:", sheetId);
+        console.log(
+          "[SYNC-CSV-FALLBACK] Synced leads count:",
+          syncResult.synced,
+        );
+        console.log(
+          "[SYNC-CSV-FALLBACK] About to call loadLeads(sheetId) with sheetId:",
+          sheetId,
+        );
 
         if (!syncResponse.ok || !syncResult.success) {
           // Build detailed error message
@@ -1332,10 +1344,13 @@ export default function Leads() {
 
     const matchesSearch =
       !searchTerm ||
-      (lead.name && lead.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (lead.email && lead.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (lead.name &&
+        lead.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (lead.email &&
+        lead.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (lead.phone && lead.phone.includes(searchTerm)) ||
-      (lead.company && lead.company.toLowerCase().includes(searchTerm.toLowerCase()));
+      (lead.company &&
+        lead.company.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const matchesStatus =
       filterStatus === "all" || lead.status === filterStatus;
