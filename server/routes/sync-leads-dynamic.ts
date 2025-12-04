@@ -244,37 +244,31 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         mapColumn(["full name", "full_name", "name"]) || "Unknown";
 
       // Email is REQUIRED in database (NOT NULL UNIQUE)
-      // Try multiple patterns to find email column
-      const emailValue = mapColumn([
+      // Try multiple patterns to find email column with extended matching
+      syncData.email = mapColumn([
         "email",
         "email_address",
         "email address",
         "e-mail",
         "e mail",
-      ]);
+        "contact email",
+      ]) || "";
 
-      // If email is still not found, generate a synthetic one if we have at least a name
-      if (!emailValue || !emailValue.trim()) {
-        // Generate synthetic email based on name to satisfy NOT NULL constraint
-        const name = syncData.name || "unknown";
-        const sanitizedName = name
-          .toLowerCase()
-          .trim()
-          .replace(/\s+/g, ".")
-          .replace(/[^a-z0-9.]/g, "");
+      syncData.phone = mapColumn([
+        "phone",
+        "phone_no",
+        "phone_number",
+        "telephone",
+        "contact phone",
+      ]) || "N/A";
 
-        // Use timestamp to ensure uniqueness
-        const timestamp = Date.now();
-        syncData.email = `${sanitizedName || "unknown"}_${timestamp}@synced-leads.local`;
-        console.warn(
-          `[SYNC] Email not found for row with name "${name}", generated synthetic email: ${syncData.email}`,
-        );
-      } else {
-        syncData.email = emailValue;
-      }
+      syncData.company = mapColumn([
+        "company",
+        "organization",
+        "business",
+        "company name",
+      ]) || "N/A";
 
-      syncData.phone = mapColumn(["phone", "phone_no", "phone_number"]) || "";
-      syncData.company = mapColumn(["company"]) || "";
       syncData.street_address =
         mapColumn(["street address", "street_address", "street", "address"]) ||
         "";
@@ -287,12 +281,15 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           "what_is_your_average_monthly_electricity_bill",
           "average_monthly_electricity_bill",
           "monthly_electricity_bill",
+          "avg_bill",
+          "monthly_bill",
         ]) || "";
       syncData.type_of_property =
         mapColumn([
           "what_type_of_property_do_you_want_to_install_solar_on",
           "type_of_property",
           "property_type",
+          "property",
         ]) || "";
       syncData.avg_monthly_bill = syncData.electricity_bill;
       syncData.status = "Not lifted";
