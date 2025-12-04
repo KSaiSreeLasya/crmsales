@@ -741,6 +741,15 @@ export default function Leads() {
           `✓ Fetched ${rows.length} rows from sheet ${sheetName} via CSV export (fallback from API)`,
         );
 
+        // Log sample data to understand structure
+        if (rows.length > 0) {
+          console.log(
+            "[SYNC] Sample row from CSV:",
+            JSON.stringify(rows[0]).substring(0, 200),
+          );
+          console.log("[SYNC] Column names:", Object.keys(rows[0]));
+        }
+
         // Continue with the CSV data (same processing as API data)
         if (rows.length === 0) {
           if (showNotification) {
@@ -777,6 +786,13 @@ export default function Leads() {
         console.log(
           `Extracted ${extractedDateRows.length} date rows, applied to ${dataRows.length} leads`,
         );
+
+        if (dataRows.length > 0) {
+          console.log(
+            "[SYNC] First data row after processing:",
+            JSON.stringify(dataRows[0]).substring(0, 200),
+          );
+        }
 
         // Sync to Supabase
         const syncResponse = await fetch("/api/sync-leads-dynamic", {
