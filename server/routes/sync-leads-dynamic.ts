@@ -231,7 +231,14 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     ]);
 
     // Prepare leads data - normalize column names to match Supabase schema
+    console.log(`[SYNC] Starting to map ${validLeads.length} leads...`);
     const leadsToSync = validLeads.map((lead, rowIndex) => {
+      if (rowIndex === 0) {
+        console.log(`[SYNC] Processing first lead, keys:`, Object.keys(lead));
+        console.log(
+          `[SYNC] First lead raw email value: "${lead.email}" (type: ${typeof lead.email})`,
+        );
+      }
       const syncData: any = {
         source: source || "google_sheet",
         sheet_id: sheetId || "0",
@@ -303,6 +310,12 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       }
 
       // If email is not found or is empty/whitespace-only, generate synthetic email to ensure uniqueness
+      if (rowIndex < 3) {
+        console.log(
+          `[SYNC] Row ${rowIndex}: emailTrimmed="${emailTrimmed}", hasValidEmail=${hasValidEmail}, willGenerate=${!hasValidEmail}`,
+        );
+      }
+
       if (!hasValidEmail) {
         const name = syncData.name || "unknown";
         const phoneRaw =
@@ -350,14 +363,26 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       // Always use the sanitized, trimmed email value
       syncData.email = emailTrimmed || emailValue;
 
-      syncData.phone =
-        mapColumn([
-          "phone",
-          "phone_no",
-          "phone_number",
-          "telephone",
-          "contact phone",
-        ]) || "N/A";
+      // Explicit logging for every row to track what email is being assigned
+      if (rowIndex < 5) {
+        console.log(`[SYNC] Row ${rowIndex} final email assignment:`, {
+          originalCSVEmail: lead.email,
+          afterMapColumn: emailValue,
+          finalSyncDataEmail: syncData.email,
+          isEmpty: !syncData.email || String(syncData.email).trim() === "",
+        });
+      }
+
+      const phoneValue = mapColumn([
+        "phone",
+        "phone_no",
+        "phone_number",
+        "telephone",
+        "contact phone",
+      ]);
+
+      // Phone is required in database - must not be empty
+      syncData.phone = (phoneValue && String(phoneValue).trim()) || "N/A";
 
       syncData.company =
         mapColumn(["company", "organization", "business", "company name"]) ||
@@ -413,54 +438,74 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       return syncData;
     });
 
-    // Validate required fields and filter out invalid leads
-    // Note: Email is now generated synthetically if missing
-    // Phone and Company default to "N/A" which is acceptable
-    // Name and Email are required (Email is either from sheet or synthetically generated)
-    const validLeadsForSync = leadsToSync.filter((lead, idx) => {
-      const name = lead.name || "";
-      const email = lead.email || "";
-      const trimmedName = String(name).trim();
-      const trimmedEmail = String(email).trim();
+    // Validate and prepare leads for sync
+    // POLICY: Accept ALL rows. Generate defaults for missing required fields.
+    // - Name: Required field, will default to "Unknown" if missing (but log warning)
+    // - Email: Required field, will generate synthetic email if missing
+    // - Phone: Required by DB but defaults to "N/A" if missing (acceptable)
+    // - Company: Required by DB but defaults to "Solar Lead" if missing (acceptable)
+    console.log(`[SYNC] Processing ${leadsToSync.length} leads for sync...`);
+    const validLeadsForSync = leadsToSync.map((lead, idx) => {
+      // Ensure all required fields have values
+      const processedLead = { ...lead };
 
-      // Reject if name is empty/invalid
-      if (
-        trimmedName === "" ||
-        trimmedName === "unknown" ||
-        trimmedName === "Unknown"
-      ) {
-        console.warn(
-          `[SYNC] Row ${idx} skipped - missing name. Data: "${JSON.stringify(lead).substring(0, 100)}"`,
-        );
-        return false;
+      // Name: Use what we have, log if defaulting
+      const name = String(processedLead.name || "").trim();
+      if (!name || name === "unknown" || name === "Unknown") {
+        console.warn(`[SYNC] Row ${idx}: No name found, using "Unknown"`);
+        processedLead.name = "Unknown";
       }
 
-      // Reject if email is still empty after synthetic generation (this should NOT happen)
-      if (trimmedEmail === "") {
+      // Email: Should have been generated synthetically in mapColumn stage
+      const email = String(processedLead.email || "").trim();
+      if (!email) {
+        // This should not happen, but if it does, generate a fallback
         console.error(
-          `[SYNC] Row ${idx} skipped - email is empty after processing. Lead: "${JSON.stringify(lead).substring(0, 150)}"`,
+          `[SYNC] Row ${idx}: NO EMAIL AFTER PROCESSING - This should not happen!`,
         );
-        return false;
+        const fallbackEmail = `unknown.nophone.${Date.now()}${idx}@synced-lead.local`;
+        processedLead.email = fallbackEmail;
+        console.warn(
+          `[SYNC] Row ${idx}: Generated fallback email: ${fallbackEmail}`,
+        );
       }
 
-      // All other fields are either populated from sheet or have sensible defaults
-      return true;
+      // Phone: Default to "N/A" if missing
+      const phone = String(processedLead.phone || "").trim();
+      if (!phone) {
+        console.log(`[SYNC] Row ${idx}: No phone, using "N/A"`);
+        processedLead.phone = "N/A";
+      }
+
+      // Company: Default to "Solar Lead" if missing (since company is required by schema)
+      const company = String(processedLead.company || "").trim();
+      if (!company) {
+        console.log(`[SYNC] Row ${idx}: No company, using "Solar Lead"`);
+        processedLead.company = "Solar Lead";
+      }
+
+      if (idx < 3) {
+        console.log(`[SYNC] Row ${idx} after processing:`, {
+          name: processedLead.name,
+          email: processedLead.email,
+          phone: processedLead.phone,
+          company: processedLead.company,
+        });
+      }
+
+      return processedLead;
     });
 
-    if (validLeadsForSync.length === 0) {
-      console.error(
-        `[SYNC] All ${leadsToSync.length} leads were filtered out due to missing name field`,
-      );
-      console.error("[SYNC] Sample problematic lead:", leadsToSync[0]);
+    console.log(
+      `[SYNC] All ${validLeadsForSync.length} leads processed with defaults applied`,
+    );
 
-      res.status(400).json({
-        error: "All leads were skipped - missing name (Full Name) field",
-        hint: "Ensure your sheet has a column for: Full Name. Phone, Company, and Email will be generated/defaulted if missing.",
-        totalProcessed: leadsToSync.length,
-        validLeads: validLeadsForSync.length,
-        sampleLead: leadsToSync[0],
-      });
-      return;
+    // All leads should be processed with defaults, but log if something unexpected happens
+    if (validLeadsForSync.length === 0) {
+      console.warn(
+        `[SYNC] WARNING: 0 leads after processing defaults. This is unexpected.`,
+      );
+      // Don't reject - return success with 0 synced (edge case)
     }
 
     console.log("Attempting to sync leads to Supabase...");
@@ -492,27 +537,36 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     }
 
     try {
-      // Final validation: Ensure all leads have non-empty emails before proceeding
-      const leadsWithEmptyEmails = validLeadsForSync.filter(
-        (lead) => !lead.email || String(lead.email).trim() === "",
+      // Verify all leads have required fields before proceeding to database
+      console.log(
+        `[SYNC] Final pre-sync verification of ${validLeadsForSync.length} leads...`,
       );
+      let leadsWithIssues = 0;
+      validLeadsForSync.forEach((lead, idx) => {
+        const name = String(lead.name || "").trim();
+        const email = String(lead.email || "").trim();
+        const phone = String(lead.phone || "").trim();
+        const company = String(lead.company || "").trim();
 
-      if (leadsWithEmptyEmails.length > 0) {
-        console.error(
-          `[SYNC] CRITICAL: ${leadsWithEmptyEmails.length} leads still have empty emails after processing!`,
-        );
-        console.error(
-          "[SYNC] Sample leads with empty emails:",
-          leadsWithEmptyEmails.slice(0, 3),
-        );
+        if (!name || !email || !phone || !company) {
+          if (idx < 3) {
+            console.warn(`[SYNC] Row ${idx} missing fields:`, {
+              name: name || "MISSING",
+              email: email || "MISSING",
+              phone: phone || "MISSING",
+              company: company || "MISSING",
+            });
+          }
+          leadsWithIssues++;
+        }
+      });
 
-        res.status(400).json({
-          error: "Email generation failed",
-          message: `${leadsWithEmptyEmails.length} leads have empty emails even after synthetic generation. This indicates a configuration issue.`,
-          totalProcessed: validLeadsForSync.length,
-          failedCount: leadsWithEmptyEmails.length,
-        });
-        return;
+      if (leadsWithIssues > 0) {
+        console.warn(
+          `[SYNC] Found ${leadsWithIssues} leads with missing fields - these should have been filled with defaults. Investigating...`,
+        );
+      } else {
+        console.log(`[SYNC] ✓ All leads have required fields`);
       }
 
       // Pre-check: Fetch existing leads for this sheet to preserve assignments
@@ -557,8 +611,30 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       );
 
       console.log(
-        `${newLeads.length} new leads, ${existingLeadsToUpdate.length} leads to update`,
+        `[SYNC] Categorized leads: ${newLeads.length} new, ${existingLeadsToUpdate.length} to update`,
       );
+
+      if (newLeads.length > 0) {
+        console.log(
+          `[SYNC] Sample new leads (first 2):`,
+          newLeads.slice(0, 2).map((l) => ({
+            name: l.name,
+            email: l.email,
+            phone: l.phone,
+            company: l.company,
+          })),
+        );
+      }
+
+      if (existingLeadsToUpdate.length > 0) {
+        console.log(
+          `[SYNC] Sample existing leads (first 2):`,
+          existingLeadsToUpdate.slice(0, 2).map((l) => ({
+            name: l.name,
+            email: l.email,
+          })),
+        );
+      }
 
       // Preserve existing assignments for leads that are being updated
       // Remove sheet_id from update data since it's immutable
@@ -583,11 +659,47 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       // First, try to insert new records
       if (newLeads.length > 0) {
         console.log(`Inserting ${newLeads.length} new leads into Supabase...`);
-        console.log("[SYNC DEBUG] First lead to insert:", newLeads[0]);
+        console.log(
+          "[SYNC DEBUG] First lead to insert:",
+          JSON.stringify(newLeads[0], null, 2),
+        );
         console.log(
           "[SYNC DEBUG] Sheet ID in first lead:",
           newLeads[0].sheet_id,
         );
+
+        // Validate all leads have required fields before insert
+        const leadsWithMissingFields: Array<{ index: number; issue: string }> =
+          [];
+        newLeads.forEach((lead, idx) => {
+          if (!lead.name || String(lead.name).trim() === "") {
+            leadsWithMissingFields.push({ index: idx, issue: "missing name" });
+          }
+          if (!lead.email || String(lead.email).trim() === "") {
+            leadsWithMissingFields.push({ index: idx, issue: "missing email" });
+          }
+          if (!lead.phone || String(lead.phone).trim() === "") {
+            leadsWithMissingFields.push({ index: idx, issue: "missing phone" });
+          }
+          if (!lead.company || String(lead.company).trim() === "") {
+            leadsWithMissingFields.push({
+              index: idx,
+              issue: "missing company",
+            });
+          }
+        });
+
+        if (leadsWithMissingFields.length > 0) {
+          console.error(
+            `[SYNC] Found leads with missing required fields:`,
+            leadsWithMissingFields.slice(0, 5),
+          );
+          console.error(
+            `[SYNC] Example problematic lead:`,
+            newLeads[leadsWithMissingFields[0]?.index || 0],
+          );
+        }
+
         const { data, error } = await supabase
           .from("leads")
           .insert(newLeads)
@@ -624,10 +736,25 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
             );
           }
         } else {
-          console.warn(`Failed to insert ${newLeads.length} new leads:`, error);
-          console.warn("[SYNC DEBUG] Error details:", JSON.stringify(error));
+          console.error(
+            `[SYNC] CRITICAL: Failed to insert ${newLeads.length} new leads:`,
+            error,
+          );
+          console.error("[SYNC] Error code:", error?.code);
+          console.error("[SYNC] Error message:", error?.message);
+          console.error("[SYNC] Error details:", JSON.stringify(error));
+          if (newLeads.length > 0) {
+            console.error(
+              "[SYNC] First lead being inserted:",
+              JSON.stringify(newLeads[0]),
+            );
+          }
           failureCount += newLeads.length;
         }
+      } else {
+        console.log(
+          "[SYNC DEBUG] No new leads to insert (all existing or filtered out)",
+        );
       }
 
       // Update each existing lead (preserving assignments)
