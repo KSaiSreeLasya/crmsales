@@ -619,15 +619,22 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         const phone = String(lead.phone || "").trim();
         const company = String(lead.company || "").trim();
 
-        const isValid = name.length > 0 && email.length > 0 && phone.length > 0 && company.length > 0;
+        const isValid =
+          name.length > 0 &&
+          email.length > 0 &&
+          phone.length > 0 &&
+          company.length > 0;
 
         if (!isValid) {
-          console.error(`[SYNC] Row ${idx} REJECTED due to missing required fields:`, {
-            name: name || "MISSING",
-            email: email || "MISSING",
-            phone: phone || "MISSING",
-            company: company || "MISSING",
-          });
+          console.error(
+            `[SYNC] Row ${idx} REJECTED due to missing required fields:`,
+            {
+              name: name || "MISSING",
+              email: email || "MISSING",
+              phone: phone || "MISSING",
+              company: company || "MISSING",
+            },
+          );
         }
 
         return isValid;
