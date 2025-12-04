@@ -308,6 +308,10 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       }
 
       // If email is not found or is empty/whitespace-only, generate synthetic email to ensure uniqueness
+      if (rowIndex < 3) {
+        console.log(`[SYNC] Row ${rowIndex}: emailTrimmed="${emailTrimmed}", hasValidEmail=${hasValidEmail}, willGenerate=${!hasValidEmail}`);
+      }
+
       if (!hasValidEmail) {
         const name = syncData.name || "unknown";
         const phoneRaw =
