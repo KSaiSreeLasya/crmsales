@@ -834,6 +834,12 @@ export default function Leads() {
 
         const syncResult = await syncResponse.json();
 
+        console.log("[SYNC-CSV-FALLBACK] Sync response:", syncResult);
+        console.log("[SYNC-CSV-FALLBACK] Response status:", syncResponse.status);
+        console.log("[SYNC-CSV-FALLBACK] Response OK:", syncResponse.ok);
+        console.log("[SYNC-CSV-FALLBACK] Synced leads count:", syncResult.synced);
+        console.log("[SYNC-CSV-FALLBACK] About to call loadLeads(sheetId) with sheetId:", sheetId);
+
         if (!syncResponse.ok || !syncResult.success) {
           // Build detailed error message
           let errorMsg = syncResult.error || "Failed to sync leads";
@@ -847,9 +853,10 @@ export default function Leads() {
         }
 
         // Success - reload the leads from Supabase
+        console.log("[SYNC-CSV-FALLBACK] Sync successful, reloading leads...");
         await new Promise((resolve) => {
           setTimeout(() => {
-            loadLeads();
+            loadLeads(sheetId);
             resolve(null);
           }, 500);
         });
