@@ -375,14 +375,14 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
     if (validLeadsForSync.length === 0) {
       console.error(
-        `[SYNC] All ${leadsToSync.length} leads were filtered out due to missing required fields (name, phone, company)`,
+        `[SYNC] All ${leadsToSync.length} leads were filtered out due to missing name field`,
       );
       console.error("[SYNC] Sample problematic lead:", leadsToSync[0]);
 
       res.status(400).json({
         error:
-          "All leads were skipped - missing required fields (name, phone, company)",
-        hint: "Ensure your sheet has columns for: Full Name, Phone, and Company. Email will be generated if missing.",
+          "All leads were skipped - missing name (Full Name) field",
+        hint: "Ensure your sheet has a column for: Full Name. Phone, Company, and Email will be generated/defaulted if missing.",
         totalProcessed: leadsToSync.length,
         validLeads: validLeadsForSync.length,
         sampleLead: leadsToSync[0],
