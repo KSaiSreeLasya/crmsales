@@ -316,6 +316,8 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         );
       }
 
+      let finalEmail = "";
+
       if (!hasValidEmail) {
         const name = syncData.name || "unknown";
         const phoneRaw =
@@ -347,21 +349,22 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         const baseEmail = (sanitizedName || "unknown").substring(0, 40);
         const emailDomain = `${baseEmail}${sanitizedPhone ? "." + sanitizedPhone : ""}`;
 
-        emailValue = `${emailDomain}.${uniqueSuffix}@synced-lead.local`
+        finalEmail = `${emailDomain}.${uniqueSuffix}@synced-lead.local`
           .substring(0, 254)
           .toLowerCase();
 
         console.log(
-          `[SYNC] Row ${rowIndex}: Generated synthetic email for lead "${name}" (phone: ${phone}): ${emailValue}`,
+          `[SYNC] Row ${rowIndex}: Generated synthetic email for lead "${name}" (phone: ${phone}): ${finalEmail}`,
         );
       } else {
+        finalEmail = emailTrimmed;
         console.log(
-          `[SYNC] Row ${rowIndex}: Using email from sheet for lead "${syncData.name}": ${emailTrimmed}`,
+          `[SYNC] Row ${rowIndex}: Using email from sheet for lead "${syncData.name}": ${finalEmail}`,
         );
       }
 
-      // Always use the sanitized, trimmed email value
-      syncData.email = emailTrimmed || emailValue;
+      // Ensure email is ALWAYS set and non-empty
+      syncData.email = finalEmail;
 
       // Explicit logging for every row to track what email is being assigned
       if (rowIndex < 5) {
