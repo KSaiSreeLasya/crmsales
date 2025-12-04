@@ -242,7 +242,37 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       // Map columns with flexible name matching
       syncData.name =
         mapColumn(["full name", "full_name", "name"]) || "Unknown";
-      syncData.email = mapColumn(["email", "email_address"]) || "";
+
+      // Email is REQUIRED in database (NOT NULL UNIQUE)
+      // Try multiple patterns to find email column
+      const emailValue = mapColumn([
+        "email",
+        "email_address",
+        "email address",
+        "e-mail",
+        "e mail",
+      ]);
+
+      // If email is still not found, generate a synthetic one if we have at least a name
+      if (!emailValue || !emailValue.trim()) {
+        // Generate synthetic email based on name to satisfy NOT NULL constraint
+        const name = syncData.name || "unknown";
+        const sanitizedName = name
+          .toLowerCase()
+          .trim()
+          .replace(/\s+/g, ".")
+          .replace(/[^a-z0-9.]/g, "");
+
+        // Use timestamp to ensure uniqueness
+        const timestamp = Date.now();
+        syncData.email = `${sanitizedName || "unknown"}_${timestamp}@synced-leads.local`;
+        console.warn(
+          `[SYNC] Email not found for row with name "${name}", generated synthetic email: ${syncData.email}`,
+        );
+      } else {
+        syncData.email = emailValue;
+      }
+
       syncData.phone = mapColumn(["phone", "phone_no", "phone_number"]) || "";
       syncData.company = mapColumn(["company"]) || "";
       syncData.street_address =
