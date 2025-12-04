@@ -415,12 +415,14 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     // Validate required fields and filter out invalid leads
     // Note: Email is now generated synthetically if missing
     // Phone and Company default to "N/A" which is acceptable
-    // Only reject if Name is truly missing
+    // Name and Email are required (Email is either from sheet or synthetically generated)
     const validLeadsForSync = leadsToSync.filter((lead, idx) => {
       const name = lead.name || "";
+      const email = lead.email || "";
       const trimmedName = String(name).trim();
+      const trimmedEmail = String(email).trim();
 
-      // Only reject if name is empty or unknown
+      // Reject if name is empty/invalid
       if (
         trimmedName === "" ||
         trimmedName === "unknown" ||
@@ -428,6 +430,14 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       ) {
         console.warn(
           `[SYNC] Row ${idx} skipped - missing name. Data: "${JSON.stringify(lead).substring(0, 100)}"`,
+        );
+        return false;
+      }
+
+      // Reject if email is still empty after synthetic generation (this should NOT happen)
+      if (trimmedEmail === "") {
+        console.error(
+          `[SYNC] Row ${idx} skipped - email is empty after processing. Lead: "${JSON.stringify(lead).substring(0, 150)}"`,
         );
         return false;
       }
