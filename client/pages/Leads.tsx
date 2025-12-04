@@ -802,15 +802,21 @@ export default function Leads() {
         }
 
         // Sync to Supabase
+        const fallbackSyncPayload = {
+          leads: dataRows,
+          source: "google_sheet",
+          sheetId: sheetId,
+          dateRows: extractedDateRows,
+        };
+        console.log("[SYNC-CSV-FALLBACK] Sending CSV fallback to /api/sync-leads-dynamic");
+        console.log("[SYNC-CSV-FALLBACK] sheetId value:", sheetId);
+        console.log("[SYNC-CSV-FALLBACK] sheetId type:", typeof sheetId);
+        console.log("[SYNC-CSV-FALLBACK] dataRows count:", dataRows.length);
+
         const syncResponse = await fetch("/api/sync-leads-dynamic", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            leads: dataRows,
-            source: "google_sheet",
-            sheetId: sheetId,
-            dateRows: extractedDateRows,
-          }),
+          body: JSON.stringify(fallbackSyncPayload),
         });
 
         const syncResult = await syncResponse.json();
