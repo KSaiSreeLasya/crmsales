@@ -847,19 +847,21 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
       res.json({
         success: true,
-        message: `Successfully synced ${updateCount + insertCount} leads${failureCount > 0 ? ` (${failureCount} failed)` : ""} (${leads.length - validLeadsForSync.length} empty rows or invalid leads removed)`,
+        message: `Successfully synced ${updateCount + insertCount} leads${failureCount > 0 ? ` (${failureCount} failed)` : ""} (${leads.length - validLeadsForSync.length} empty rows, ${rejectedCount} rejected for missing fields)`,
         synced: updateCount + insertCount,
         newLeads: insertCount,
         updatedLeads: updateCount,
         failed: failureCount,
+        rejected: rejectedCount,
         skippedMissingFields: leadsToSync.length - validLeadsForSync.length,
         totalFetched: leads.length,
         emptyRowsRemoved: leads.length - leadsToSync.length,
         validRowsProcessed: validLeadsForSync.length,
+        validatedRowsAfterFiltering: validatedLeads.length,
         source: source,
         sheetId: sheetId,
         columnsIncluded:
-          validLeadsForSync.length > 0 ? Object.keys(validLeadsForSync[0]) : [],
+          validatedLeads.length > 0 ? Object.keys(validatedLeads[0]) : [],
       });
     } catch (err) {
       console.error("Error during sync operation:", err);
