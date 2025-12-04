@@ -235,7 +235,9 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     const leadsToSync = validLeads.map((lead, rowIndex) => {
       if (rowIndex === 0) {
         console.log(`[SYNC] Processing first lead, keys:`, Object.keys(lead));
-        console.log(`[SYNC] First lead raw email value: "${lead.email}" (type: ${typeof lead.email})`);
+        console.log(
+          `[SYNC] First lead raw email value: "${lead.email}" (type: ${typeof lead.email})`,
+        );
       }
       const syncData: any = {
         source: source || "google_sheet",
@@ -309,7 +311,9 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
       // If email is not found or is empty/whitespace-only, generate synthetic email to ensure uniqueness
       if (rowIndex < 3) {
-        console.log(`[SYNC] Row ${rowIndex}: emailTrimmed="${emailTrimmed}", hasValidEmail=${hasValidEmail}, willGenerate=${!hasValidEmail}`);
+        console.log(
+          `[SYNC] Row ${rowIndex}: emailTrimmed="${emailTrimmed}", hasValidEmail=${hasValidEmail}, willGenerate=${!hasValidEmail}`,
+        );
       }
 
       if (!hasValidEmail) {
@@ -456,10 +460,14 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       const email = String(processedLead.email || "").trim();
       if (!email) {
         // This should not happen, but if it does, generate a fallback
-        console.error(`[SYNC] Row ${idx}: NO EMAIL AFTER PROCESSING - This should not happen!`);
+        console.error(
+          `[SYNC] Row ${idx}: NO EMAIL AFTER PROCESSING - This should not happen!`,
+        );
         const fallbackEmail = `unknown.nophone.${Date.now()}${idx}@synced-lead.local`;
         processedLead.email = fallbackEmail;
-        console.warn(`[SYNC] Row ${idx}: Generated fallback email: ${fallbackEmail}`);
+        console.warn(
+          `[SYNC] Row ${idx}: Generated fallback email: ${fallbackEmail}`,
+        );
       }
 
       // Phone: Default to "N/A" if missing
@@ -488,7 +496,9 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       return processedLead;
     });
 
-    console.log(`[SYNC] All ${validLeadsForSync.length} leads processed with defaults applied`);
+    console.log(
+      `[SYNC] All ${validLeadsForSync.length} leads processed with defaults applied`,
+    );
 
     // All leads should be processed with defaults, but log if something unexpected happens
     if (validLeadsForSync.length === 0) {
@@ -528,7 +538,9 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
     try {
       // Verify all leads have required fields before proceeding to database
-      console.log(`[SYNC] Final pre-sync verification of ${validLeadsForSync.length} leads...`);
+      console.log(
+        `[SYNC] Final pre-sync verification of ${validLeadsForSync.length} leads...`,
+      );
       let leadsWithIssues = 0;
       validLeadsForSync.forEach((lead, idx) => {
         const name = String(lead.name || "").trim();
@@ -550,7 +562,9 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       });
 
       if (leadsWithIssues > 0) {
-        console.warn(`[SYNC] Found ${leadsWithIssues} leads with missing fields - these should have been filled with defaults. Investigating...`);
+        console.warn(
+          `[SYNC] Found ${leadsWithIssues} leads with missing fields - these should have been filled with defaults. Investigating...`,
+        );
       } else {
         console.log(`[SYNC] ✓ All leads have required fields`);
       }
@@ -645,32 +659,45 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       // First, try to insert new records
       if (newLeads.length > 0) {
         console.log(`Inserting ${newLeads.length} new leads into Supabase...`);
-        console.log("[SYNC DEBUG] First lead to insert:", JSON.stringify(newLeads[0], null, 2));
+        console.log(
+          "[SYNC DEBUG] First lead to insert:",
+          JSON.stringify(newLeads[0], null, 2),
+        );
         console.log(
           "[SYNC DEBUG] Sheet ID in first lead:",
           newLeads[0].sheet_id,
         );
 
         // Validate all leads have required fields before insert
-        const leadsWithMissingFields: Array<{index: number, issue: string}> = [];
+        const leadsWithMissingFields: Array<{ index: number; issue: string }> =
+          [];
         newLeads.forEach((lead, idx) => {
           if (!lead.name || String(lead.name).trim() === "") {
-            leadsWithMissingFields.push({index: idx, issue: "missing name"});
+            leadsWithMissingFields.push({ index: idx, issue: "missing name" });
           }
           if (!lead.email || String(lead.email).trim() === "") {
-            leadsWithMissingFields.push({index: idx, issue: "missing email"});
+            leadsWithMissingFields.push({ index: idx, issue: "missing email" });
           }
           if (!lead.phone || String(lead.phone).trim() === "") {
-            leadsWithMissingFields.push({index: idx, issue: "missing phone"});
+            leadsWithMissingFields.push({ index: idx, issue: "missing phone" });
           }
           if (!lead.company || String(lead.company).trim() === "") {
-            leadsWithMissingFields.push({index: idx, issue: "missing company"});
+            leadsWithMissingFields.push({
+              index: idx,
+              issue: "missing company",
+            });
           }
         });
 
         if (leadsWithMissingFields.length > 0) {
-          console.error(`[SYNC] Found leads with missing required fields:`, leadsWithMissingFields.slice(0, 5));
-          console.error(`[SYNC] Example problematic lead:`, newLeads[leadsWithMissingFields[0]?.index || 0]);
+          console.error(
+            `[SYNC] Found leads with missing required fields:`,
+            leadsWithMissingFields.slice(0, 5),
+          );
+          console.error(
+            `[SYNC] Example problematic lead:`,
+            newLeads[leadsWithMissingFields[0]?.index || 0],
+          );
         }
 
         const { data, error } = await supabase
@@ -709,17 +736,25 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
             );
           }
         } else {
-          console.error(`[SYNC] CRITICAL: Failed to insert ${newLeads.length} new leads:`, error);
+          console.error(
+            `[SYNC] CRITICAL: Failed to insert ${newLeads.length} new leads:`,
+            error,
+          );
           console.error("[SYNC] Error code:", error?.code);
           console.error("[SYNC] Error message:", error?.message);
           console.error("[SYNC] Error details:", JSON.stringify(error));
           if (newLeads.length > 0) {
-            console.error("[SYNC] First lead being inserted:", JSON.stringify(newLeads[0]));
+            console.error(
+              "[SYNC] First lead being inserted:",
+              JSON.stringify(newLeads[0]),
+            );
           }
           failureCount += newLeads.length;
         }
       } else {
-        console.log("[SYNC DEBUG] No new leads to insert (all existing or filtered out)");
+        console.log(
+          "[SYNC DEBUG] No new leads to insert (all existing or filtered out)",
+        );
       }
 
       // Update each existing lead (preserving assignments)
