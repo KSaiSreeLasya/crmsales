@@ -591,8 +591,30 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       );
 
       console.log(
-        `${newLeads.length} new leads, ${existingLeadsToUpdate.length} leads to update`,
+        `[SYNC] Categorized leads: ${newLeads.length} new, ${existingLeadsToUpdate.length} to update`,
       );
+
+      if (newLeads.length > 0) {
+        console.log(
+          `[SYNC] Sample new leads (first 2):`,
+          newLeads.slice(0, 2).map((l) => ({
+            name: l.name,
+            email: l.email,
+            phone: l.phone,
+            company: l.company,
+          })),
+        );
+      }
+
+      if (existingLeadsToUpdate.length > 0) {
+        console.log(
+          `[SYNC] Sample existing leads (first 2):`,
+          existingLeadsToUpdate.slice(0, 2).map((l) => ({
+            name: l.name,
+            email: l.email,
+          })),
+        );
+      }
 
       // Preserve existing assignments for leads that are being updated
       // Remove sheet_id from update data since it's immutable
