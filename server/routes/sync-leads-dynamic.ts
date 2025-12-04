@@ -205,7 +205,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     ]);
 
     // Prepare leads data - normalize column names to match Supabase schema
-    const leadsToSync = validLeads.map((lead) => {
+    const leadsToSync = validLeads.map((lead, rowIndex) => {
       const syncData: any = {
         source: source || "google_sheet",
         sheet_id: sheetId || "0",
@@ -247,15 +247,49 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
       // Email is REQUIRED in database (NOT NULL UNIQUE)
       // Try multiple patterns to find email column with extended matching
-      syncData.email =
-        mapColumn([
-          "email",
-          "email_address",
-          "email address",
-          "e-mail",
-          "e mail",
-          "contact email",
-        ]) || "";
+      let emailValue = mapColumn([
+        "email",
+        "email_address",
+        "email address",
+        "e-mail",
+        "e mail",
+        "contact email",
+      ]);
+
+      // If email is not found, generate synthetic email to ensure uniqueness
+      if (!emailValue || !emailValue.trim()) {
+        const name = syncData.name || "unknown";
+        const phone =
+          mapColumn([
+            "phone",
+            "phone_no",
+            "phone_number",
+            "telephone",
+            "contact phone",
+          ]) || "";
+
+        // Generate unique synthetic email
+        const sanitizedName = String(name)
+          .toLowerCase()
+          .trim()
+          .replace(/\s+/g, ".")
+          .replace(/[^a-z0-9.]/g, "");
+
+        const sanitizedPhone = String(phone).replace(/\D/g, "").slice(-4);
+
+        const uniqueSuffix = `${Date.now()}.${rowIndex}`;
+        const baseEmail = `${(sanitizedName || "unknown").substring(0, 50)}.${sanitizedPhone || "nophone"}`;
+        emailValue = `${baseEmail}.${uniqueSuffix}@synced-lead.local`.substring(
+          0,
+          254,
+        );
+
+        console.log(
+          `[SYNC] Row ${rowIndex}: Generated synthetic email for lead "${name}": ${emailValue}`,
+        );
+      }
+
+      syncData.email = emailValue;
 
       syncData.phone =
         mapColumn([
@@ -321,32 +355,38 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     });
 
     // Validate required fields and filter out invalid leads
-    const requiredFields = ["name", "email", "phone", "company"];
+    // Note: Email is now generated synthetically if missing
+    // Phone and Company default to "N/A" which is acceptable
+    // Only reject if Name is truly missing
     const validLeadsForSync = leadsToSync.filter((lead, idx) => {
-      const missing = requiredFields.filter((field) => {
-        const value = lead[field] || "";
-        return String(value).trim() === "" || String(value).trim() === "N/A";
-      });
+      const name = lead.name || "";
+      const trimmedName = String(name).trim();
 
-      if (missing.length > 0) {
+      // Only reject if name is empty or unknown
+      if (
+        trimmedName === "" ||
+        trimmedName === "unknown" ||
+        trimmedName === "Unknown"
+      ) {
         console.warn(
-          `[SYNC] Row ${idx} skipped - missing required fields: ${missing.join(", ")}. Data: name="${lead.name}", email="${lead.email}"`,
+          `[SYNC] Row ${idx} skipped - missing name. Data: "${JSON.stringify(lead).substring(0, 100)}"`,
         );
         return false;
       }
+
+      // All other fields are either populated from sheet or have sensible defaults
       return true;
     });
 
     if (validLeadsForSync.length === 0) {
       console.error(
-        `[SYNC] All ${leadsToSync.length} leads were filtered out due to missing required fields (name, email, phone, company)`,
+        `[SYNC] All ${leadsToSync.length} leads were filtered out due to missing name field`,
       );
       console.error("[SYNC] Sample problematic lead:", leadsToSync[0]);
 
       res.status(400).json({
-        error:
-          "All leads were skipped - missing required fields (name, email, phone, company)",
-        hint: "Ensure your sheet has columns for: Full Name, Email, Phone, and Company",
+        error: "All leads were skipped - missing name (Full Name) field",
+        hint: "Ensure your sheet has a column for: Full Name. Phone, Company, and Email will be generated/defaulted if missing.",
         totalProcessed: leadsToSync.length,
         validLeads: validLeadsForSync.length,
         sampleLead: leadsToSync[0],
