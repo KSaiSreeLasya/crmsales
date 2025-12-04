@@ -203,7 +203,14 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     ]);
 
     // Prepare leads data - normalize column names to match Supabase schema
-    const leadsToSync = validLeads.map((lead) => {
+    const mappingErrors: any[] = [];
+    const leadsToSync = validLeads
+      .map((lead, idx) => {
+        // Store original lead for error reporting
+        const originalLead = { ...lead };
+        return { mapped: lead, original: originalLead, index: idx };
+      })
+      .map(({ mapped: lead, original, index }) => {
       const syncData: any = {
         source: source || "google_sheet",
         sheet_id: sheetId || "0",
