@@ -554,6 +554,21 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
     try {
       // Strict validation: Filter out any leads missing required fields
+      console.log(
+        "[SYNC] Starting validation on",
+        validLeadsForSync.length,
+        "leads",
+      );
+      if (validLeadsForSync.length > 0) {
+        console.log("[SYNC] Sample lead before validation:", {
+          name: validLeadsForSync[0].name,
+          email: validLeadsForSync[0].email,
+          phone: validLeadsForSync[0].phone,
+          company: validLeadsForSync[0].company,
+          allKeys: Object.keys(validLeadsForSync[0]),
+        });
+      }
+
       const validatedLeads = validLeadsForSync.filter((lead, idx) => {
         const name = String(lead.name || "").trim();
         const email = String(lead.email || "").trim();
@@ -566,7 +581,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           phone.length > 0 &&
           company.length > 0;
 
-        if (!isValid) {
+        if (!isValid && idx < 3) {
           console.error(
             `[SYNC] Row ${idx} REJECTED due to missing required fields:`,
             {
@@ -574,6 +589,12 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
               email: email || "MISSING",
               phone: phone || "MISSING",
               company: company || "MISSING",
+              rawLead: {
+                name: lead.name,
+                email: lead.email,
+                phone: lead.phone,
+                company: lead.company,
+              },
             },
           );
         }
