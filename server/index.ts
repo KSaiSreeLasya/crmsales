@@ -66,6 +66,7 @@ export function createServer() {
   app.post("/api/split-sheet", handleSplitSheet);
   app.get("/api/verify-sheets", handleVerifySheets);
   app.post("/api/test-sync-all-sheets", handleTestSyncAllSheets);
+  app.post("/api/diagnose-sync-issue", handleDiagnoseSyncIssue);
 
   // CRM API routes
   app.post("/api/sync-leads", handleSyncLeads);
