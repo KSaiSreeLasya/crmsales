@@ -672,16 +672,13 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         `[SYNC] Categorized leads: ${newLeads.length} new, ${existingLeadsToUpdate.length} to update`,
       );
 
+      // Initialize counters
+      let insertCount = 0;
+      let updateCount = 0;
+      let failureCount = 0;
+
+      // First, try to insert new records
       if (newLeads.length > 0) {
-        console.log(
-          `[SYNC] Sample new leads (first 2):`,
-          newLeads.slice(0, 2).map((l) => ({
-            name: l.name,
-            email: l.email,
-            phone: l.phone,
-            company: l.company,
-          })),
-        );
         console.log(`Inserting ${newLeads.length} new leads into Supabase...`);
         console.log(
           "[SYNC DEBUG] First lead to insert:",
@@ -691,38 +688,6 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           "[SYNC DEBUG] Sheet ID in first lead:",
           newLeads[0].sheet_id,
         );
-
-        // Validate all leads have required fields before insert
-        const leadsWithMissingFields: Array<{ index: number; issue: string }> =
-          [];
-        newLeads.forEach((lead, idx) => {
-          if (!lead.name || String(lead.name).trim() === "") {
-            leadsWithMissingFields.push({ index: idx, issue: "missing name" });
-          }
-          if (!lead.email || String(lead.email).trim() === "") {
-            leadsWithMissingFields.push({ index: idx, issue: "missing email" });
-          }
-          if (!lead.phone || String(lead.phone).trim() === "") {
-            leadsWithMissingFields.push({ index: idx, issue: "missing phone" });
-          }
-          if (!lead.company || String(lead.company).trim() === "") {
-            leadsWithMissingFields.push({
-              index: idx,
-              issue: "missing company",
-            });
-          }
-        });
-
-        if (leadsWithMissingFields.length > 0) {
-          console.error(
-            `[SYNC] Found leads with missing required fields:`,
-            leadsWithMissingFields.slice(0, 5),
-          );
-          console.error(
-            `[SYNC] Example problematic lead:`,
-            newLeads[leadsWithMissingFields[0]?.index || 0],
-          );
-        }
 
         const { data, error } = await supabase
           .from("leads")
@@ -773,21 +738,47 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
               JSON.stringify(newLeads[0]),
             );
           }
-          failureCount += newLeads.length;
+
+          // Return detailed error response
+          const errorCode = (error as any).code;
+          let troubleshootingMsg = "";
+
+          if (errorCode === "42703") {
+            troubleshootingMsg =
+              "Column does not exist in the database. Run the migration SQL from SUPABASE_MIGRATION_ADD_COLUMNS.sql to add missing columns.";
+          } else if (errorCode === "42P01") {
+            troubleshootingMsg =
+              "Table 'leads' does not exist. Run SUPABASE_TABLES.sql to create the table.";
+          } else if (errorCode === "23505") {
+            troubleshootingMsg =
+              "Duplicate entry found. Some leads may already exist in the database.";
+          } else if (error.message?.includes("RLS")) {
+            troubleshootingMsg =
+              "RLS policy is blocking INSERT. Ensure RLS is disabled or policies are configured correctly.";
+          } else {
+            troubleshootingMsg =
+              "Ensure Supabase credentials are configured and the table schema is correct.";
+          }
+
+          res.status(400).json({
+            error: "Failed to insert leads",
+            message: error.message,
+            details: (error as any).details,
+            code: (error as any).code,
+            hint: (error as any).hint,
+            troubleshooting: troubleshootingMsg,
+            fullError: {
+              message: error.message,
+              code: (error as any).code,
+              details: (error as any).details,
+              status: (error as any).status,
+            },
+          });
+          return;
         }
       } else {
         console.log(
           "[SYNC DEBUG] No new leads to insert (all existing or filtered out)",
-        );
-      }
-
-      if (existingLeadsToUpdate.length > 0) {
-        console.log(
-          `[SYNC] Sample existing leads (first 2):`,
-          existingLeadsToUpdate.slice(0, 2).map((l) => ({
-            name: l.name,
-            email: l.email,
-          })),
         );
       }
 
@@ -807,183 +798,33 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         },
       );
 
-      let insertCount = 0;
-      let updateCount = 0;
-      let failureCount = 0;
-
-      // First, try to insert new records
-      if (newLeads.length > 0) {
-        console.log(`Inserting ${newLeads.length} new leads into Supabase...`);
-        console.log(
-          "[SYNC DEBUG] First lead to insert:",
-          JSON.stringify(newLeads[0], null, 2),
-        );
-        console.log(
-          "[SYNC DEBUG] Sheet ID in first lead:",
-          newLeads[0].sheet_id,
-        );
-
-        // Validate all leads have required fields before insert
-        const leadsWithMissingFields: Array<{ index: number; issue: string }> =
-          [];
-        newLeads.forEach((lead, idx) => {
-          if (!lead.name || String(lead.name).trim() === "") {
-            leadsWithMissingFields.push({ index: idx, issue: "missing name" });
-          }
-          if (!lead.email || String(lead.email).trim() === "") {
-            leadsWithMissingFields.push({ index: idx, issue: "missing email" });
-          }
-          if (!lead.phone || String(lead.phone).trim() === "") {
-            leadsWithMissingFields.push({ index: idx, issue: "missing phone" });
-          }
-          if (!lead.company || String(lead.company).trim() === "") {
-            leadsWithMissingFields.push({
-              index: idx,
-              issue: "missing company",
-            });
-          }
-        });
-
-        if (leadsWithMissingFields.length > 0) {
-          console.error(
-            `[SYNC] Found leads with missing required fields:`,
-            leadsWithMissingFields.slice(0, 5),
-          );
-          console.error(
-            `[SYNC] Example problematic lead:`,
-            newLeads[leadsWithMissingFields[0]?.index || 0],
-          );
-        }
-
-        const { data, error } = await supabase
-          .from("leads")
-          .insert(newLeads)
-          .select();
-
-        if (!error) {
-          insertCount = data?.length || newLeads.length;
-          console.log(`✓ Inserted ${insertCount} new leads`);
-          if (data && data.length > 0) {
-            console.log("[SYNC DEBUG] First inserted record:", data[0]);
-            console.log(
-              "[SYNC DEBUG] Sheet ID in first inserted record:",
-              data[0].sheet_id,
-            );
-          }
-
-          // Verify the data was actually saved
-          const { data: verifyData, error: verifyError } = await supabase
-            .from("leads")
-            .select("id, name, email, sheet_id")
-            .eq("sheet_id", sheetId)
-            .limit(1);
-
-          if (!verifyError && verifyData && verifyData.length > 0) {
-            console.log(
-              `[SYNC DEBUG] Verification: Found lead in sheet ${sheetId}:`,
-              verifyData[0],
-            );
-          } else if (verifyError) {
-            console.warn(`[SYNC DEBUG] Verification failed:`, verifyError);
-          } else {
-            console.warn(
-              `[SYNC DEBUG] Verification: No leads found in sheet ${sheetId}`,
-            );
-          }
-        } else {
-          console.error(
-            `[SYNC] CRITICAL: Failed to insert ${newLeads.length} new leads:`,
-            error,
-          );
-          console.error("[SYNC] Error code:", error?.code);
-          console.error("[SYNC] Error message:", error?.message);
-          console.error("[SYNC] Error details:", JSON.stringify(error));
-          if (newLeads.length > 0) {
-            console.error(
-              "[SYNC] First lead being inserted:",
-              JSON.stringify(newLeads[0]),
-            );
-          }
-          failureCount += newLeads.length;
-        }
-      } else {
-        console.log(
-          "[SYNC DEBUG] No new leads to insert (all existing or filtered out)",
-        );
-      }
-
-      // For other errors, return details
-      console.error("[SYNC ERROR] Detailed error info:");
-      console.error("  Code:", (error as any).code);
-      console.error("  Hint:", (error as any).hint);
-      console.error("  Details:", (error as any).details);
-      console.error("  Status:", (error as any).status);
-
-      const errorCode = (error as any).code;
-      let troubleshootingMsg = "";
-
-      // Specific error code handling
-      if (errorCode === "42703") {
-        // undefined_column error
-        troubleshootingMsg =
-          "Column does not exist in the database. Run the migration SQL from SUPABASE_MIGRATION_ADD_COLUMNS.sql to add missing columns.";
-      } else if (errorCode === "42P01") {
-        // undefined_table error
-        troubleshootingMsg =
-          "Table 'leads' does not exist. Run SUPABASE_TABLES.sql to create the table.";
-      } else if (errorCode === "23505") {
-        // unique_violation
-        troubleshootingMsg =
-          "Duplicate entry found. Some leads may already exist in the database.";
-      } else if (errorCode === "23505" || error.message?.includes("RLS")) {
-        // RLS violation
-        troubleshootingMsg =
-          "RLS policy is blocking INSERT. Ensure RLS is disabled or policies are configured correctly.";
-      } else {
-        troubleshootingMsg =
-          "Ensure Supabase credentials are configured and the table schema is correct.";
-      }
-
-      res.status(400).json({
-        error: "Failed to insert leads",
-        message: error.message,
-        details: (error as any).details,
-        code: (error as any).code,
-        hint: (error as any).hint,
-        troubleshooting: troubleshootingMsg,
-        fullError: {
-          message: error.message,
-          code: (error as any).code,
-          details: (error as any).details,
-          status: (error as any).status,
-        },
-      });
-      return;
       // Update each existing lead (preserving assignments)
-      console.log("Updating existing leads...");
-      for (const lead of leadsToUpdateWithPreservedAssignments) {
-        const email = lead.email;
+      if (existingLeadsToUpdate.length > 0) {
+        console.log("Updating existing leads...");
+        for (const lead of leadsToUpdateWithPreservedAssignments) {
+          const email = lead.email;
 
-        if (email && String(email).trim()) {
-          const updateData = {
-            ...lead,
-            updated_at: new Date().toISOString(),
-          };
+          if (email && String(email).trim()) {
+            const updateData = {
+              ...lead,
+              updated_at: new Date().toISOString(),
+            };
 
-          const { error: updateError } = await supabase
-            .from("leads")
-            .update(updateData)
-            .eq("email", email)
-            .eq("sheet_id", sheetId);
+            const { error: updateError } = await supabase
+              .from("leads")
+              .update(updateData)
+              .eq("email", email)
+              .eq("sheet_id", sheetId);
 
-          if (!updateError) {
-            updateCount++;
-          } else {
-            failureCount++;
-            console.warn(
-              `Failed to update lead with email ${email} in sheet ${sheetId}:`,
-              updateError,
-            );
+            if (!updateError) {
+              updateCount++;
+            } else {
+              failureCount++;
+              console.warn(
+                `Failed to update lead with email ${email} in sheet ${sheetId}:`,
+                updateError,
+              );
+            }
           }
         }
       }
