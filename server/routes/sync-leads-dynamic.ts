@@ -115,82 +115,6 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       return;
     }
 
-    // For dynamic sync, validate that rows have meaningful data
-    // More lenient validation - just need some basic info
-    const validLeads = leads
-      .map((lead, index) => {
-        let nameValue = "";
-        let emailValue = "";
-        let phoneValue = "";
-
-        // Find name, email, phone across all columns with flexible matching
-        for (const [key, value] of Object.entries(lead)) {
-          const normalizedKey = key
-            .toLowerCase()
-            .trim()
-            .replace(/\s+/g, "_")
-            .replace(/[?]/g, "");
-          const strValue = String(value || "").trim();
-
-          // Look for name column (but not full_name as a strict match, be flexible)
-          if (
-            !nameValue &&
-            (normalizedKey.includes("name") ||
-              normalizedKey.includes("full")) &&
-            !normalizedKey.includes("email") &&
-            strValue
-          ) {
-            nameValue = strValue;
-          }
-
-          // Look for email
-          if (
-            !emailValue &&
-            (normalizedKey.includes("email") ||
-              normalizedKey.includes("mail")) &&
-            strValue
-          ) {
-            emailValue = strValue;
-          }
-
-          // Look for phone
-          if (
-            !phoneValue &&
-            (normalizedKey.includes("phone") ||
-              normalizedKey.includes("contact") ||
-              normalizedKey.includes("phone_no") ||
-              normalizedKey.includes("phone_number") ||
-              normalizedKey.includes("mobile")) &&
-            strValue
-          ) {
-            phoneValue = strValue;
-          }
-        }
-
-        const nonEmptyFields = Object.values(lead).filter(
-          (v) => v !== undefined && v !== null && String(v).trim() !== "",
-        ).length;
-
-        // Validation: at least name OR email/phone, and at least 2 fields total
-        const isValid =
-          nonEmptyFields >= 2 && (nameValue || emailValue || phoneValue);
-
-        if (index < 5) {
-          console.log(`[VALIDATION] Row ${index}:`, {
-            isValid,
-            nameValue,
-            emailValue,
-            phoneValue,
-            nonEmptyFields,
-            allKeys: Object.keys(lead),
-            sampleValue: lead[Object.keys(lead)[0]],
-          });
-        }
-
-        return { lead, isValid, nameValue, emailValue, phoneValue };
-      })
-      .filter((item) => item.isValid)
-      .map((item) => item.lead);
     // For dynamic sync, accept rows with any meaningful data
     // Flexible validation: allow November sheet and others with non-standard columns
     const validLeads = leads.filter((lead) => {
@@ -758,19 +682,103 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
             company: l.company,
           })),
         );
-        console.error("[SYNC ERROR] Error code:", (error as any).code);
-        console.error("[SYNC ERROR] Error hint:", (error as any).hint);
-        console.error("[SYNC ERROR] Error details:", (error as any).details);
-        console.error("[SYNC ERROR] Error message:", error.message);
-        console.error("[SYNC ERROR] Status:", (error as any).status);
+        console.log(`Inserting ${newLeads.length} new leads into Supabase...`);
+        console.log(
+          "[SYNC DEBUG] First lead to insert:",
+          JSON.stringify(newLeads[0], null, 2),
+        );
+        console.log(
+          "[SYNC DEBUG] Sheet ID in first lead:",
+          newLeads[0].sheet_id,
+        );
 
-        // If duplicate key error, try update
-        if (
-          error.message?.includes("duplicate") ||
-          (error as any).code === "23505"
-        ) {
-          console.log(
-            "Duplicate key detected, attempting to update existing records...",
+        // Validate all leads have required fields before insert
+        const leadsWithMissingFields: Array<{ index: number; issue: string }> =
+          [];
+        newLeads.forEach((lead, idx) => {
+          if (!lead.name || String(lead.name).trim() === "") {
+            leadsWithMissingFields.push({ index: idx, issue: "missing name" });
+          }
+          if (!lead.email || String(lead.email).trim() === "") {
+            leadsWithMissingFields.push({ index: idx, issue: "missing email" });
+          }
+          if (!lead.phone || String(lead.phone).trim() === "") {
+            leadsWithMissingFields.push({ index: idx, issue: "missing phone" });
+          }
+          if (!lead.company || String(lead.company).trim() === "") {
+            leadsWithMissingFields.push({
+              index: idx,
+              issue: "missing company",
+            });
+          }
+        });
+
+        if (leadsWithMissingFields.length > 0) {
+          console.error(
+            `[SYNC] Found leads with missing required fields:`,
+            leadsWithMissingFields.slice(0, 5),
+          );
+          console.error(
+            `[SYNC] Example problematic lead:`,
+            newLeads[leadsWithMissingFields[0]?.index || 0],
+          );
+        }
+
+        const { data, error } = await supabase
+          .from("leads")
+          .insert(newLeads)
+          .select();
+
+        if (!error) {
+          insertCount = data?.length || newLeads.length;
+          console.log(`✓ Inserted ${insertCount} new leads`);
+          if (data && data.length > 0) {
+            console.log("[SYNC DEBUG] First inserted record:", data[0]);
+            console.log(
+              "[SYNC DEBUG] Sheet ID in first inserted record:",
+              data[0].sheet_id,
+            );
+          }
+
+          // Verify the data was actually saved
+          const { data: verifyData, error: verifyError } = await supabase
+            .from("leads")
+            .select("id, name, email, sheet_id")
+            .eq("sheet_id", sheetId)
+            .limit(1);
+
+          if (!verifyError && verifyData && verifyData.length > 0) {
+            console.log(
+              `[SYNC DEBUG] Verification: Found lead in sheet ${sheetId}:`,
+              verifyData[0],
+            );
+          } else if (verifyError) {
+            console.warn(`[SYNC DEBUG] Verification failed:`, verifyError);
+          } else {
+            console.warn(
+              `[SYNC DEBUG] Verification: No leads found in sheet ${sheetId}`,
+            );
+          }
+        } else {
+          console.error(
+            `[SYNC] CRITICAL: Failed to insert ${newLeads.length} new leads:`,
+            error,
+          );
+          console.error("[SYNC] Error code:", error?.code);
+          console.error("[SYNC] Error message:", error?.message);
+          console.error("[SYNC] Error details:", JSON.stringify(error));
+          if (newLeads.length > 0) {
+            console.error(
+              "[SYNC] First lead being inserted:",
+              JSON.stringify(newLeads[0]),
+            );
+          }
+          failureCount += newLeads.length;
+        }
+      } else {
+        console.log(
+          "[SYNC DEBUG] No new leads to insert (all existing or filtered out)",
+        );
       }
 
       if (existingLeadsToUpdate.length > 0) {
@@ -904,53 +912,53 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         );
       }
 
-        // For other errors, return details
-        console.error("[SYNC ERROR] Detailed error info:");
-        console.error("  Code:", (error as any).code);
-        console.error("  Hint:", (error as any).hint);
-        console.error("  Details:", (error as any).details);
-        console.error("  Status:", (error as any).status);
+      // For other errors, return details
+      console.error("[SYNC ERROR] Detailed error info:");
+      console.error("  Code:", (error as any).code);
+      console.error("  Hint:", (error as any).hint);
+      console.error("  Details:", (error as any).details);
+      console.error("  Status:", (error as any).status);
 
-        const errorCode = (error as any).code;
-        let troubleshootingMsg = "";
+      const errorCode = (error as any).code;
+      let troubleshootingMsg = "";
 
-        // Specific error code handling
-        if (errorCode === "42703") {
-          // undefined_column error
-          troubleshootingMsg =
-            "Column does not exist in the database. Run the migration SQL from SUPABASE_MIGRATION_ADD_COLUMNS.sql to add missing columns.";
-        } else if (errorCode === "42P01") {
-          // undefined_table error
-          troubleshootingMsg =
-            "Table 'leads' does not exist. Run SUPABASE_TABLES.sql to create the table.";
-        } else if (errorCode === "23505") {
-          // unique_violation
-          troubleshootingMsg =
-            "Duplicate entry found. Some leads may already exist in the database.";
-        } else if (errorCode === "23505" || error.message?.includes("RLS")) {
-          // RLS violation
-          troubleshootingMsg =
-            "RLS policy is blocking INSERT. Ensure RLS is disabled or policies are configured correctly.";
-        } else {
-          troubleshootingMsg =
-            "Ensure Supabase credentials are configured and the table schema is correct.";
-        }
+      // Specific error code handling
+      if (errorCode === "42703") {
+        // undefined_column error
+        troubleshootingMsg =
+          "Column does not exist in the database. Run the migration SQL from SUPABASE_MIGRATION_ADD_COLUMNS.sql to add missing columns.";
+      } else if (errorCode === "42P01") {
+        // undefined_table error
+        troubleshootingMsg =
+          "Table 'leads' does not exist. Run SUPABASE_TABLES.sql to create the table.";
+      } else if (errorCode === "23505") {
+        // unique_violation
+        troubleshootingMsg =
+          "Duplicate entry found. Some leads may already exist in the database.";
+      } else if (errorCode === "23505" || error.message?.includes("RLS")) {
+        // RLS violation
+        troubleshootingMsg =
+          "RLS policy is blocking INSERT. Ensure RLS is disabled or policies are configured correctly.";
+      } else {
+        troubleshootingMsg =
+          "Ensure Supabase credentials are configured and the table schema is correct.";
+      }
 
-        res.status(400).json({
-          error: "Failed to insert leads",
+      res.status(400).json({
+        error: "Failed to insert leads",
+        message: error.message,
+        details: (error as any).details,
+        code: (error as any).code,
+        hint: (error as any).hint,
+        troubleshooting: troubleshootingMsg,
+        fullError: {
           message: error.message,
-          details: (error as any).details,
           code: (error as any).code,
-          hint: (error as any).hint,
-          troubleshooting: troubleshootingMsg,
-          fullError: {
-            message: error.message,
-            code: (error as any).code,
-            details: (error as any).details,
-            status: (error as any).status,
-          },
-        });
-        return;
+          details: (error as any).details,
+          status: (error as any).status,
+        },
+      });
+      return;
       // Update each existing lead (preserving assignments)
       console.log("Updating existing leads...");
       for (const lead of leadsToUpdateWithPreservedAssignments) {
