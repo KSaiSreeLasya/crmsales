@@ -394,10 +394,11 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
       syncData.street_address =
         mapColumn(["street address", "street_address", "street", "address"]) ||
-        "";
+        "N/A";
       syncData.post_code =
-        mapColumn(["post_code", "postal_code", "postcode", "zip_code"]) || "";
-      syncData.lead_status = mapColumn(["lead_status", "status"]) || "";
+        mapColumn(["post_code", "postal_code", "postcode", "zip_code"]) ||
+        "N/A";
+      syncData.lead_status = mapColumn(["lead_status", "status"]) || "N/A";
       syncData.electricity_bill =
         mapColumn([
           "electricity_bill",
@@ -406,14 +407,14 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           "monthly_electricity_bill",
           "avg_bill",
           "monthly_bill",
-        ]) || "";
+        ]) || "N/A";
       syncData.type_of_property =
         mapColumn([
           "what_type_of_property_do_you_want_to_install_solar_on",
           "type_of_property",
           "property_type",
           "property",
-        ]) || "";
+        ]) || "N/A";
       syncData.avg_monthly_bill = syncData.electricity_bill;
       syncData.status = "Not lifted";
 
