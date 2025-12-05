@@ -1,11 +1,14 @@
 # Lead Sync Troubleshooting Guide
 
 ## Problem
+
 Leads are not syncing from Google Sheets with error: "Failed to sync leads" (500 error)
 
 ## Root Cause
+
 The Supabase `leads` table is missing 4 columns that the sync endpoint tries to insert:
-- `electricity_bill` 
+
+- `electricity_bill`
 - `type_of_property`
 - `avg_monthly_bill`
 - `sheet_id`
@@ -49,6 +52,7 @@ ORDER BY ordinal_position;
 ```
 
 You should see these new columns in the output:
+
 - `electricity_bill` (text, nullable)
 - `type_of_property` (text, nullable)
 - `avg_monthly_bill` (text, nullable)
@@ -64,25 +68,30 @@ You should see these new columns in the output:
 ## Common Error Messages
 
 ### Error: "Column does not exist" (Code: 42703)
+
 - **Cause**: The migration SQL wasn't run
 - **Solution**: Follow Step 1 above to run the migration
 
 ### Error: "Table 'leads' does not exist" (Code: 42P01)
+
 - **Cause**: The leads table wasn't created
 - **Solution**: Run the full `SUPABASE_TABLES.sql` script in your Supabase SQL Editor
 
 ### Error: "Unique violation on column email" (Code: 23505)
+
 - **Cause**: You're trying to sync the same leads twice
 - **Solution**: This is expected on subsequent syncs - the code will update existing leads instead of creating duplicates
 
 ## Additional Notes
 
 ### About the `sheet_id` Column
+
 - Stores which Google Sheet a lead came from
 - Allows you to sync multiple sheets and keep track of the source
 - Default value is '0' for the main sheet
 
 ### About `electricity_bill`, `type_of_property`, and `avg_monthly_bill`
+
 - These store customer information from the Google Sheet
 - They're optional fields (nullable)
 - Used for solar business lead qualification
@@ -90,6 +99,7 @@ You should see these new columns in the output:
 ### If Sync Still Fails
 
 Check the browser console for detailed error messages:
+
 1. Open your browser's Developer Tools (F12 or Right-click > Inspect)
 2. Go to the Console tab
 3. Look for error messages starting with `[SYNC ERROR]`
@@ -101,6 +111,7 @@ Check the browser console for detailed error messages:
 ### RLS (Row Level Security) Issues
 
 If you see "RLS policy blocking INSERT":
+
 1. Go to Supabase Dashboard > **Authentication > Policies**
 2. Make sure the `anon` role has INSERT permission on the `leads` table
 3. Or temporarily disable RLS for testing:
@@ -118,6 +129,7 @@ If the sync still isn't working after running the migration:
 4. **Check RLS Policies**: Make sure row-level security isn't blocking inserts
 
 ## Files Changed
+
 - `SUPABASE_TABLES.sql` - Updated with new columns
 - `SUPABASE_MIGRATION_ADD_COLUMNS.sql` - Migration script for existing tables
 - `server/routes/sync-leads-dynamic.ts` - Improved error messages

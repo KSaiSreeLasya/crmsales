@@ -422,7 +422,8 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
             "Duplicate entry found. Some leads may already exist in the database.";
         } else if (errorCode === "23505" || error.message?.includes("RLS")) {
           // RLS violation
-          troubleshootingMsg = "RLS policy is blocking INSERT. Ensure RLS is disabled or policies are configured correctly.";
+          troubleshootingMsg =
+            "RLS policy is blocking INSERT. Ensure RLS is disabled or policies are configured correctly.";
         } else {
           troubleshootingMsg =
             "Ensure Supabase credentials are configured and the table schema is correct.";
