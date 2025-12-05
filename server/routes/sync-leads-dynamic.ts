@@ -582,6 +582,11 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       });
 
       const rejectedCount = validLeadsForSync.length - validatedLeads.length;
+      if (rejectedCount > 0) {
+        console.error(
+          `[SYNC] CRITICAL: ${rejectedCount} leads rejected due to missing required fields. This indicates a bug in default application.`,
+        );
+      }
 
       // Validation has already been done with strict filtering above
       console.log(
