@@ -384,12 +384,13 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         "contact phone",
       ]);
 
-      // Phone is required in database - must not be empty
-      syncData.phone = (phoneValue && String(phoneValue).trim()) || "N/A";
+      // Phone is required - if missing, set to N/A (will be caught in validation)
+      syncData.phone = (phoneValue && String(phoneValue).trim()) || "";
 
+      // Company - optional, show N/A if missing
       syncData.company =
         mapColumn(["company", "organization", "business", "company name"]) ||
-        "";
+        "N/A";
 
       syncData.street_address =
         mapColumn(["street address", "street_address", "street", "address"]) ||
