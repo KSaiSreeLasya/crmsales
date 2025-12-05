@@ -49,7 +49,11 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
         // Find name, email, phone across all columns with flexible matching
         for (const [key, value] of Object.entries(lead)) {
-          const normalizedKey = key.toLowerCase().trim().replace(/\s+/g, "_");
+          const normalizedKey = key
+            .toLowerCase()
+            .trim()
+            .replace(/\s+/g, "_")
+            .replace(/[?]/g, "");
           const strValue = String(value || "").trim();
 
           // Look for name column (but not full_name as a strict match, be flexible)
@@ -79,6 +83,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
             (normalizedKey.includes("phone") ||
               normalizedKey.includes("contact") ||
               normalizedKey.includes("phone_no") ||
+              normalizedKey.includes("phone_number") ||
               normalizedKey.includes("mobile")) &&
             strValue
           ) {
@@ -94,13 +99,15 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         const isValid =
           nonEmptyFields >= 2 && (nameValue || emailValue || phoneValue);
 
-        if (!isValid && index < 5) {
-          console.log(`[VALIDATION] Row ${index} rejected:`, {
+        if (index < 5) {
+          console.log(`[VALIDATION] Row ${index}:`, {
+            isValid,
             nameValue,
             emailValue,
             phoneValue,
             nonEmptyFields,
             allKeys: Object.keys(lead),
+            sampleValue: lead[Object.keys(lead)[0]],
           });
         }
 
