@@ -758,19 +758,103 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
             company: l.company,
           })),
         );
-        console.error("[SYNC ERROR] Error code:", (error as any).code);
-        console.error("[SYNC ERROR] Error hint:", (error as any).hint);
-        console.error("[SYNC ERROR] Error details:", (error as any).details);
-        console.error("[SYNC ERROR] Error message:", error.message);
-        console.error("[SYNC ERROR] Status:", (error as any).status);
+        console.log(`Inserting ${newLeads.length} new leads into Supabase...`);
+        console.log(
+          "[SYNC DEBUG] First lead to insert:",
+          JSON.stringify(newLeads[0], null, 2),
+        );
+        console.log(
+          "[SYNC DEBUG] Sheet ID in first lead:",
+          newLeads[0].sheet_id,
+        );
 
-        // If duplicate key error, try update
-        if (
-          error.message?.includes("duplicate") ||
-          (error as any).code === "23505"
-        ) {
-          console.log(
-            "Duplicate key detected, attempting to update existing records...",
+        // Validate all leads have required fields before insert
+        const leadsWithMissingFields: Array<{ index: number; issue: string }> =
+          [];
+        newLeads.forEach((lead, idx) => {
+          if (!lead.name || String(lead.name).trim() === "") {
+            leadsWithMissingFields.push({ index: idx, issue: "missing name" });
+          }
+          if (!lead.email || String(lead.email).trim() === "") {
+            leadsWithMissingFields.push({ index: idx, issue: "missing email" });
+          }
+          if (!lead.phone || String(lead.phone).trim() === "") {
+            leadsWithMissingFields.push({ index: idx, issue: "missing phone" });
+          }
+          if (!lead.company || String(lead.company).trim() === "") {
+            leadsWithMissingFields.push({
+              index: idx,
+              issue: "missing company",
+            });
+          }
+        });
+
+        if (leadsWithMissingFields.length > 0) {
+          console.error(
+            `[SYNC] Found leads with missing required fields:`,
+            leadsWithMissingFields.slice(0, 5),
+          );
+          console.error(
+            `[SYNC] Example problematic lead:`,
+            newLeads[leadsWithMissingFields[0]?.index || 0],
+          );
+        }
+
+        const { data, error } = await supabase
+          .from("leads")
+          .insert(newLeads)
+          .select();
+
+        if (!error) {
+          insertCount = data?.length || newLeads.length;
+          console.log(`✓ Inserted ${insertCount} new leads`);
+          if (data && data.length > 0) {
+            console.log("[SYNC DEBUG] First inserted record:", data[0]);
+            console.log(
+              "[SYNC DEBUG] Sheet ID in first inserted record:",
+              data[0].sheet_id,
+            );
+          }
+
+          // Verify the data was actually saved
+          const { data: verifyData, error: verifyError } = await supabase
+            .from("leads")
+            .select("id, name, email, sheet_id")
+            .eq("sheet_id", sheetId)
+            .limit(1);
+
+          if (!verifyError && verifyData && verifyData.length > 0) {
+            console.log(
+              `[SYNC DEBUG] Verification: Found lead in sheet ${sheetId}:`,
+              verifyData[0],
+            );
+          } else if (verifyError) {
+            console.warn(`[SYNC DEBUG] Verification failed:`, verifyError);
+          } else {
+            console.warn(
+              `[SYNC DEBUG] Verification: No leads found in sheet ${sheetId}`,
+            );
+          }
+        } else {
+          console.error(
+            `[SYNC] CRITICAL: Failed to insert ${newLeads.length} new leads:`,
+            error,
+          );
+          console.error("[SYNC] Error code:", error?.code);
+          console.error("[SYNC] Error message:", error?.message);
+          console.error("[SYNC] Error details:", JSON.stringify(error));
+          if (newLeads.length > 0) {
+            console.error(
+              "[SYNC] First lead being inserted:",
+              JSON.stringify(newLeads[0]),
+            );
+          }
+          failureCount += newLeads.length;
+        }
+      } else {
+        console.log(
+          "[SYNC DEBUG] No new leads to insert (all existing or filtered out)",
+        );
       }
 
       if (existingLeadsToUpdate.length > 0) {
