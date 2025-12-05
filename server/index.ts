@@ -101,6 +101,25 @@ export function createServer() {
     });
   } else {
     console.warn("⚠️ dist/spa not found - serving in dev mode");
+    // In dev mode, let Vite handle frontend routes and Vite will handle the SPA fallback
+    // This middleware ensures non-API routes that aren't already handled by Vite get a proper response
+    app.get(/^(?!\/api)/, (_req, res) => {
+      // Return a message that the frontend is being served by Vite dev server
+      res.send(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="UTF-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <title>Loading...</title>
+          </head>
+          <body>
+            <div id="root"></div>
+            <script type="module" src="/client/App.tsx"></script>
+          </body>
+        </html>
+      `);
+    });
   }
 
   // Error handler - ensure API errors return JSON
