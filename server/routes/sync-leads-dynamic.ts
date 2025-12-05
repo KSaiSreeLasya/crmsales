@@ -290,6 +290,10 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         "[SYNC DEBUG] Sample lead:",
         JSON.stringify(leadsToSync[0], null, 2),
       );
+      console.log(
+        "[SYNC DEBUG] Sample lead keys:",
+        Object.keys(leadsToSync[0] || {}),
+      );
 
       const { data, error } = await supabase
         .from("leads")
@@ -305,6 +309,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         console.error("[SYNC ERROR] Error code:", (error as any).code);
         console.error("[SYNC ERROR] Error hint:", (error as any).hint);
         console.error("[SYNC ERROR] Error details:", (error as any).details);
+        console.error("[SYNC ERROR] Error message:", error.message);
 
         // If duplicate key error, try update
         if (
