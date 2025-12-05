@@ -310,6 +310,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         console.error("[SYNC ERROR] Error hint:", (error as any).hint);
         console.error("[SYNC ERROR] Error details:", (error as any).details);
         console.error("[SYNC ERROR] Error message:", error.message);
+        console.error("[SYNC ERROR] Status:", (error as any).status);
 
         // If duplicate key error, try update
         if (
