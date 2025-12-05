@@ -912,53 +912,53 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         );
       }
 
-        // For other errors, return details
-        console.error("[SYNC ERROR] Detailed error info:");
-        console.error("  Code:", (error as any).code);
-        console.error("  Hint:", (error as any).hint);
-        console.error("  Details:", (error as any).details);
-        console.error("  Status:", (error as any).status);
+      // For other errors, return details
+      console.error("[SYNC ERROR] Detailed error info:");
+      console.error("  Code:", (error as any).code);
+      console.error("  Hint:", (error as any).hint);
+      console.error("  Details:", (error as any).details);
+      console.error("  Status:", (error as any).status);
 
-        const errorCode = (error as any).code;
-        let troubleshootingMsg = "";
+      const errorCode = (error as any).code;
+      let troubleshootingMsg = "";
 
-        // Specific error code handling
-        if (errorCode === "42703") {
-          // undefined_column error
-          troubleshootingMsg =
-            "Column does not exist in the database. Run the migration SQL from SUPABASE_MIGRATION_ADD_COLUMNS.sql to add missing columns.";
-        } else if (errorCode === "42P01") {
-          // undefined_table error
-          troubleshootingMsg =
-            "Table 'leads' does not exist. Run SUPABASE_TABLES.sql to create the table.";
-        } else if (errorCode === "23505") {
-          // unique_violation
-          troubleshootingMsg =
-            "Duplicate entry found. Some leads may already exist in the database.";
-        } else if (errorCode === "23505" || error.message?.includes("RLS")) {
-          // RLS violation
-          troubleshootingMsg =
-            "RLS policy is blocking INSERT. Ensure RLS is disabled or policies are configured correctly.";
-        } else {
-          troubleshootingMsg =
-            "Ensure Supabase credentials are configured and the table schema is correct.";
-        }
+      // Specific error code handling
+      if (errorCode === "42703") {
+        // undefined_column error
+        troubleshootingMsg =
+          "Column does not exist in the database. Run the migration SQL from SUPABASE_MIGRATION_ADD_COLUMNS.sql to add missing columns.";
+      } else if (errorCode === "42P01") {
+        // undefined_table error
+        troubleshootingMsg =
+          "Table 'leads' does not exist. Run SUPABASE_TABLES.sql to create the table.";
+      } else if (errorCode === "23505") {
+        // unique_violation
+        troubleshootingMsg =
+          "Duplicate entry found. Some leads may already exist in the database.";
+      } else if (errorCode === "23505" || error.message?.includes("RLS")) {
+        // RLS violation
+        troubleshootingMsg =
+          "RLS policy is blocking INSERT. Ensure RLS is disabled or policies are configured correctly.";
+      } else {
+        troubleshootingMsg =
+          "Ensure Supabase credentials are configured and the table schema is correct.";
+      }
 
-        res.status(400).json({
-          error: "Failed to insert leads",
+      res.status(400).json({
+        error: "Failed to insert leads",
+        message: error.message,
+        details: (error as any).details,
+        code: (error as any).code,
+        hint: (error as any).hint,
+        troubleshooting: troubleshootingMsg,
+        fullError: {
           message: error.message,
-          details: (error as any).details,
           code: (error as any).code,
-          hint: (error as any).hint,
-          troubleshooting: troubleshootingMsg,
-          fullError: {
-            message: error.message,
-            code: (error as any).code,
-            details: (error as any).details,
-            status: (error as any).status,
-          },
-        });
-        return;
+          details: (error as any).details,
+          status: (error as any).status,
+        },
+      });
+      return;
       // Update each existing lead (preserving assignments)
       console.log("Updating existing leads...");
       for (const lead of leadsToUpdateWithPreservedAssignments) {
