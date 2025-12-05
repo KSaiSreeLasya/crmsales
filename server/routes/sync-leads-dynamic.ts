@@ -646,11 +646,6 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           phone: l.phone,
         })),
       );
-      if (rejectedCount > 0) {
-        console.error(
-          `[SYNC] CRITICAL: ${rejectedCount} leads rejected due to missing required fields. This indicates a bug in default application.`,
-        );
-      }
 
       // Separate leads into new and existing (for this sheet only)
       // For leads without email, treat them as new
