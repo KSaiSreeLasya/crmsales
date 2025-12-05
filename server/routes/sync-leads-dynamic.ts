@@ -404,19 +404,42 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         console.error("  Details:", (error as any).details);
         console.error("  Status:", (error as any).status);
 
+        const errorCode = (error as any).code;
+        let troubleshootingMsg = "";
+
+        // Specific error code handling
+        if (errorCode === "42703") {
+          // undefined_column error
+          troubleshootingMsg =
+            "Column does not exist in the database. Run the migration SQL from SUPABASE_MIGRATION_ADD_COLUMNS.sql to add missing columns.";
+        } else if (errorCode === "42P01") {
+          // undefined_table error
+          troubleshootingMsg =
+            "Table 'leads' does not exist. Run SUPABASE_TABLES.sql to create the table.";
+        } else if (errorCode === "23505") {
+          // unique_violation
+          troubleshootingMsg =
+            "Duplicate entry found. Some leads may already exist in the database.";
+        } else if (errorCode === "23505" || error.message?.includes("RLS")) {
+          // RLS violation
+          troubleshootingMsg = "RLS policy is blocking INSERT. Ensure RLS is disabled or policies are configured correctly.";
+        } else {
+          troubleshootingMsg =
+            "Ensure Supabase credentials are configured and the table schema is correct.";
+        }
+
         res.status(400).json({
           error: "Failed to insert leads",
           message: error.message,
           details: (error as any).details,
           code: (error as any).code,
-          hint:
-            (error as any).hint ||
-            "Ensure Supabase credentials are configured and RLS is not blocking inserts",
-          troubleshooting: {
-            checkUrl: "Visit /api/test-supabase to verify Supabase connection",
-            checkEnv:
-              "Ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set",
-            checkRLS: "Verify RLS policies are not blocking INSERT operations",
+          hint: (error as any).hint,
+          troubleshooting: troubleshootingMsg,
+          fullError: {
+            message: error.message,
+            code: (error as any).code,
+            details: (error as any).details,
+            status: (error as any).status,
           },
         });
         return;
