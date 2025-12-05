@@ -443,60 +443,54 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     });
 
     // Validate and prepare leads for sync
-    // POLICY: Accept ALL rows. Generate defaults for missing required fields.
-    // - Name: Required field, will default to "Unknown" if missing (but log warning)
-    // - Email: Required field, will generate synthetic email if missing
-    // - Phone: Required by DB but defaults to "N/A" if missing (acceptable)
-    // - Company: Required by DB but defaults to "Solar Lead" if missing (acceptable)
+    // POLICY: Only name and phone are required. All other fields optional.
+    // - Name: Required, must not be empty
+    // - Phone: Required, must not be empty
+    // - Email: Optional, if missing use generated synthetic email
+    // - All other fields: Optional, show "N/A" if missing
     console.log(`[SYNC] Processing ${leadsToSync.length} leads for sync...`);
     const validLeadsForSync = leadsToSync.map((lead, idx) => {
-      // Ensure all required fields have values
+      // Ensure required fields have values
       const processedLead = { ...lead };
 
-      // Name: Use what we have, log if defaulting
+      // Name: Required field
       let name = String(processedLead.name || "").trim();
-      if (!name || name.toLowerCase() === "unknown") {
-        console.warn(`[SYNC] Row ${idx}: No name found, using "Unknown"`);
-        name = "Unknown";
-        processedLead.name = "Unknown";
+      if (!name) {
+        console.warn(`[SYNC] Row ${idx}: No name found - WILL BE REJECTED`);
       } else {
         processedLead.name = name;
       }
 
-      // Email: Should have been generated synthetically in mapColumn stage
+      // Email: Generate synthetic email if missing (for database uniqueness)
       let email = String(processedLead.email || "").trim();
       if (!email) {
-        // This should not happen, but if it does, generate a fallback
-        console.error(
-          `[SYNC] Row ${idx}: NO EMAIL AFTER PROCESSING - This should not happen!`,
-        );
+        // Generate synthetic email for uniqueness
         const timestamp = Date.now().toString().slice(-6);
         const fallbackEmail = `synced.lead.${timestamp}.${idx}@synced-lead.local`;
         email = fallbackEmail;
         processedLead.email = fallbackEmail;
-        console.warn(
-          `[SYNC] Row ${idx}: Generated fallback email: ${fallbackEmail}`,
-        );
+        if (idx < 3) {
+          console.log(
+            `[SYNC] Row ${idx}: No email, generated synthetic: ${fallbackEmail}`,
+          );
+        }
       } else {
         processedLead.email = email;
       }
 
-      // Phone: Default to "N/A" if missing
+      // Phone: Required field
       let phone = String(processedLead.phone || "").trim();
       if (!phone) {
-        console.log(`[SYNC] Row ${idx}: No phone, using "N/A"`);
-        phone = "N/A";
-        processedLead.phone = "N/A";
+        console.warn(`[SYNC] Row ${idx}: No phone - WILL BE REJECTED`);
       } else {
         processedLead.phone = phone;
       }
 
-      // Company: Default to "Solar Lead" if missing (since company is required by schema)
+      // Company: Optional, show N/A if missing
       let company = String(processedLead.company || "").trim();
       if (!company) {
-        console.log(`[SYNC] Row ${idx}: No company, using "Solar Lead"`);
-        company = "Solar Lead";
-        processedLead.company = "Solar Lead";
+        company = "N/A";
+        processedLead.company = "N/A";
       } else {
         processedLead.company = company;
       }
