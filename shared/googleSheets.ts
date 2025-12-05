@@ -8,14 +8,61 @@ export interface GoogleSheetRow {
 }
 
 /**
- * Normalize column names (case-insensitive, trim whitespace, remove quotes)
+ * Sanitize cell values - remove problematic characters that cause JSON encoding issues
+ * Handles newlines, special Unicode characters, and invalid sequences
+ */
+export function sanitizeValue(value: any): string {
+  if (value === null || value === undefined) return "";
+
+  let stringValue = String(value);
+
+  // Remove/replace problematic characters
+  // 1. Replace newlines and carriage returns with spaces
+  stringValue = stringValue.replace(/[\r\n\t]/g, " ");
+
+  // 2. Remove null bytes (can cause encoding issues)
+  stringValue = stringValue.replace(/\0/g, "");
+
+  // 3. Remove control characters (ASCII 0-31, except for space which we've handled)
+  stringValue = stringValue.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, "");
+
+  // 4. Normalize multiple spaces to single space
+  stringValue = stringValue.replace(/\s+/g, " ");
+
+  // 5. Trim whitespace
+  stringValue = stringValue.trim();
+
+  // 6. Limit length to prevent database field overflow (reasonable limit for TEXT fields)
+  // Most TEXT columns should handle 65KB, but let's be conservative and limit to 10000 chars
+  if (stringValue.length > 10000) {
+    stringValue = stringValue.substring(0, 10000);
+    console.warn("Value truncated to 10000 characters to prevent overflow");
+  }
+
+  return stringValue;
+}
+
+/**
+ * Validate email format
+ */
+export function isValidEmail(email: string): boolean {
+  if (!email || typeof email !== "string") return false;
+  // Simple email validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email.trim());
+}
+
+/**
+ * Normalize column names (case-insensitive, trim whitespace, remove quotes, handle multiple underscores)
  */
 function normalizeKey(key: string): string {
   return key
-    .trim()
     .toLowerCase()
+    .trim()
     .replace(/^["']|["']$/g, "") // Remove leading/trailing quotes
-    .replace(/\s+/g, "_");
+    .replace(/[\s_]+/g, "_") // Replace all spaces and underscores with single underscore
+    .replace(/[?!]/g, "") // Remove special characters like ? and !
+    .replace(/-/g, ""); // Remove dashes
 }
 
 /**
@@ -42,133 +89,81 @@ function getColumnValue(
 
 /**
  * Parse Google Sheet lead row into Lead format
- * Expected column order:
- * A: Type of property
- * B: Monthly electricity bill
- * C: Full name
- * D: Phone
- * E: Email
- * F: Street address
- * G: Postal code
- * H: Lead status
+ * Handles multiple column name variations across different sheets
+ * December/November: property question, electricity bill, full name, phone, email, street address, post_code, lead_status
+ * October: electricity_bill?, full name, phone, email, street address, post_code, FEEDBACK -1, FEEDBACK- 2, Whatsapp follow up
  */
 export function parseLeadRow(row: GoogleSheetRow) {
-  // Create a map of normalized keys to values for flexible matching
-  const columnMap: { [normalizedKey: string]: string } = {};
-  const allKeys: string[] = [];
+  // Helper to find column value by flexible name matching
+  const findColumn = (patterns: string[]): string => {
+    for (const [key, value] of Object.entries(row)) {
+      if (!value) continue;
 
-  for (const [key, value] of Object.entries(row)) {
-    allKeys.push(key);
-    const normalizedKey = key
-      .toLowerCase()
-      .trim()
-      .replace(/\s+/g, "_")
-      .replace(/^["']|["']$/g, "");
-    const trimmedValue = String(value || "").trim();
-    columnMap[normalizedKey] = trimmedValue;
-  }
+      const normalizedKey = normalizeKey(key);
 
-  // Debug: Log all available columns on first few rows
-  if (Object.values(columnMap).some((v) => v)) {
-    console.log("=== COLUMN MAPPING DEBUG ===");
-    console.log("Raw keys:", allKeys);
-    console.log("Normalized keys:", Object.keys(columnMap));
-    console.log("Full column map:", columnMap);
-  }
-
-  // Helper function to find a column value by searching for key patterns
-  const findColumnValue = (patterns: string[]): string => {
-    // Try exact matches first
-    for (const pattern of patterns) {
-      const normalizedPattern = pattern
-        .toLowerCase()
-        .trim()
-        .replace(/\s+/g, "_");
-
-      if (columnMap[normalizedPattern]) {
-        return columnMap[normalizedPattern];
-      }
-    }
-
-    // Try partial/fuzzy matching
-    for (const pattern of patterns) {
-      const normalizedPattern = pattern.toLowerCase().trim();
-
-      for (const key in columnMap) {
-        // Check if pattern appears in key or key appears in pattern
+      for (const pattern of patterns) {
+        const normalizedPattern = normalizeKey(pattern);
+        // Exact match after normalization
+        if (normalizedKey === normalizedPattern) {
+          return sanitizeValue(value);
+        }
+        // Partial match - key contains pattern or pattern contains key
         if (
-          key.includes(normalizedPattern) ||
-          normalizedPattern.includes(key)
+          normalizedKey.includes(normalizedPattern) ||
+          normalizedPattern.includes(normalizedKey)
         ) {
-          const value = columnMap[key];
-          if (value) {
-            return value;
-          }
+          return sanitizeValue(value);
         }
       }
     }
-
     return "";
   };
 
-  // Parse columns with flexible matching
-  const type_of_property = findColumnValue([
-    "what_type_of_property_do_you_own",
+  // Parse with flexible name matching for all variations
+  const type_of_property = findColumn([
+    "what_type_of_property_do_you_want_to_install_solar_on",
+    "what_type__of_property__do_you_want__to_install_solar_on",
     "type_of_property",
-    "type of property",
-    "what_type_of_property",
     "property_type",
   ]);
 
-  const avg_monthly_bill = findColumnValue([
-    "what_is_your_current_electricity_bill",
-    "current_electricity_bill",
+  const avg_monthly_bill = findColumn([
+    "what_is_your_average_monthly_electricity_bill",
+    "average_monthly_electricity_bill",
     "monthly_electricity_bill",
     "electricity_bill",
-    "monthly_bill",
-    "current_bill",
   ]);
 
-  const name = findColumnValue(["full_name", "full name", "name"]);
+  const name = findColumn(["full name", "full_name", "name"]);
 
-  const phone = findColumnValue([
-    "phone",
-    "phone_no",
-    "phone no",
-    "phone_number",
-  ]);
+  const phone = findColumn(["phone", "phone_no", "phone_number"]);
 
-  const email = findColumnValue(["email", "email_address"]);
+  const email = findColumn(["email", "email_address"]);
 
-  const street_address = findColumnValue([
-    "street_address",
+  const street_address = findColumn([
     "street address",
+    "street_address",
+    "street",
     "address",
   ]);
 
-  const post_code = findColumnValue([
-    "postal_code",
-    "postal code",
+  const post_code = findColumn([
     "post_code",
+    "postal_code",
     "postcode",
+    "zip_code",
   ]);
 
-  const lead_status = findColumnValue(["lead_status", "lead status"]);
+  const lead_status = findColumn(["lead_status", "status"]);
 
-  const note1 = findColumnValue([
-    "note_1",
-    "note 1",
-    "note1",
-    "notes_1",
-    "feedback",
-  ]);
+  const note1 = findColumn(["feedback_1", "feedback -1", "note_1", "notes_1"]);
 
-  const note2 = findColumnValue([
-    "note_2",
-    "note 2",
-    "note2",
-    "notes_2",
-    "notes",
+  const note2 = findColumn(["feedback_2", "feedback- 2", "note_2", "notes_2"]);
+
+  const whatsappFollowUp = findColumn([
+    "whatsapp_follow_up",
+    "whatsapp follow up",
+    "whatsapp",
   ]);
 
   const parsed = {
@@ -186,43 +181,24 @@ export function parseLeadRow(row: GoogleSheetRow) {
     assignedTo: "Unassigned",
     note1: note1 || "",
     note2: note2 || "",
+    whatsapp_follow_up: whatsappFollowUp || "",
   };
-
-  if (name && email) {
-    console.log("✓ Valid lead found:", {
-      name,
-      email,
-      phone,
-      type_of_property,
-      avg_monthly_bill,
-    });
-  } else {
-    console.log("✗ Invalid lead (missing name or email):");
-    console.log("  Row keys:", allKeys);
-    console.log(
-      "  Available values:",
-      Object.keys(columnMap)
-        .filter((k) => columnMap[k])
-        .map((k) => `${k}=${columnMap[k]}`),
-    );
-  }
 
   return parsed;
 }
 
 /**
  * Parse Google Sheet row with all columns preserved (dynamic sync)
- * Preserves exact column names from the sheet
+ * Preserves exact column names from the sheet and sanitizes values
  */
 export function parseRowDynamic(row: GoogleSheetRow): GoogleSheetRow {
-  // Return all columns as-is, trimming values
+  // Return all columns as-is, sanitizing values for database safety
   const result: GoogleSheetRow = {};
   for (const [key, value] of Object.entries(row)) {
     const trimmedKey = key.trim();
-    const trimmedValue =
-      value === undefined || value === null ? "" : String(value).trim();
+    const sanitized = sanitizeValue(value);
     if (trimmedKey) {
-      result[trimmedKey] = trimmedValue;
+      result[trimmedKey] = sanitized;
     }
   }
   return result;
@@ -310,6 +286,11 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
         headers = possibleHeaders;
         startIndex = i + 1;
         break;
+      } else if (i < 5) {
+        console.log(
+          `  Line ${i} is not header (E:${hasEmailColumn} P:${hasPhoneColumn} N:${hasNameColumn}):`,
+          possibleHeaders.slice(0, 3),
+        );
       }
     }
   }
@@ -348,18 +329,19 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
 
     headers.forEach((header, index) => {
       if (header && header.trim()) {
-        row[header] = dataValues[index] || "";
+        const value = dataValues[index] || "";
+        // Store all values, even empty ones, to preserve column structure
+        row[header] = value;
       }
     });
 
-    // Count non-empty cells
+    // Include all rows with at least one non-empty cell
+    // The sync process will validate required fields (name and email)
     const nonEmptyCount = Object.values(row).filter(
       (val) => val && String(val).trim() !== "",
     ).length;
 
-    // Only add row if it has at least one non-empty cell AND at least 2 fields populated
-    // This filters out completely empty rows and sparse rows
-    if (nonEmptyCount >= 2) {
+    if (nonEmptyCount > 0) {
       rows.push(row);
     }
   }
@@ -369,6 +351,22 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
     console.log("First data row:", rows[0]);
     console.log("First data row keys:", Object.keys(rows[0]));
     console.log("Sample rows:", rows.slice(0, 3));
+
+    // Check which columns have data
+    const firstRow = rows[0];
+    const columnsWithData = Object.entries(firstRow)
+      .filter(([k, v]) => v && String(v).trim())
+      .map(([k, v]) => `${k}: ${String(v).substring(0, 50)}`)
+      .join(" | ");
+    console.log("First row columns with data:", columnsWithData);
+
+    // Check email specifically
+    const emailVal = firstRow.email || firstRow.Email || firstRow.EMAIL || "";
+    console.log(
+      "First row email value:",
+      `"${emailVal}"`,
+      `(length: ${String(emailVal).length})`,
+    );
   }
 
   return rows;
@@ -470,4 +468,75 @@ export async function fetchGoogleSheet(
     console.error("Error fetching Google Sheet:", error);
     throw error;
   }
+}
+
+/**
+ * Get all sheets from a Google Spreadsheet dynamically
+ * Requires GOOGLE_SHEETS_API_KEY environment variable
+ * Returns metadata about all sheets (id and name)
+ */
+export async function getSheetsList(
+  spreadsheetId: string,
+  apiKey?: string,
+): Promise<Array<{ id: string; name: string }>> {
+  const key = apiKey || process.env.GOOGLE_SHEETS_API_KEY || "";
+
+  if (!key) {
+    throw new Error(
+      "GOOGLE_SHEETS_API_KEY is required to fetch sheet metadata",
+    );
+  }
+
+  try {
+    const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?key=${key}&fields=sheets(properties(sheetId,title))`;
+
+    const response = await fetch(apiUrl);
+
+    if (!response.ok) {
+      console.error(
+        "Failed to fetch from Google Sheets API:",
+        response.status,
+        response.statusText,
+      );
+      throw new Error(`Failed to fetch sheet metadata: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const sheets = (data.sheets || []).map((sheet: any) => ({
+      id: String(sheet.properties.sheetId),
+      name: sheet.properties.title,
+    }));
+
+    console.log(`[SHEETS LIST] Found ${sheets.length} total sheets`);
+    sheets.forEach((sheet) => {
+      console.log(`[SHEETS LIST]   - ${sheet.name} (ID: ${sheet.id})`);
+    });
+
+    return sheets;
+  } catch (error) {
+    console.error("Error fetching sheets list:", error);
+    throw error;
+  }
+}
+
+/**
+ * Get sheets to sync - filters out system sheets and archives
+ * Returns only sheets that should be synced for data
+ */
+export function filterSheetsForSync(
+  sheets: Array<{ id: string; name: string }>,
+): Array<{ id: string; name: string }> {
+  // Exclude sheets with these patterns (case-insensitive)
+  const excludePatterns = [
+    /^archive/i,
+    /^template/i,
+    /^backup/i,
+    /^\[.*\]/,
+    /^_/,
+  ];
+
+  return sheets.filter((sheet) => {
+    const name = sheet.name || "";
+    return !excludePatterns.some((pattern) => pattern.test(name));
+  });
 }

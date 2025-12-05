@@ -13,6 +13,7 @@ import { handleSyncLeads } from "./routes/sync-leads";
 import { handleSyncLeadsDynamic } from "./routes/sync-leads-dynamic";
 import { handleSyncSalespersons } from "./routes/sync-salespersons";
 import { handleFetchGoogleSheet } from "./routes/fetch-google-sheet";
+import { handleFetchGoogleSheetApi } from "./routes/fetch-google-sheet-api";
 import { handleFetchGoogleSheetsMetadata } from "./routes/fetch-google-sheets-metadata";
 import { handleSyncGoogleSheet } from "./routes/sync-google-sheet";
 import { handleGetUserProfile } from "./routes/get-user-profile";
@@ -25,6 +26,9 @@ import {
 } from "./routes/admin-users";
 import { handleTestSupabase } from "./routes/test-supabase";
 import { handleDiagnoseGoogleSheet } from "./routes/diagnose-google-sheet";
+import { handleSplitSheet } from "./routes/split-sheet";
+import { handleVerifySheets } from "./routes/verify-sheets";
+import { handleTestSyncAllSheets } from "./routes/test-sync-all-sheets";
 
 export function createServer() {
   const app = express();
@@ -54,9 +58,13 @@ export function createServer() {
 
   // Google Sheets API routes
   app.get("/api/fetch-google-sheet", handleFetchGoogleSheet);
+  app.get("/api/fetch-google-sheet-api", handleFetchGoogleSheetApi);
   app.get("/api/fetch-google-sheets-metadata", handleFetchGoogleSheetsMetadata);
   app.post("/api/sync-google-sheet", handleSyncGoogleSheet);
   app.get("/api/diagnose-google-sheet", handleDiagnoseGoogleSheet);
+  app.post("/api/split-sheet", handleSplitSheet);
+  app.get("/api/verify-sheets", handleVerifySheets);
+  app.post("/api/test-sync-all-sheets", handleTestSyncAllSheets);
 
   // CRM API routes
   app.post("/api/sync-leads", handleSyncLeads);

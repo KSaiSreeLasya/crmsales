@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS leads (
   avg_monthly_bill TEXT,
   sheet_id TEXT DEFAULT '0',
   source TEXT DEFAULT 'manual',
+  sheet_id TEXT DEFAULT '0',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
 );
@@ -26,6 +27,7 @@ CREATE INDEX IF NOT EXISTS leads_created_at_idx ON leads(created_at DESC);
 CREATE INDEX IF NOT EXISTS leads_status_idx ON leads(status);
 CREATE INDEX IF NOT EXISTS leads_assigned_to_idx ON leads(assigned_to);
 CREATE INDEX IF NOT EXISTS leads_email_idx ON leads(email);
+CREATE INDEX IF NOT EXISTS leads_sheet_id_idx ON leads(sheet_id);
 
 -- Create salespersons table
 CREATE TABLE IF NOT EXISTS salespersons (

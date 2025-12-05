@@ -13,6 +13,15 @@ import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { MonthlyBreakdown } from "@/components/MonthlyBreakdown";
+import { analyzeLeadsByMonth, LeadAnalysis } from "@/lib/leadAnalysis";
+
+interface Lead {
+  id: string;
+  name: string;
+  assigned_to: string;
+  next_reminder?: string;
+}
 
 interface DashboardStats {
   totalLeads: number;
@@ -21,6 +30,7 @@ interface DashboardStats {
   totalSalespersons: number;
   leadsByStatus: Record<string, number>;
   leadsBySalesperson: Array<{ name: string; count: number }>;
+  upcomingReminders: Lead[];
 }
 
 export default function Index() {
@@ -31,6 +41,12 @@ export default function Index() {
     totalSalespersons: 0,
     leadsByStatus: {},
     leadsBySalesperson: [],
+    upcomingReminders: [],
+  });
+  const [monthlyAnalysis, setMonthlyAnalysis] = useState<LeadAnalysis>({
+    totalLeads: 0,
+    monthlyData: [],
+    dateRange: { earliest: null, latest: null },
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -87,6 +103,28 @@ export default function Index() {
         .map(([name, count]) => ({ name, count }))
         .sort((a, b) => b.count - a.count);
 
+      // Get upcoming reminders (next 7 days or overdue)
+      const now = new Date();
+      const sevenDaysFromNow = new Date(
+        now.getTime() + 7 * 24 * 60 * 60 * 1000,
+      );
+      const upcomingReminders = leadsList
+        .filter((lead) => {
+          if (!lead.next_reminder) return false;
+          const reminderDate = new Date(lead.next_reminder);
+          return reminderDate <= sevenDaysFromNow;
+        })
+        .sort((a, b) => {
+          const dateA = new Date(a.next_reminder || "").getTime();
+          const dateB = new Date(b.next_reminder || "").getTime();
+          return dateA - dateB;
+        })
+        .slice(0, 5);
+
+      // Analyze leads by month
+      const analysis = analyzeLeadsByMonth(leadsList);
+      setMonthlyAnalysis(analysis);
+
       setStats({
         totalLeads,
         activeLeads,
@@ -94,9 +132,11 @@ export default function Index() {
         totalSalespersons: salespersonsList.length,
         leadsByStatus,
         leadsBySalesperson,
+        upcomingReminders,
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       console.error("Error loading dashboard stats:", errorMessage);
       toast.error("Failed to load dashboard stats");
       setStats({
@@ -106,6 +146,7 @@ export default function Index() {
         totalSalespersons: 0,
         leadsByStatus: {},
         leadsBySalesperson: [],
+        upcomingReminders: [],
       });
     } finally {
       setIsLoading(false);
@@ -183,6 +224,9 @@ export default function Index() {
             color="bg-gradient-to-br from-orange-500 to-red-600"
           />
         </div>
+
+        {/* Monthly Breakdown */}
+        <MonthlyBreakdown analysis={monthlyAnalysis} isLoading={isLoading} />
 
         {/* Metrics by Salesperson and Status */}
         <div className="grid gap-6 md:grid-cols-2">
@@ -287,6 +331,70 @@ export default function Index() {
             </div>
           </Card>
         </div>
+
+        {/* Upcoming Reminders */}
+        <Card className="border border-orange-200 bg-orange-50 p-6 hover:shadow-lg transition-all duration-300">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-bold flex items-center gap-2 text-orange-800">
+              <Clock className="h-5 w-5" />
+              Upcoming Reminders (Next 7 Days)
+            </h3>
+            <Link
+              to="/leads"
+              className="text-sm text-orange-600 hover:text-orange-700 font-medium flex items-center gap-1"
+            >
+              View All <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+          <div className="space-y-3">
+            {isLoading ? (
+              <p className="text-center text-muted-foreground">Loading...</p>
+            ) : stats.upcomingReminders.length === 0 ? (
+              <p className="text-center text-muted-foreground py-4">
+                No reminders for the next 7 days
+              </p>
+            ) : (
+              stats.upcomingReminders.map((reminder) => {
+                const reminderDate = new Date(reminder.next_reminder || "");
+                const isOverdue = reminderDate < new Date();
+                return (
+                  <div
+                    key={reminder.id}
+                    className={`flex items-center justify-between p-3 rounded-lg border ${
+                      isOverdue
+                        ? "bg-red-100 border-red-300"
+                        : "bg-white border-orange-200"
+                    }`}
+                  >
+                    <div className="flex-1">
+                      <p
+                        className={`font-semibold text-sm ${isOverdue ? "text-red-800" : "text-foreground"}`}
+                      >
+                        {reminder.name}
+                      </p>
+                      <p
+                        className={`text-xs ${isOverdue ? "text-red-600" : "text-muted-foreground"}`}
+                      >
+                        Assigned to: {reminder.assigned_to || "Unassigned"}
+                      </p>
+                    </div>
+                    <div
+                      className={`text-right text-xs font-semibold px-3 py-1 rounded ${
+                        isOverdue
+                          ? "bg-red-200 text-red-800"
+                          : "bg-orange-200 text-orange-800"
+                      }`}
+                    >
+                      {isOverdue
+                        ? "OVERDUE"
+                        : reminderDate.toLocaleDateString("en-IN")}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </Card>
 
         {/* Quick Actions */}
         <div className="grid gap-6 md:grid-cols-2">

@@ -79,9 +79,8 @@ export default function Login() {
           </form>
 
           <div className="mt-6 p-4 bg-blue-50 rounded-lg text-sm text-gray-600">
-            <p className="font-semibold mb-2">Demo Credentials:</p>
-            <p>Email: admin@axisogreen.in</p>
-            <p>Password: admin2024</p>
+            
+            
           </div>
         </div>
       </Card>

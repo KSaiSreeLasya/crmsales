@@ -43,7 +43,7 @@ CREATE TABLE leads (
   lead_status TEXT,
   note1 TEXT,
   note2 TEXT,
-  status TEXT CHECK (status IN ('New', 'Not lifted', 'Not connected', 'Voice Message', 'Quotation sent', 'Site visit', 'Advance payment', 'Lead finished', 'Contacted')) DEFAULT 'New',
+  status TEXT CHECK (status IN ('New', 'Not lifted', 'Not connected', 'Voice Message', 'Quotation sent', 'Site visit', 'Advance payment', 'Lead finished', 'Contacted', 'Busy', 'Call Back')) DEFAULT 'New',
   owner TEXT DEFAULT 'Unassigned',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())

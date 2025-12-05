@@ -45,6 +45,7 @@ import { parseLeadRow } from "@shared/googleSheets";
 import { useAuth } from "@/context/AuthContext";
 import { getAssignedLeads } from "@/lib/auth";
 import { LeadDetailsModal } from "@/components/LeadDetailsModal";
+import { SplitSheetDialog } from "@/components/SplitSheetDialog";
 
 type LeadStatus =
   | "New"
@@ -55,7 +56,9 @@ type LeadStatus =
   | "Site visit"
   | "Advance payment"
   | "Lead finished"
-  | "Contacted";
+  | "Contacted"
+  | "Busy"
+  | "Call Back";
 
 interface Lead {
   id: string;
@@ -99,6 +102,8 @@ const STATUS_OPTIONS: LeadStatus[] = [
   "Advance payment",
   "Lead finished",
   "Contacted",
+  "Busy",
+  "Call Back",
 ];
 
 const SPREADSHEET_ID = "1QY8_Q8-ybLKNVs4hynPZslZDwUfC-PIJrViJfL0-tpM";
@@ -150,6 +155,7 @@ export default function Leads() {
   >([
     { id: "0", name: "Hyderabad Leads" },
     { id: "1892152973", name: "November" },
+    { id: "1355430272", name: "december" },
   ]);
   const [isLoadingSheets, setIsLoadingSheets] = useState(false);
 
@@ -169,37 +175,28 @@ export default function Leads() {
 
   // Combine leads and date rows for display
   useEffect(() => {
-    const combined: DisplayRow[] = [];
+    // Display all leads (date rows are stored for reference but not used for filtering)
+    setDisplayRows(leads);
+  }, [leads]);
 
-    if (dateRows.length === 0) {
-      // No date rows, just use leads
-      setDisplayRows(leads);
-    } else {
-      // Need to interleave date rows with leads based on original order
-      // For now, we'll append date rows info to the display
-      // In a more sophisticated approach, we'd track the original row indices
-      setDisplayRows([...leads, ...dateRows]);
-    }
-  }, [leads, dateRows]);
-
-  const loadLeads = async () => {
+  const loadLeads = async (sheetIdOverride?: string) => {
     setIsLoading(true);
+    const sheetIdToUse = sheetIdOverride || selectedSheetId;
     try {
       console.log(
-        `Loading leads for sheet_id: "${selectedSheetId}" (type: ${typeof selectedSheetId})`,
+        `Loading leads for sheet_id: "${sheetIdToUse}" (type: ${typeof sheetIdToUse})`,
       );
 
       const { data, error } = await supabase
         .from("leads")
         .select("*")
-        .eq("sheet_id", selectedSheetId)
+        .eq("sheet_id", sheetIdToUse)
         .order("created_at", { ascending: false })
         .order("id", { ascending: false });
 
       if (error) {
         const errorMsg = error.message || JSON.stringify(error);
         console.error("Error loading leads with sheet_id filter:", errorMsg);
-        console.error("Full error:", error);
 
         // Only fall back if sheet_id column truly doesn't exist
         if (
@@ -225,22 +222,41 @@ export default function Leads() {
           }
         } else {
           console.error("Cannot filter by sheet_id:", errorMsg);
-          toast.error("Failed to load leads for selected sheet");
-          setLeads([]);
+          // Try loading all leads as fallback
+          const { data: fallbackData, error: fallbackError } = await supabase
+            .from("leads")
+            .select("*")
+            .order("created_at", { ascending: false })
+            .order("id", { ascending: false });
+
+          if (!fallbackError && fallbackData) {
+            console.log(
+              `Loaded ${fallbackData.length} leads as fallback (sheet_id filter failed)`,
+            );
+            setLeads(fallbackData);
+          } else {
+            toast.error("Failed to load leads");
+            setLeads([]);
+          }
         }
       } else {
         console.log(
-          `✓ Successfully loaded ${data?.length || 0} leads for sheet ${selectedSheetId}`,
+          `✓ Successfully loaded ${data?.length || 0} leads for sheet ${sheetIdToUse}`,
         );
+
+        // Log leads with missing data for debugging
         if (data && data.length > 0) {
-          console.log("Sample lead:", data[0]);
-          console.log(
-            "Sample lead sheet_id:",
-            data[0].sheet_id,
-            "type:",
-            typeof data[0].sheet_id,
+          const leadsWithMissingData = data.filter(
+            (lead) => !lead.name || !lead.email || !lead.phone || !lead.company,
           );
+          if (leadsWithMissingData.length > 0) {
+            console.warn(
+              `⚠️ ${leadsWithMissingData.length} lead(s) have missing fields:`,
+              leadsWithMissingData,
+            );
+          }
         }
+
         setLeads(data || []);
       }
     } catch (error) {
@@ -380,9 +396,12 @@ export default function Leads() {
           };
         })
         .filter((lead) => {
-          const isValid = lead.name && lead.email && lead.phone;
+          const isValid = lead.name && lead.email;
           if (!isValid) {
-            console.log("Filtering out invalid lead:", lead);
+            console.log(
+              "Filtering out invalid lead (missing name or email):",
+              lead,
+            );
           }
           return isValid;
         });
@@ -390,10 +409,27 @@ export default function Leads() {
       console.log("Valid leads after filtering:", leadsToSync.length);
 
       if (leadsToSync.length === 0) {
+        const totalRows = rows.length;
+        const invalidLeads = rows
+          .map((row: any) => {
+            const parsed = parseLeadRow(row);
+            return {
+              name: parsed.name,
+              email: parsed.email,
+            };
+          })
+          .filter((lead) => !lead.name || !lead.email);
+
+        const errorMsg = `No valid leads found. Of ${totalRows} rows, ${invalidLeads.length} are missing required fields (Name and Email). Check browser console for details.`;
+
+        console.error("Sync failure details:", {
+          totalRows,
+          invalidRowsCount: invalidLeads.length,
+          sampleInvalidRows: invalidLeads.slice(0, 5),
+        });
+
         if (showNotification) {
-          toast.error(
-            "No valid leads found in Google Sheet. Check browser console for details.",
-          );
+          toast.error(errorMsg);
         }
         setIsSyncing(false);
         return;
@@ -485,31 +521,54 @@ export default function Leads() {
         return;
       }
 
-      // Extract date rows and regular rows
+      // Extract date rows and apply them to following leads
       const extractedDateRows: DateRowMarker[] = [];
-      const dataRows = rows.filter((row: any) => {
-        if (row._isDateRow === "true" || row._isDateRow === true) {
-          extractedDateRows.push(row as DateRowMarker);
-          return false;
-        }
-        return true;
-      });
+      let currentDate: string | null = null;
+      const dataRows = rows
+        .map((row: any, index: number) => {
+          if (row._isDateRow === "true" || row._isDateRow === true) {
+            extractedDateRows.push(row as DateRowMarker);
+            // Parse date from the marker - it's in YYYY-MM-DD format
+            const dateStr = row._dateValue;
+            if (dateStr && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+              currentDate = `${dateStr}T00:00:00.000Z`;
+              console.log(`✓ Date marker found: ${dateStr}`);
+            }
+            return null;
+          }
 
-      console.log(`Extracted ${extractedDateRows.length} date rows`);
+          // Apply current date to this lead if it doesn't have created_at
+          if (currentDate && !row.created_at) {
+            row.created_at = currentDate;
+          }
+
+          return row;
+        })
+        .filter((row): row is any => row !== null);
+
+      console.log(
+        `Extracted ${extractedDateRows.length} date rows, applied to ${dataRows.length} leads`,
+      );
 
       // 5 minute timeout for processing and uploading to Supabase
       const syncController = new AbortController();
       const syncTimeoutId = setTimeout(() => syncController.abort(), 300000);
 
       try {
+        const syncPayload = {
+          leads: dataRows,
+          source: "google_sheet",
+          sheetId: sheetId,
+        };
+        console.log("[SYNC-DYN] Sending to /api/sync-leads-dynamic");
+        console.log("[SYNC-DYN] sheetId value:", sheetId);
+        console.log("[SYNC-DYN] sheetId type:", typeof sheetId);
+        console.log("[SYNC-DYN] dataRows count:", dataRows.length);
+
         const syncResponse = await fetch("/api/sync-leads-dynamic", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            leads: dataRows,
-            source: "google_sheet",
-            sheetId: sheetId,
-          }),
+          body: JSON.stringify(syncPayload),
           signal: syncController.signal,
         });
         clearTimeout(syncTimeoutId);
@@ -574,7 +633,7 @@ export default function Leads() {
         setDateRows(extractedDateRows);
 
         console.log(`About to reload leads for sheet_id: ${sheetId}`);
-        await loadLeads();
+        await loadLeads(sheetId);
         console.log("Leads reloaded after sync");
 
         if (showNotification) {
@@ -590,6 +649,9 @@ export default function Leads() {
             `Synced ${syncData.synced} leads${emptyRowsMsg}${dateRowsMsg} with all columns`,
           );
         }
+
+        // Reload leads to display synced data
+        await loadLeads(sheetId);
       } catch (fetchError) {
         clearTimeout(syncTimeoutId);
         throw fetchError;
@@ -600,6 +662,391 @@ export default function Leads() {
         if (error instanceof Error && error.name === "AbortError") {
           toast.error(
             "Sync timed out after 5 minutes. Very large sheets may need multiple sync attempts.",
+          );
+        } else {
+          toast.error(
+            error instanceof Error
+              ? error.message
+              : "Failed to sync from sheet",
+          );
+        }
+      }
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const syncFromGoogleSheetApiV4 = async (
+    sheetId: string,
+    sheetName: string,
+    showNotification = false,
+  ) => {
+    if (isSyncing) {
+      if (showNotification) {
+        toast.info("Sync already in progress...");
+      }
+      return;
+    }
+
+    setIsSyncing(true);
+    let loadingToastId: string | number | undefined;
+    if (showNotification) {
+      loadingToastId = toast.loading(
+        "Syncing leads using Google Sheets API... This works for 500+ leads.",
+      );
+    }
+
+    try {
+      // 3 minute timeout for fetching from Google Sheets API
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 180000);
+
+      const fetchResponse = await fetch(
+        `/api/fetch-google-sheet-api?spreadsheetId=${SPREADSHEET_ID}&sheetName=${encodeURIComponent(
+          sheetName,
+        )}`,
+        { signal: controller.signal },
+      );
+      clearTimeout(timeoutId);
+
+      if (!fetchResponse.ok) {
+        let errorDetails = "";
+        try {
+          const errorData = await fetchResponse.json();
+          errorDetails =
+            errorData.error || errorData.message || "Unknown error";
+          if (errorData.hint) {
+            errorDetails += ` | ${errorData.hint}`;
+          }
+        } catch {
+          errorDetails = fetchResponse.statusText || "Unknown error";
+        }
+
+        // Fallback to CSV export method for ANY API failure
+        console.warn(
+          `API fetch failed (${fetchResponse.status}), falling back to CSV export method...`,
+        );
+        if (showNotification && loadingToastId !== undefined) {
+          toast.dismiss(loadingToastId);
+          loadingToastId = toast.loading("Syncing leads using CSV export...");
+        }
+
+        // Use the CSV-based endpoint with sheet ID instead
+        const csvController = new AbortController();
+        const csvTimeoutId = setTimeout(() => csvController.abort(), 180000);
+
+        const csvResponse = await fetch(
+          `/api/fetch-google-sheet?spreadsheetId=${SPREADSHEET_ID}&sheetId=${sheetId}`,
+          { signal: csvController.signal },
+        );
+        clearTimeout(csvTimeoutId);
+
+        if (!csvResponse.ok) {
+          let csvErrorDetails = "";
+          try {
+            const errorData = await csvResponse.json();
+            csvErrorDetails =
+              errorData.error || errorData.message || "Unknown error";
+          } catch {
+            csvErrorDetails = csvResponse.statusText || "Unknown error";
+          }
+          throw new Error(
+            `Failed to fetch using CSV export: ${csvErrorDetails}`,
+          );
+        }
+
+        const csvData = await csvResponse.json();
+        const rows = csvData.rows;
+
+        console.log(
+          `✓ Fetched ${rows.length} rows from sheet ${sheetName} via CSV export (fallback from API)`,
+        );
+
+        // Log sample data to understand structure
+        if (rows.length > 0) {
+          console.log(
+            "[SYNC] Sample row from CSV:",
+            JSON.stringify(rows[0]).substring(0, 200),
+          );
+          console.log("[SYNC] Column names:", Object.keys(rows[0]));
+        }
+
+        // Continue with the CSV data (same processing as API data)
+        if (rows.length === 0) {
+          if (showNotification) {
+            if (loadingToastId !== undefined) toast.dismiss(loadingToastId);
+            toast.error("Selected sheet is empty");
+          }
+          setIsSyncing(false);
+          return;
+        }
+
+        // Extract date rows and process the data
+        const extractedDateRows: DateRowMarker[] = [];
+        let currentDate: string | null = null;
+        const dataRows = rows
+          .map((row: any, index: number) => {
+            if (row._isDateRow === "true" || row._isDateRow === true) {
+              extractedDateRows.push(row as DateRowMarker);
+              const dateStr = row._dateValue;
+              if (dateStr && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+                currentDate = `${dateStr}T00:00:00.000Z`;
+                console.log(`✓ Date marker found: ${dateStr}`);
+              }
+              return null;
+            }
+
+            if (currentDate && !row.created_at) {
+              row.created_at = currentDate;
+            }
+
+            return row;
+          })
+          .filter((row): row is any => row !== null);
+
+        console.log(
+          `Extracted ${extractedDateRows.length} date rows, applied to ${dataRows.length} leads`,
+        );
+
+        if (dataRows.length > 0) {
+          console.log(
+            "[SYNC] First data row after processing:",
+            JSON.stringify(dataRows[0]).substring(0, 200),
+          );
+        }
+
+        // Sync to Supabase
+        const fallbackSyncPayload = {
+          leads: dataRows,
+          source: "google_sheet",
+          sheetId: sheetId,
+          dateRows: extractedDateRows,
+        };
+        console.log(
+          "[SYNC-CSV-FALLBACK] Sending CSV fallback to /api/sync-leads-dynamic",
+        );
+        console.log("[SYNC-CSV-FALLBACK] sheetId value:", sheetId);
+        console.log("[SYNC-CSV-FALLBACK] sheetId type:", typeof sheetId);
+        console.log("[SYNC-CSV-FALLBACK] dataRows count:", dataRows.length);
+
+        const syncResponse = await fetch("/api/sync-leads-dynamic", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(fallbackSyncPayload),
+        });
+
+        const syncResult = await syncResponse.json();
+
+        console.log("[SYNC-CSV-FALLBACK] Sync response:", syncResult);
+        console.log(
+          "[SYNC-CSV-FALLBACK] Response status:",
+          syncResponse.status,
+        );
+        console.log("[SYNC-CSV-FALLBACK] Response OK:", syncResponse.ok);
+        console.log(
+          "[SYNC-CSV-FALLBACK] Synced leads count:",
+          syncResult.synced,
+        );
+        console.log(
+          "[SYNC-CSV-FALLBACK] About to call loadLeads(sheetId) with sheetId:",
+          sheetId,
+        );
+
+        if (!syncResponse.ok || !syncResult.success) {
+          // Build detailed error message
+          let errorMsg = syncResult.error || "Failed to sync leads";
+          if (syncResult.hint) {
+            errorMsg += `\n\n${syncResult.hint}`;
+          }
+          if (syncResult.skippedMissingFields) {
+            errorMsg += `\n\nNote: ${syncResult.skippedMissingFields} rows were skipped due to missing required fields (name, email, phone, company)`;
+          }
+          throw new Error(errorMsg);
+        }
+
+        // Success - reload the leads from Supabase
+        console.log("[SYNC-CSV-FALLBACK] Sync successful, reloading leads...");
+        await new Promise((resolve) => {
+          setTimeout(() => {
+            loadLeads(sheetId);
+            resolve(null);
+          }, 500);
+        });
+
+        if (showNotification) {
+          if (loadingToastId !== undefined) toast.dismiss(loadingToastId);
+
+          // Show detailed success message if there were skipped rows
+          let successMsg = `✓ Synced ${syncResult.synced} leads from ${sheetName}`;
+          if (
+            syncResult.skippedMissingFields &&
+            syncResult.skippedMissingFields > 0
+          ) {
+            successMsg += ` (${syncResult.skippedMissingFields} rows skipped - missing required fields)`;
+          }
+
+          toast.success(successMsg);
+        }
+
+        return;
+      }
+
+      const fetchData = await fetchResponse.json();
+      const rows = fetchData.rows;
+
+      console.log(
+        `Fetched ${rows.length} rows from sheet ${sheetName} via API`,
+      );
+
+      if (rows.length === 0) {
+        if (showNotification) {
+          if (loadingToastId !== undefined) toast.dismiss(loadingToastId);
+          toast.error("Selected sheet is empty");
+        }
+        setIsSyncing(false);
+        return;
+      }
+
+      // Extract date rows and apply them to following leads
+      const extractedDateRows: DateRowMarker[] = [];
+      let currentDate: string | null = null;
+      const dataRows = rows
+        .map((row: any, index: number) => {
+          if (row._isDateRow === "true" || row._isDateRow === true) {
+            extractedDateRows.push(row as DateRowMarker);
+            // Parse date from the marker - it's in YYYY-MM-DD format
+            const dateStr = row._dateValue;
+            if (dateStr && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+              currentDate = `${dateStr}T00:00:00.000Z`;
+              console.log(`✓ Date marker found: ${dateStr}`);
+            }
+            return null;
+          }
+
+          // Apply current date to this lead if it doesn't have created_at
+          if (currentDate && !row.created_at) {
+            row.created_at = currentDate;
+          }
+
+          return row;
+        })
+        .filter((row): row is any => row !== null);
+
+      console.log(
+        `Extracted ${extractedDateRows.length} date rows, applied to ${dataRows.length} leads`,
+      );
+
+      // 5 minute timeout for processing and uploading to Supabase
+      const syncController = new AbortController();
+      const syncTimeoutId = setTimeout(() => syncController.abort(), 300000);
+
+      try {
+        const syncPayload = {
+          leads: dataRows,
+          source: "api",
+          sheetId: sheetId,
+        };
+        console.log("[SYNC-API-V4] Sending to /api/sync-leads-dynamic");
+        console.log("[SYNC-API-V4] sheetId value:", sheetId);
+        console.log("[SYNC-API-V4] sheetId type:", typeof sheetId);
+        console.log("[SYNC-API-V4] dataRows count:", dataRows.length);
+
+        const syncResponse = await fetch("/api/sync-leads-dynamic", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(syncPayload),
+          signal: syncController.signal,
+        });
+        clearTimeout(syncTimeoutId);
+
+        const statusOk = syncResponse.ok;
+        let syncData: any = null;
+        let responseText = "";
+
+        // Read response body only once
+        try {
+          responseText = await syncResponse.text();
+          if (responseText) {
+            try {
+              syncData = JSON.parse(responseText);
+            } catch (jsonError) {
+              console.error("Failed to parse JSON:", jsonError);
+              console.error("Response text was:", responseText);
+              syncData = { error: "Invalid JSON response from server" };
+            }
+          }
+        } catch (textError) {
+          console.error("Failed to read response body:", textError);
+          syncData = { error: "Failed to read response" };
+        }
+
+        // Check response status after reading body
+        if (!statusOk) {
+          const errorMessage =
+            syncData?.message || syncData?.error || "Failed to sync leads";
+          const fullError = [
+            errorMessage,
+            syncData?.hint && `Hint: ${syncData.hint}`,
+            syncData?.troubleshooting &&
+              `Troubleshooting: Check /api/test-supabase`,
+          ]
+            .filter(Boolean)
+            .join("\n");
+
+          console.error(
+            "Sync API returned error:",
+            errorMessage,
+            "Full response:",
+            syncData,
+            "Status:",
+            syncResponse.status,
+          );
+          throw new Error(fullError);
+        }
+
+        if (!syncData) {
+          throw new Error("No response data received from sync");
+        }
+
+        console.log(
+          "Sync response:",
+          syncData.message,
+          "Columns:",
+          syncData.columnsIncluded,
+        );
+
+        // Store date rows for display
+        setDateRows(extractedDateRows);
+
+        console.log(`About to reload leads for sheet_id: ${sheetId}`);
+        await loadLeads(sheetId);
+        console.log("Leads reloaded after sync");
+
+        if (showNotification) {
+          if (loadingToastId !== undefined) toast.dismiss(loadingToastId);
+          const emptyRowsMsg =
+            syncData.emptyRowsRemoved > 0
+              ? ` (${syncData.emptyRowsRemoved} empty rows removed)`
+              : "";
+          const dateRowsMsg =
+            extractedDateRows.length > 0
+              ? ` (${extractedDateRows.length} date separators)`
+              : "";
+          toast.success(
+            `Synced ${syncData.synced} leads from Google Sheets API${emptyRowsMsg}${dateRowsMsg}`,
+          );
+        }
+      } catch (fetchError) {
+        clearTimeout(syncTimeoutId);
+        throw fetchError;
+      }
+    } catch (error) {
+      console.error("Error syncing via Google Sheets API:", error);
+      if (showNotification) {
+        if (loadingToastId !== undefined) toast.dismiss(loadingToastId);
+        if (error instanceof Error && error.name === "AbortError") {
+          toast.error(
+            "Sync timed out after 5 minutes. Please try again or check sheet size.",
           );
         } else {
           toast.error(
@@ -889,18 +1336,21 @@ export default function Leads() {
     return "hover:bg-gray-50";
   };
 
-  const filteredLeads = displayRows.filter((row) => {
-    // Always show date rows
-    if (isDateRow(row)) {
-      return true;
+  const filteredLeads = displayRows.filter((lead) => {
+    // Filter out date rows (which have _isDateRow property)
+    if (isDateRow(lead)) {
+      return false;
     }
 
-    const lead = row as Lead;
     const matchesSearch =
-      lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.phone.includes(searchTerm) ||
-      lead.company.toLowerCase().includes(searchTerm.toLowerCase());
+      !searchTerm ||
+      (lead.name &&
+        lead.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (lead.email &&
+        lead.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (lead.phone && lead.phone.includes(searchTerm)) ||
+      (lead.company &&
+        lead.company.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const matchesStatus =
       filterStatus === "all" || lead.status === filterStatus;
@@ -962,7 +1412,14 @@ export default function Leads() {
             <Button
               variant="outline"
               className="gap-1 h-8 text-xs px-2"
-              onClick={() => syncFromGoogleSheetDynamic(selectedSheetId, true)}
+              onClick={() => {
+                const selectedSheet = availableSheets.find(
+                  (s) => s.id === selectedSheetId,
+                );
+                const sheetName = selectedSheet?.name || "Sheet1";
+                // Use API v4 for better handling of large sheets (500+ leads)
+                syncFromGoogleSheetApiV4(selectedSheetId, sheetName, true);
+              }}
               disabled={isSyncing}
             >
               <RefreshCw
@@ -970,6 +1427,20 @@ export default function Leads() {
               />
               {isSyncing ? "Syncing..." : "Sync"}
             </Button>
+            <SplitSheetDialog
+              sheetName={
+                availableSheets.find((s) => s.id === selectedSheetId)?.name ||
+                "Sheet1"
+              }
+              totalLeads={leads.length}
+              spreadsheetId={SPREADSHEET_ID}
+              sheetId={selectedSheetId}
+              onSplitComplete={() => {
+                setTimeout(() => {
+                  loadAvailableSheets();
+                }, 1500);
+              }}
+            />
             <Dialog open={openDialog} onOpenChange={setOpenDialog}>
               <DialogTrigger asChild>
                 <Button
@@ -1309,6 +1780,9 @@ export default function Leads() {
                           NOTE2
                         </TableHead>
                         <TableHead className="whitespace-nowrap font-bold text-[11px]">
+                          NEXT REMINDER
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap font-bold text-[11px]">
                           STATUS
                         </TableHead>
                         <TableHead className="whitespace-nowrap font-bold text-[11px]">
@@ -1322,7 +1796,7 @@ export default function Leads() {
                     <TableBody>
                       {filteredLeads.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={14} className="py-8 text-center">
+                          <TableCell colSpan={15} className="py-8 text-center">
                             <p className="text-muted-foreground">
                               No leads found.{" "}
                               {displayRows.length === 0 &&
@@ -1331,23 +1805,7 @@ export default function Leads() {
                           </TableCell>
                         </TableRow>
                       ) : (
-                        filteredLeads.map((row) => {
-                          if (isDateRow(row)) {
-                            return (
-                              <TableRow
-                                key={`date-${row._dateValue}`}
-                                className="border-b border-border bg-blue-50 hover:bg-blue-100"
-                              >
-                                <TableCell
-                                  colSpan={14}
-                                  className="py-3 text-center font-semibold text-blue-700"
-                                >
-                                  📅 {row._dateValue}
-                                </TableCell>
-                              </TableRow>
-                            );
-                          }
-                          const lead = row as Lead;
+                        filteredLeads.map((lead) => {
                           return (
                             <TableRow
                               key={lead.id}
@@ -1475,25 +1933,57 @@ export default function Leads() {
                                   </div>
                                 )}
                               </TableCell>
+                              <TableCell
+                                className="text-muted-foreground text-xs whitespace-nowrap cursor-pointer hover:bg-blue-100"
+                                onClick={() => handleOpenLeadDetails(lead)}
+                              >
+                                {lead.next_reminder
+                                  ? new Date(
+                                      lead.next_reminder,
+                                    ).toLocaleDateString("en-IN", {
+                                      year: "numeric",
+                                      month: "2-digit",
+                                      day: "2-digit",
+                                    })
+                                  : "-"}
+                              </TableCell>
                               <TableCell className="whitespace-nowrap">
                                 <select
                                   value={lead.status}
                                   onChange={async (e) => {
+                                    const newStatus = e.target
+                                      .value as LeadStatus;
                                     try {
-                                      await supabase
+                                      const { error } = await supabase
                                         .from("leads")
                                         .update({
-                                          status: e.target.value as LeadStatus,
+                                          status: newStatus,
                                           updated_at: new Date().toISOString(),
                                         })
                                         .eq("id", lead.id);
+
+                                      if (error) {
+                                        console.error("Supabase error:", error);
+                                        toast.error(
+                                          `Failed to update status: ${error.message}`,
+                                        );
+                                        return;
+                                      }
+
                                       await loadLeads();
+                                      toast.success(
+                                        `Status changed to ${newStatus}`,
+                                      );
                                     } catch (error) {
                                       console.error(
                                         "Error updating status:",
                                         error,
                                       );
-                                      toast.error("Failed to update status");
+                                      toast.error(
+                                        error instanceof Error
+                                          ? error.message
+                                          : "Failed to update status",
+                                      );
                                     }
                                   }}
                                   className="rounded border border-border bg-background px-1.5 py-0.5 text-xs"
@@ -1509,21 +1999,39 @@ export default function Leads() {
                                 <select
                                   value={lead.assigned_to || "Unassigned"}
                                   onChange={async (e) => {
+                                    const newAssignment = e.target.value;
                                     try {
-                                      await supabase
+                                      const { error } = await supabase
                                         .from("leads")
                                         .update({
-                                          assigned_to: e.target.value,
+                                          assigned_to: newAssignment,
                                           updated_at: new Date().toISOString(),
                                         })
                                         .eq("id", lead.id);
+
+                                      if (error) {
+                                        console.error("Supabase error:", error);
+                                        toast.error(
+                                          `Failed to update assignment: ${error.message}`,
+                                        );
+                                        return;
+                                      }
+
                                       await loadLeads();
+                                      await loadAssignedLeads();
+                                      toast.success(
+                                        `Lead assigned to ${newAssignment}`,
+                                      );
                                     } catch (error) {
                                       console.error(
                                         "Error updating owner:",
                                         error,
                                       );
-                                      toast.error("Failed to update owner");
+                                      toast.error(
+                                        error instanceof Error
+                                          ? error.message
+                                          : "Failed to update owner",
+                                      );
                                     }
                                   }}
                                   className="rounded border border-border bg-background px-1.5 py-0.5 text-xs"
@@ -1761,25 +2269,58 @@ export default function Leads() {
                                 </div>
                               )}
                             </TableCell>
+                            <TableCell
+                              className="text-muted-foreground text-xs whitespace-nowrap cursor-pointer hover:bg-blue-100"
+                              onClick={() => handleOpenLeadDetails(lead)}
+                            >
+                              {lead.next_reminder
+                                ? new Date(
+                                    lead.next_reminder,
+                                  ).toLocaleDateString("en-IN", {
+                                    year: "numeric",
+                                    month: "2-digit",
+                                    day: "2-digit",
+                                  })
+                                : "-"}
+                            </TableCell>
                             <TableCell className="text-xs whitespace-nowrap">
                               <select
                                 value={lead.status}
                                 onChange={async (e) => {
+                                  const newStatus = e.target
+                                    .value as LeadStatus;
                                   try {
-                                    await supabase
+                                    const { error } = await supabase
                                       .from("leads")
                                       .update({
-                                        status: e.target.value as LeadStatus,
+                                        status: newStatus,
                                         updated_at: new Date().toISOString(),
                                       })
                                       .eq("id", lead.id);
+
+                                    if (error) {
+                                      console.error("Supabase error:", error);
+                                      toast.error(
+                                        `Failed to update status: ${error.message}`,
+                                      );
+                                      return;
+                                    }
+
                                     await loadAssignedLeads();
+                                    await loadLeads();
+                                    toast.success(
+                                      `Status changed to ${newStatus}`,
+                                    );
                                   } catch (error) {
                                     console.error(
                                       "Error updating status:",
                                       error,
                                     );
-                                    toast.error("Failed to update status");
+                                    toast.error(
+                                      error instanceof Error
+                                        ? error.message
+                                        : "Failed to update status",
+                                    );
                                   }
                                 }}
                                 className="rounded border border-border bg-background px-1.5 py-0.5 text-xs"
