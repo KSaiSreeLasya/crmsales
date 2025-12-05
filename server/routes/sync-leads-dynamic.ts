@@ -460,19 +460,21 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         "contact phone",
       ]);
 
-      // Phone is required in database - must not be empty
-      syncData.phone = (phoneValue && String(phoneValue).trim()) || "N/A";
+      // Phone is required - if missing, set to N/A (will be caught in validation)
+      syncData.phone = (phoneValue && String(phoneValue).trim()) || "";
 
+      // Company - optional, show N/A if missing
       syncData.company =
         mapColumn(["company", "organization", "business", "company name"]) ||
         "N/A";
 
       syncData.street_address =
         mapColumn(["street address", "street_address", "street", "address"]) ||
-        "";
+        "N/A";
       syncData.post_code =
-        mapColumn(["post_code", "postal_code", "postcode", "zip_code"]) || "";
-      syncData.lead_status = mapColumn(["lead_status", "status"]) || "";
+        mapColumn(["post_code", "postal_code", "postcode", "zip_code"]) ||
+        "N/A";
+      syncData.lead_status = mapColumn(["lead_status", "status"]) || "N/A";
       syncData.electricity_bill =
         mapColumn([
           "electricity_bill",
@@ -481,14 +483,14 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           "monthly_electricity_bill",
           "avg_bill",
           "monthly_bill",
-        ]) || "";
+        ]) || "N/A";
       syncData.type_of_property =
         mapColumn([
           "what_type_of_property_do_you_want_to_install_solar_on",
           "type_of_property",
           "property_type",
           "property",
-        ]) || "";
+        ]) || "N/A";
       syncData.avg_monthly_bill = syncData.electricity_bill;
       syncData.status = "Not lifted";
 
@@ -518,60 +520,54 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     });
 
     // Validate and prepare leads for sync
-    // POLICY: Accept ALL rows. Generate defaults for missing required fields.
-    // - Name: Required field, will default to "Unknown" if missing (but log warning)
-    // - Email: Required field, will generate synthetic email if missing
-    // - Phone: Required by DB but defaults to "N/A" if missing (acceptable)
-    // - Company: Required by DB but defaults to "Solar Lead" if missing (acceptable)
+    // POLICY: Only name and phone are required. All other fields optional.
+    // - Name: Required, must not be empty
+    // - Phone: Required, must not be empty
+    // - Email: Optional, if missing use generated synthetic email
+    // - All other fields: Optional, show "N/A" if missing
     console.log(`[SYNC] Processing ${leadsToSync.length} leads for sync...`);
     const validLeadsForSync = leadsToSync.map((lead, idx) => {
-      // Ensure all required fields have values
+      // Ensure required fields have values
       const processedLead = { ...lead };
 
-      // Name: Use what we have, log if defaulting
+      // Name: Required field
       let name = String(processedLead.name || "").trim();
-      if (!name || name.toLowerCase() === "unknown") {
-        console.warn(`[SYNC] Row ${idx}: No name found, using "Unknown"`);
-        name = "Unknown";
-        processedLead.name = "Unknown";
+      if (!name) {
+        console.warn(`[SYNC] Row ${idx}: No name found - WILL BE REJECTED`);
       } else {
         processedLead.name = name;
       }
 
-      // Email: Should have been generated synthetically in mapColumn stage
+      // Email: Generate synthetic email if missing (for database uniqueness)
       let email = String(processedLead.email || "").trim();
       if (!email) {
-        // This should not happen, but if it does, generate a fallback
-        console.error(
-          `[SYNC] Row ${idx}: NO EMAIL AFTER PROCESSING - This should not happen!`,
-        );
+        // Generate synthetic email for uniqueness
         const timestamp = Date.now().toString().slice(-6);
         const fallbackEmail = `synced.lead.${timestamp}.${idx}@synced-lead.local`;
         email = fallbackEmail;
         processedLead.email = fallbackEmail;
-        console.warn(
-          `[SYNC] Row ${idx}: Generated fallback email: ${fallbackEmail}`,
-        );
+        if (idx < 3) {
+          console.log(
+            `[SYNC] Row ${idx}: No email, generated synthetic: ${fallbackEmail}`,
+          );
+        }
       } else {
         processedLead.email = email;
       }
 
-      // Phone: Default to "N/A" if missing
+      // Phone: Required field
       let phone = String(processedLead.phone || "").trim();
       if (!phone) {
-        console.log(`[SYNC] Row ${idx}: No phone, using "N/A"`);
-        phone = "N/A";
-        processedLead.phone = "N/A";
+        console.warn(`[SYNC] Row ${idx}: No phone - WILL BE REJECTED`);
       } else {
         processedLead.phone = phone;
       }
 
-      // Company: Default to "Solar Lead" if missing (since company is required by schema)
+      // Company: Optional, show N/A if missing
       let company = String(processedLead.company || "").trim();
       if (!company) {
-        console.log(`[SYNC] Row ${idx}: No company, using "Solar Lead"`);
-        company = "Solar Lead";
-        processedLead.company = "Solar Lead";
+        company = "N/A";
+        processedLead.company = "N/A";
       } else {
         processedLead.company = company;
       }
@@ -629,27 +625,39 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     }
 
     try {
-      // Strict validation: Filter out any leads missing required fields
+      // Strict validation: Only name and phone are required
+      console.log(
+        "[SYNC] Starting validation on",
+        validLeadsForSync.length,
+        "leads",
+      );
+      if (validLeadsForSync.length > 0) {
+        console.log("[SYNC] Sample lead before validation:", {
+          name: validLeadsForSync[0].name,
+          email: validLeadsForSync[0].email,
+          phone: validLeadsForSync[0].phone,
+          company: validLeadsForSync[0].company,
+          allKeys: Object.keys(validLeadsForSync[0]),
+        });
+      }
+
       const validatedLeads = validLeadsForSync.filter((lead, idx) => {
         const name = String(lead.name || "").trim();
-        const email = String(lead.email || "").trim();
         const phone = String(lead.phone || "").trim();
-        const company = String(lead.company || "").trim();
 
-        const isValid =
-          name.length > 0 &&
-          email.length > 0 &&
-          phone.length > 0 &&
-          company.length > 0;
+        // Only name and phone are required
+        const isValid = name.length > 0 && phone.length > 0;
 
-        if (!isValid) {
+        if (!isValid && idx < 3) {
           console.error(
-            `[SYNC] Row ${idx} REJECTED due to missing required fields:`,
+            `[SYNC] Row ${idx} REJECTED due to missing REQUIRED fields (name or phone):`,
             {
               name: name || "MISSING",
-              email: email || "MISSING",
               phone: phone || "MISSING",
-              company: company || "MISSING",
+              rawLead: {
+                name: lead.name,
+                phone: lead.phone,
+              },
             },
           );
         }
