@@ -12,6 +12,10 @@ CREATE TABLE IF NOT EXISTS leads (
   assigned_to TEXT DEFAULT 'Unassigned',
   note1 TEXT,
   note2 TEXT,
+  electricity_bill TEXT,
+  type_of_property TEXT,
+  avg_monthly_bill TEXT,
+  sheet_id TEXT DEFAULT '0',
   source TEXT DEFAULT 'manual',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
