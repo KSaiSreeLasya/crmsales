@@ -389,7 +389,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
       syncData.company =
         mapColumn(["company", "organization", "business", "company name"]) ||
-        "N/A";
+        "";
 
       syncData.street_address =
         mapColumn(["street address", "street_address", "street", "address"]) ||
