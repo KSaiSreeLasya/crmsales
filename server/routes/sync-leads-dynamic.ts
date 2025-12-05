@@ -553,6 +553,36 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     }
 
     try {
+      // Strict validation: Filter out any leads missing required fields
+      const validatedLeads = validLeadsForSync.filter((lead, idx) => {
+        const name = String(lead.name || "").trim();
+        const email = String(lead.email || "").trim();
+        const phone = String(lead.phone || "").trim();
+        const company = String(lead.company || "").trim();
+
+        const isValid =
+          name.length > 0 &&
+          email.length > 0 &&
+          phone.length > 0 &&
+          company.length > 0;
+
+        if (!isValid) {
+          console.error(
+            `[SYNC] Row ${idx} REJECTED due to missing required fields:`,
+            {
+              name: name || "MISSING",
+              email: email || "MISSING",
+              phone: phone || "MISSING",
+              company: company || "MISSING",
+            },
+          );
+        }
+
+        return isValid;
+      });
+
+      const rejectedCount = validLeadsForSync.length - validatedLeads.length;
+
       // Validation has already been done with strict filtering above
       console.log(
         `[SYNC] Proceeding with ${validatedLeads.length} validated leads (rejected ${rejectedCount})`,
@@ -611,36 +641,6 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           phone: l.phone,
         })),
       );
-
-      // Strict validation: Filter out any leads missing required fields
-      const validatedLeads = validLeadsForSync.filter((lead, idx) => {
-        const name = String(lead.name || "").trim();
-        const email = String(lead.email || "").trim();
-        const phone = String(lead.phone || "").trim();
-        const company = String(lead.company || "").trim();
-
-        const isValid =
-          name.length > 0 &&
-          email.length > 0 &&
-          phone.length > 0 &&
-          company.length > 0;
-
-        if (!isValid) {
-          console.error(
-            `[SYNC] Row ${idx} REJECTED due to missing required fields:`,
-            {
-              name: name || "MISSING",
-              email: email || "MISSING",
-              phone: phone || "MISSING",
-              company: company || "MISSING",
-            },
-          );
-        }
-
-        return isValid;
-      });
-
-      const rejectedCount = validLeadsForSync.length - validatedLeads.length;
       if (rejectedCount > 0) {
         console.error(
           `[SYNC] CRITICAL: ${rejectedCount} leads rejected due to missing required fields. This indicates a bug in default application.`,
