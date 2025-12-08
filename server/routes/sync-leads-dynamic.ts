@@ -45,9 +45,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       }
 
       // Skip if row only has the date row marker and nothing else
-      const dataKeys = Object.keys(lead).filter(
-        (k) => !k.startsWith("_"),
-      );
+      const dataKeys = Object.keys(lead).filter((k) => !k.startsWith("_"));
       return dataKeys.length > 0;
     });
 
@@ -308,7 +306,10 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
                 if (!insertError) {
                   insertedCount++;
                 } else {
-                  console.warn(`Failed to insert lead without email:`, insertError);
+                  console.warn(
+                    `Failed to insert lead without email:`,
+                    insertError,
+                  );
                 }
                 continue;
               }
@@ -384,7 +385,9 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
       console.log("Successfully inserted", data?.length, "new leads");
       const totalSkipped = leads.length - leadsToSync.length;
-      console.log(`Synced ${leadsToSync.length} leads, skipped ${dateRowsFiltered} date rows and ${invalidLeads} invalid rows`);
+      console.log(
+        `Synced ${leadsToSync.length} leads, skipped ${dateRowsFiltered} date rows and ${invalidLeads} invalid rows`,
+      );
 
       res.json({
         success: true,
