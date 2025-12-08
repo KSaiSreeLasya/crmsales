@@ -522,9 +522,10 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       const leadsToUpdateWithPreservedAssignments = existingLeadsToUpdate.map(
         (lead) => {
           const { sheet_id, ...leadWithoutSheetId } = lead;
+          const normalizedEmail = String(lead.email || "").toLowerCase().trim();
           return {
             ...leadWithoutSheetId,
-            assigned_to: existingAssignments.get(lead.email) || "Unassigned",
+            assigned_to: existingAssignments.get(normalizedEmail) || "Unassigned",
           };
         },
       );
@@ -546,16 +547,66 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           console.log(`✓ Inserted ${insertCount} new leads`);
         } else {
           console.warn(`Failed to insert ${newLeads.length} new leads:`, error);
-          failureCount += newLeads.length;
+          console.error("Insert error details:", {
+            message: error.message,
+            code: (error as any).code,
+            details: (error as any).details,
+          });
+
+          // If it's a duplicate key error, try updating instead
+          if (
+            error.message?.includes("duplicate") ||
+            (error as any).code === "23505"
+          ) {
+            console.log(
+              "Duplicate key detected during insert, attempting to update these leads instead...",
+            );
+            for (const lead of newLeads) {
+              const normalizedEmail = String(
+                lead.email || "",
+              ).toLowerCase().trim();
+              const updateData = {
+                ...lead,
+                updated_at: new Date().toISOString(),
+                assigned_to:
+                  existingAssignments.get(normalizedEmail) || "Unassigned",
+              };
+
+              const { error: updateError } = await supabase
+                .from("leads")
+                .update(updateData)
+                .eq("email", normalizedEmail)
+                .eq("sheet_id", String(sheetId));
+
+              if (!updateError) {
+                updateCount++;
+              } else {
+                failureCount++;
+                console.warn(
+                  `Failed to update lead with email ${lead.email} in sheet ${sheetId}:`,
+                  updateError,
+                );
+              }
+            }
+          } else {
+            // For non-duplicate errors, count as failures
+            failureCount += newLeads.length;
+          }
         }
       }
 
       // Update each existing lead (preserving assignments)
-      console.log("Updating existing leads...");
+      if (existingLeadsToUpdate.length > 0) {
+        console.log(
+          "Updating existing leads...",
+          existingLeadsToUpdate.length,
+        );
+      }
       for (const lead of leadsToUpdateWithPreservedAssignments) {
         const email = lead.email;
+        const normalizedEmail = String(email || "").toLowerCase().trim();
 
-        if (email && String(email).trim()) {
+        if (normalizedEmail) {
           const updateData = {
             ...lead,
             updated_at: new Date().toISOString(),
@@ -564,8 +615,8 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           const { error: updateError } = await supabase
             .from("leads")
             .update(updateData)
-            .eq("email", email)
-            .eq("sheet_id", sheetId);
+            .eq("email", normalizedEmail)
+            .eq("sheet_id", String(sheetId));
 
           if (!updateError) {
             updateCount++;
