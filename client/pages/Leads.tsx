@@ -153,9 +153,9 @@ export default function Leads() {
   const [availableSheets, setAvailableSheets] = useState<
     Array<{ id: string; name: string }>
   >([
-    { id: "0", name: "Hyderabad Leads" },
+    { id: "0", name: "October" },
     { id: "1892152973", name: "November" },
-    { id: "1355430272", name: "december" },
+    { id: "1355430272", name: "December" },
   ]);
   const [isLoadingSheets, setIsLoadingSheets] = useState(false);
 

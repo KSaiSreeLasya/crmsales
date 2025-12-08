@@ -28,13 +28,13 @@ export const handleFetchGoogleSheetsMetadata: RequestHandler = async (
       );
       // Return hardcoded sheets if API key is not available
       // This is a fallback - user will need to add API key for dynamic sheet detection
-      console.log("Using fallback sheets: October, November, december");
+      console.log("Using fallback sheets: October, November, December");
       res.json({
         success: true,
         sheets: [
           { id: "0", name: "October" },
           { id: "1892152973", name: "November" },
-          { id: "1355430272", name: "december" },
+          { id: "1355430272", name: "December" },
         ],
         warning:
           "⚠️  Using FALLBACK sheet names. The actual sheet names are being detected from Google Sheets. If sheets are named differently, sync will auto-detect them.",
