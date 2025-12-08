@@ -207,7 +207,7 @@ export const handler: Handler = async (event) => {
       sheetsToSync = [
         { id: "0", name: "October" },
         { id: "1892152973", name: "November" },
-        { id: "1355430272", name: "december" },
+        { id: "1355430272", name: "December" },
       ];
     }
 
