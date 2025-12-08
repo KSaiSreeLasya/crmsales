@@ -641,6 +641,51 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       console.log("[SYNC DEBUG] Leads by sheet_id:", sheetIdCounts);
     }
 
+    // Analyze detected columns for user feedback
+    const detectedColumns = validLeadsForSync.length > 0
+      ? Object.keys(validLeadsForSync[0])
+      : [];
+    const columnMapping = {
+      name: {
+        detected: detectedColumns.some(c => c.toLowerCase().includes("name")),
+        expected: ["full name", "full_name", "name"],
+      },
+      email: {
+        detected: detectedColumns.some(c => c.toLowerCase().includes("email")),
+        expected: ["email", "email_address", "email address"],
+      },
+      phone: {
+        detected: detectedColumns.some(c => c.toLowerCase().includes("phone")),
+        expected: ["phone", "phone_no", "phone_number"],
+      },
+      company: {
+        detected: detectedColumns.some(c => c.toLowerCase().includes("company")),
+        expected: ["company", "organization", "business"],
+      },
+      address: {
+        detected: detectedColumns.some(c => c.toLowerCase().includes("address")),
+        expected: ["street address", "street_address", "address"],
+      },
+      postcode: {
+        detected: detectedColumns.some(c => c.toLowerCase().includes("post") || c.toLowerCase().includes("code")),
+        expected: ["post_code", "postal_code", "postcode", "zip_code"],
+      },
+      status: {
+        detected: detectedColumns.some(c => c.toLowerCase().includes("status")),
+        expected: ["lead_status", "status"],
+      },
+      electricity_bill: {
+        detected: detectedColumns.some(c => c.toLowerCase().includes("bill") || c.toLowerCase().includes("electricity")),
+        expected: ["what_is_your_average_monthly_electricity_bill", "electricity_bill", "average_monthly_electricity_bill"],
+      },
+      property_type: {
+        detected: detectedColumns.some(c => c.toLowerCase().includes("property") || c.toLowerCase().includes("solar")),
+        expected: ["what_type_of_property_do_you_want_to_install_solar_on", "type_of_property", "property_type"],
+      },
+    };
+
+    console.log("[SYNC] Column mapping analysis:", columnMapping);
+
     try {
       console.log(
         "[SYNC] Starting validation on",
