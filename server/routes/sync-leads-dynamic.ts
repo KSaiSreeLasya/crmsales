@@ -470,32 +470,48 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     try {
       // Pre-check: Fetch existing leads for this sheet to preserve assignments
       console.log("Checking for existing leads to preserve assignments...");
-      const { data: existingLeads } = await supabase
+      const { data: existingLeads, error: existingError } = await supabase
         .from("leads")
         .select("email, assigned_to, id, sheet_id")
-        .eq("sheet_id", sheetId);
+        .eq("sheet_id", String(sheetId));
 
-      const existingEmails = new Set(
-        (existingLeads || []).map((lead: any) => lead.email),
-      );
-      const existingAssignments = new Map(
-        (existingLeads || []).map((lead: any) => [
-          lead.email,
-          lead.assigned_to,
-        ]),
-      );
+      if (existingError) {
+        console.warn("Error fetching existing leads:", existingError);
+      }
+
+      // Create a map with normalized emails (lowercase, trimmed) for accurate matching
+      const existingEmailMap = new Map<string, any>();
+      (existingLeads || []).forEach((lead: any) => {
+        const normalizedEmail = String(lead.email || "").toLowerCase().trim();
+        if (normalizedEmail) {
+          existingEmailMap.set(normalizedEmail, lead);
+        }
+      });
 
       console.log(
-        `Found ${existingEmails.size} existing leads for sheet ${sheetId}`,
+        `Found ${existingEmailMap.size} existing leads for sheet ${sheetId}`,
       );
 
       // Separate leads into new and existing (for this sheet only)
-      const newLeads = leadsToSync.filter(
-        (lead) => !existingEmails.has(lead.email),
-      );
-      const existingLeadsToUpdate = leadsToSync.filter((lead) =>
-        existingEmails.has(lead.email),
-      );
+      // Use normalized email comparison
+      const newLeads = leadsToSync.filter((lead) => {
+        const normalizedEmail = String(lead.email || "").toLowerCase().trim();
+        return !existingEmailMap.has(normalizedEmail);
+      });
+
+      const existingLeadsToUpdate = leadsToSync.filter((lead) => {
+        const normalizedEmail = String(lead.email || "").toLowerCase().trim();
+        return existingEmailMap.has(normalizedEmail);
+      });
+
+      // Create assignment map using normalized emails
+      const existingAssignments = new Map<string, string>();
+      existingEmailMap.forEach((lead) => {
+        const normalizedEmail = String(lead.email || "").toLowerCase().trim();
+        if (normalizedEmail && lead.assigned_to) {
+          existingAssignments.set(normalizedEmail, lead.assigned_to);
+        }
+      });
 
       console.log(
         `${newLeads.length} new leads, ${existingLeadsToUpdate.length} leads to update`,
