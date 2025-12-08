@@ -652,9 +652,19 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       });
     } catch (err) {
       console.error("Error during sync operation:", err);
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      console.error("Full error details:", {
+        message: errorMessage,
+        code: (err as any)?.code,
+        details: (err as any)?.details,
+        error: err,
+      });
+
       res.status(500).json({
         error: "Failed to sync leads",
-        message: err instanceof Error ? err.message : String(err),
+        message: errorMessage,
+        code: (err as any)?.code,
+        details: (err as any)?.details,
       });
     }
   } catch (error) {
