@@ -26,6 +26,7 @@ import {
 } from "./routes/admin-users";
 import { handleTestSupabase } from "./routes/test-supabase";
 import { handleDiagnoseGoogleSheet } from "./routes/diagnose-google-sheet";
+import { handleDiagnoseSheetColumns } from "./routes/diagnose-sheet-columns";
 import { handleSplitSheet } from "./routes/split-sheet";
 import { handleVerifySheets } from "./routes/verify-sheets";
 import { handleTestSyncAllSheets } from "./routes/test-sync-all-sheets";
