@@ -95,7 +95,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     };
 
     // For dynamic sync, validate that rows have meaningful data
-    // More lenient validation - just need some basic info
+    // Use smart validation: strict first, then fallback to lenient
     const validationResults = leads.map((lead, index) => {
       let nameValue = "";
       let emailValue = "";
@@ -178,6 +178,12 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         );
       }
 
+      // Check if row has any data at all (for fallback validation)
+      const hasAnyData = Object.values(lead).some((value) => {
+        const strValue = String(value || "").trim();
+        return strValue.length > 0;
+      });
+
       const isValid = hasName && hasValidEmail;
 
       return {
@@ -188,17 +194,18 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         phoneValue,
         validationErrors,
         rowIndex: index,
+        hasAnyData,
       };
     });
 
-    const validLeads = validationResults
+    let validLeads = validationResults
       .filter((item) => item.isValid)
       .map((item) => item.lead);
 
     // Log validation issues for debugging
     const invalidLeads = validationResults.filter((item) => !item.isValid);
     if (invalidLeads.length > 0) {
-      console.warn(`[SYNC] ${invalidLeads.length} rows failed validation:`);
+      console.warn(`[SYNC] ${invalidLeads.length} rows failed strict validation:`);
       invalidLeads.slice(0, 5).forEach((invalid) => {
         console.warn(
           `[SYNC] Row ${invalid.rowIndex}: name="${invalid.nameValue}" email="${invalid.emailValue}" errors=[${invalid.validationErrors.join(", ")}]`,
@@ -206,7 +213,20 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       });
     }
 
-    console.log("Valid leads after filtering:", validLeads.length);
+    console.log("Valid leads after strict filtering:", validLeads.length);
+
+    // Fallback: if strict validation rejected all rows but they have data, use lenient validation
+    if (validLeads.length === 0 && leads.length > 0) {
+      const rowsWithData = validationResults.filter((item) => item.hasAnyData);
+
+      if (rowsWithData.length > 0) {
+        console.warn(
+          `[SYNC] Strict validation rejected all rows. Switching to lenient validation for ${rowsWithData.length} rows with data...`,
+        );
+        validLeads = rowsWithData.map((item) => item.lead);
+      }
+    }
+
     console.log(
       "Filtered out empty/sparse rows:",
       leads.length - validLeads.length,
