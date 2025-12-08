@@ -264,7 +264,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     console.log("Columns:", Object.keys(leadsToSync[0]));
 
     try {
-      // First, try to insert new records
+      // Insert all leads as new records (allowing duplicates - same person on different dates gets separate records)
       console.log("Inserting leads into Supabase...");
       const { data, error } = await supabase
         .from("leads")
@@ -275,85 +275,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         console.error("Supabase insert error:", error);
         console.error("Full error object:", JSON.stringify(error, null, 2));
 
-        // If duplicate key error, try update
-        if (
-          error.message?.includes("duplicate") ||
-          (error as any).code === "23505"
-        ) {
-          console.log(
-            "Duplicate key detected, attempting to update existing records...",
-          );
-
-          try {
-            let updateCount = 0;
-            for (const lead of leadsToSync) {
-              // Find a unique identifier to match on (email or name)
-              const email = lead.email || lead.Email || lead.EMAIL;
-              const name = lead.name || lead.Name || lead.NAME;
-
-              // Update timestamp when updating existing records
-              const updateData = {
-                ...lead,
-                updated_at: new Date().toISOString(),
-              };
-
-              if (email) {
-                const { error: updateError } = await supabase
-                  .from("leads")
-                  .update(updateData)
-                  .eq("email", email);
-                if (!updateError) {
-                  updateCount++;
-                } else {
-                  console.warn(
-                    `Failed to update lead with email ${email}:`,
-                    updateError,
-                  );
-                }
-              } else if (name) {
-                const { error: updateError } = await supabase
-                  .from("leads")
-                  .update(updateData)
-                  .eq("name", name);
-                if (!updateError) {
-                  updateCount++;
-                } else {
-                  console.warn(
-                    `Failed to update lead with name ${name}:`,
-                    updateError,
-                  );
-                }
-              }
-            }
-
-            console.log(
-              `Updated ${updateCount} out of ${leadsToSync.length} leads`,
-            );
-
-            res.json({
-              success: true,
-              message: `Successfully updated ${updateCount} existing leads (${leads.length - leadsToSync.length} empty rows removed)`,
-              synced: updateCount,
-              totalFetched: leads.length,
-              emptyRowsRemoved: leads.length - leadsToSync.length,
-              source: source,
-              columnsIncluded: Object.keys(leadsToSync[0]),
-            });
-            return;
-          } catch (updateErr) {
-            console.error("Error during update operation:", updateErr);
-            res.status(500).json({
-              error: "Failed to update duplicate leads",
-              message:
-                updateErr instanceof Error
-                  ? updateErr.message
-                  : String(updateErr),
-            });
-            return;
-          }
-        }
-
-        // For other errors, return details
+        // For all errors, return details to help debug
         res.status(400).json({
           error: "Failed to insert leads",
           message: error.message,
@@ -365,12 +287,15 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       }
 
       console.log("Successfully inserted", data?.length, "leads");
+      const totalSkipped = leads.length - leadsToSync.length;
+      console.log(`Synced ${leadsToSync.length} leads, skipped ${totalSkipped} invalid/empty rows`);
+
       res.json({
         success: true,
-        message: `${leadsToSync.length} leads synced successfully (${leads.length - leadsToSync.length} empty rows removed)`,
+        message: `${leadsToSync.length} leads synced successfully${totalSkipped > 0 ? ` (${totalSkipped} date rows or empty rows skipped)` : ""}`,
         synced: leadsToSync.length,
         totalFetched: leads.length,
-        emptyRowsRemoved: leads.length - leadsToSync.length,
+        invalidRowsSkipped: totalSkipped,
         source: source,
         columnsIncluded: Object.keys(leadsToSync[0]),
       });
