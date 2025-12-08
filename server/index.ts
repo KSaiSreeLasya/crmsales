@@ -63,6 +63,7 @@ export function createServer() {
   app.get("/api/fetch-google-sheets-metadata", handleFetchGoogleSheetsMetadata);
   app.post("/api/sync-google-sheet", handleSyncGoogleSheet);
   app.get("/api/diagnose-google-sheet", handleDiagnoseGoogleSheet);
+  app.get("/api/diagnose-sheet-columns", handleDiagnoseSheetColumns);
   app.post("/api/split-sheet", handleSplitSheet);
   app.get("/api/verify-sheets", handleVerifySheets);
   app.post("/api/test-sync-all-sheets", handleTestSyncAllSheets);
