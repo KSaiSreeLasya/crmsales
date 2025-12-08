@@ -100,9 +100,9 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     });
 
     console.log("Valid leads after filtering:", validLeads.length);
+    const invalidLeads = nonDateRows.length - validLeads.length;
     console.log(
-      "Filtered out empty/sparse rows:",
-      leads.length - validLeads.length,
+      `Filtered out ${invalidLeads} invalid/sparse rows (missing name or phone/email)`,
     );
     if (validLeads.length > 0) {
       console.log("First valid lead:", validLeads[0]);
@@ -114,6 +114,8 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         error:
           "No valid leads found - all rows appear to be empty or contain only dates",
         totalRowsFetched: leads.length,
+        dateRowsSkipped: dateRowsFiltered,
+        invalidRowsSkipped: invalidLeads,
       });
       return;
     }
