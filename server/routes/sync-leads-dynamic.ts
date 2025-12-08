@@ -51,6 +51,9 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       return dataKeys.length > 0;
     });
 
+    const dateRowsFiltered = leads.length - nonDateRows.length;
+    console.log(`Filtered out ${dateRowsFiltered} date-only rows`);
+
     // For dynamic sync, validate that rows have meaningful data and required fields
     const validLeads = nonDateRows.filter((lead) => {
       let nameValue = "";
