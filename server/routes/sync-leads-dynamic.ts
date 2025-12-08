@@ -87,88 +87,123 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       return;
     }
 
+    // Validate email format
+    const isValidEmail = (email: string): boolean => {
+      if (!email || typeof email !== "string") return false;
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return emailRegex.test(email.trim());
+    };
+
     // For dynamic sync, validate that rows have meaningful data
     // More lenient validation - just need some basic info
-    const validLeads = leads
-      .map((lead, index) => {
-        let nameValue = "";
-        let emailValue = "";
-        let phoneValue = "";
+    const validationResults = leads.map((lead, index) => {
+      let nameValue = "";
+      let emailValue = "";
+      let phoneValue = "";
+      let validationErrors: string[] = [];
 
-        // Find name, email, phone across all columns with flexible matching
-        for (const [key, value] of Object.entries(lead)) {
-          const normalizedKey = key
-            .toLowerCase()
-            .trim()
-            .replace(/[\s_]+/g, "_") // Replace all spaces and underscores with single underscore
-            .replace(/[-–!?]/g, ""); // Remove special characters
-          const strValue = String(value || "").trim();
+      // Find name, email, phone across all columns with flexible matching
+      for (const [key, value] of Object.entries(lead)) {
+        const normalizedKey = key
+          .toLowerCase()
+          .trim()
+          .replace(/[\s_]+/g, "_") // Replace all spaces and underscores with single underscore
+          .replace(/[-–!?]/g, ""); // Remove special characters
+        const strValue = String(value || "").trim();
 
-          if (!strValue) continue; // Skip empty values
+        if (!strValue) continue; // Skip empty values
 
-          // Look for name column - be very flexible with matching
+        // Look for name column - be very flexible with matching
+        if (
+          !nameValue &&
+          !normalizedKey.includes("email") &&
+          !normalizedKey.includes("phone") &&
+          !normalizedKey.includes("bill") &&
+          !normalizedKey.includes("address") &&
+          !normalizedKey.includes("code") &&
+          !normalizedKey.includes("status") &&
+          !normalizedKey.includes("note")
+        ) {
+          // If key contains "name" or "full" or is just a generic first column, treat as name
           if (
-            !nameValue &&
-            !normalizedKey.includes("email") &&
-            !normalizedKey.includes("phone") &&
-            !normalizedKey.includes("bill") &&
-            !normalizedKey.includes("address") &&
-            !normalizedKey.includes("code") &&
-            !normalizedKey.includes("status") &&
-            !normalizedKey.includes("note")
+            normalizedKey.includes("name") ||
+            normalizedKey.includes("full") ||
+            normalizedKey === "c" ||
+            normalizedKey === "c:" ||
+            key.trim().match(/^[A-Z]$/) // Single letter column
           ) {
-            // If key contains "name" or "full" or is just a generic first column, treat as name
-            if (
-              normalizedKey.includes("name") ||
-              normalizedKey.includes("full") ||
-              normalizedKey === "c" ||
-              normalizedKey === "c:" ||
-              key.trim().match(/^[A-Z]$/) // Single letter column
-            ) {
-              nameValue = strValue;
-            }
-          }
-
-          // Look for email - prioritize columns with "email"
-          if (
-            !emailValue &&
-            (normalizedKey.includes("email") ||
-              normalizedKey.includes("mail")) &&
-            strValue
-          ) {
-            emailValue = strValue;
-          }
-
-          // Look for phone
-          if (
-            !phoneValue &&
-            (normalizedKey.includes("phone") ||
-              normalizedKey.includes("contact") ||
-              normalizedKey.includes("phone_no") ||
-              normalizedKey.includes("mobile") ||
-              normalizedKey.includes("telephone")) &&
-            strValue
-          ) {
-            phoneValue = strValue;
+            nameValue = strValue;
           }
         }
 
-        const nonEmptyFields = Object.values(lead).filter(
-          (v) => v !== undefined && v !== null && String(v).trim() !== "",
-        ).length;
+        // Look for email - prioritize columns with "email"
+        if (
+          !emailValue &&
+          (normalizedKey.includes("email") ||
+            normalizedKey.includes("mail")) &&
+          strValue
+        ) {
+          emailValue = strValue;
+        }
 
-        // Validation: require name and email (email required for upsert constraint, phone is optional)
-        // Be more lenient - if it has a name and email, it's valid
-        const isValid =
-          nameValue &&
-          nameValue.length > 0 &&
-          emailValue &&
-          emailValue.length > 0;
+        // Look for phone
+        if (
+          !phoneValue &&
+          (normalizedKey.includes("phone") ||
+            normalizedKey.includes("contact") ||
+            normalizedKey.includes("phone_no") ||
+            normalizedKey.includes("mobile") ||
+            normalizedKey.includes("telephone")) &&
+          strValue
+        ) {
+          phoneValue = strValue;
+        }
+      }
 
-        return { lead, isValid, nameValue, emailValue, phoneValue };
-      })
-      .filter((item) => item.isValid)
-      .map((item) => item.lead);
+      // Validation: require name and email (email required for upsert constraint, phone is optional)
+      const hasName = nameValue && nameValue.length > 0;
+      const hasEmail = emailValue && emailValue.length > 0;
+      const hasValidEmail = emailValue && isValidEmail(emailValue);
+
+      if (!hasName) {
+        validationErrors.push(
+          `Missing name (checked columns with "name" or "full" keywords)`,
+        );
+      }
+      if (!hasEmail) {
+        validationErrors.push(`Missing email (checked columns with "email")`);
+      }
+      if (hasEmail && !hasValidEmail) {
+        validationErrors.push(
+          `Invalid email format: "${emailValue}" (must contain @ and domain)`,
+        );
+      }
+
+      const isValid = hasName && hasValidEmail;
+
+      return {
+        lead,
+        isValid,
+        nameValue,
+        emailValue,
+        phoneValue,
+        validationErrors,
+        rowIndex: index,
+      };
+    });
+
+    const validLeads = validationResults.filter((item) => item.isValid).map((item) => item.lead);
+
+    // Log validation issues for debugging
+    const invalidLeads = validationResults.filter((item) => !item.isValid);
+    if (invalidLeads.length > 0) {
+      console.warn(`[SYNC] ${invalidLeads.length} rows failed validation:`);
+      invalidLeads.slice(0, 5).forEach((invalid) => {
+        console.warn(
+          `[SYNC] Row ${invalid.rowIndex}: name="${invalid.nameValue}" email="${invalid.emailValue}" errors=[${invalid.validationErrors.join(", ")}]`,
+        );
+      });
+    }
 
     console.log("Valid leads after filtering:", validLeads.length);
     console.log(
