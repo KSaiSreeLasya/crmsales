@@ -61,7 +61,7 @@ export const handleVerifySheets: RequestHandler = async (req, res) => {
       sheetsToVerify = [
         { id: "0", name: "October" },
         { id: "1892152973", name: "November" },
-        { id: "1355430272", name: "december" },
+        { id: "1355430272", name: "December" },
       ];
     }
 
