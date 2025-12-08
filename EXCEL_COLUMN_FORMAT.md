@@ -3,6 +3,7 @@
 ## How to Name Your Columns in Excel
 
 Your November and December sheets currently have these column headers:
+
 ```
 what_type__of_property__do_you_want__to_install_solar_on?
 what_is_your_average_monthly_electricity_bill?
@@ -19,6 +20,7 @@ The system recognizes most of these correctly, but the header names with special
 ## Column Header Rules
 
 ### Rule 1: Case Doesn't Matter
+
 ✅ "Full Name" works
 ✅ "full name" works
 ✅ "FULL NAME" works
@@ -26,58 +28,71 @@ The system recognizes most of these correctly, but the header names with special
 ❌ Don't worry about capitalization
 
 ### Rule 2: Underscores and Spaces Are Interchangeable
+
 ✅ "full name" (with space)
 ✅ "full_name" (with underscore)
 ✅ "Full_Name" (mixed)
-✅ "full  name" (multiple spaces)
+✅ "full name" (multiple spaces)
 
 ### Rule 3: Special Characters Are Removed
-Your current: "what_type__of_property__do_you_want__to_install_solar_on?"
+
+Your current: "what_type**of_property**do_you_want\_\_to_install_solar_on?"
 The system sees: "what type of property do you want to install solar on"
 
 Then it looks for keywords:
+
 - Contains "property"? ✅ Yes
 - Contains "type"? ✅ Yes
 - Contains "solar"? ✅ Yes
-→ **Recognized as**: Property Type column ✅
+  → **Recognized as**: Property Type column ✅
 
 ### Rule 4: Keywords Matter Most
+
 The system looks for these keywords to identify columns:
 
 **Name Column**
+
 - Must contain: "name"
 - Examples that work: "Full Name", "Name", "full_name", "Customer Name"
 
 **Email Column**
+
 - Must contain: "email" or "mail"
 - Examples that work: "Email", "email_address", "e-mail", "contact_email"
 
 **Phone Column**
+
 - Must contain: "phone" or "contact" or "mobile" or "telephone"
 - Examples that work: "Phone", "phone_no", "contact_phone", "Mobile Number"
 
 **Company Column**
+
 - Must contain: "company" or "organization" or "business"
 - Examples that work: "Company", "Company Name", "Organization"
 
 **Address Column**
+
 - Must contain: "address" or "street"
 - Examples that work: "Street Address", "Address", "street_address"
 
 **Post Code Column**
+
 - Must contain: "post" or "code" or "zip"
 - Examples that work: "Post_Code", "Postal Code", "ZIP Code", "postcode"
 
 **Status Column**
+
 - Must contain: "status"
 - Examples that work: "Lead_Status", "Status", "lead status"
 
 **Electricity Bill Column**
+
 - Must contain: "bill" or "electricity" or "monthly"
 - Examples that work: "Electricity Bill", "avg_bill", "Average Monthly Bill"
 - Your current column is recognized: "what_is_your_average_monthly_electricity_bill?" ✅
 
 **Property Type Column**
+
 - Must contain: "property" or "type" or "solar"
 - Examples that work: "Property Type", "Type of Property", "Property"
 - Your current column is recognized: "what_type_of_property_do_you_want_to_install_solar_on?" ✅
@@ -87,6 +102,7 @@ The system looks for these keywords to identify columns:
 To ensure all columns are recognized, use these header names (copy exactly):
 
 ### Simple Format (Easiest)
+
 ```
 Full Name
 Email
@@ -100,6 +116,7 @@ Property Type
 ```
 
 ### With Underscores (Also Works)
+
 ```
 full_name
 email
@@ -113,7 +130,9 @@ property_type
 ```
 
 ### Your Current Format (Also Recognized)
+
 Your current headers are already recognized by the system:
+
 ```
 full name                                    → ✓ Recognized
 email                                        → ✓ Recognized
@@ -131,11 +150,11 @@ what_type_of_property_do_you_want_to_install_solar_on? → ✓ Recognized (long 
 
 Just add a new column header that contains one of these keywords:
 
-| New Column | Use This Header |
-|-----------|-----------------|
-| Lead Source | "Lead Source" (contains "source" or "lead") |
-| Contact Date | "Contact Date" (contains "date" or "contact") |
-| Notes | "Notes" or "Comments" |
+| New Column    | Use This Header                                 |
+| ------------- | ----------------------------------------------- |
+| Lead Source   | "Lead Source" (contains "source" or "lead")     |
+| Contact Date  | "Contact Date" (contains "date" or "contact")   |
+| Notes         | "Notes" or "Comments"                           |
 | Business Type | "Business Type" (contains "type" or "business") |
 
 ## What If Column Is Still Not Recognized?
@@ -150,6 +169,7 @@ If you add a new column and it's still not recognized:
 ## Test Your Headers
 
 After updating your Excel headers:
+
 1. Save the file in Google Sheets
 2. Go to the Leads page
 3. Click Sync button

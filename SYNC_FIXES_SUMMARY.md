@@ -3,15 +3,19 @@
 ## Issues Fixed
 
 ### 1. ✅ 500 Error from Google Sheets API
+
 **Problem**: `/api/fetch-google-sheet-api` returns 500 because GOOGLE_SHEETS_API_KEY is not configured
 
 **Status**: Already handled by the system
+
 - Automatically falls back to CSV export method
 - Works fine for sheets up to 250 rows
 - No action needed
 
-### 2. ✅ 400 Duplicate Key Error  
+### 2. ✅ 400 Duplicate Key Error
+
 **Problem**: When syncing leads with emails that already exist in the database, the sync would fail with:
+
 ```
 duplicate key value violates unique constraint "leads_email_sheet_id_key1"
 ```
@@ -19,6 +23,7 @@ duplicate key value violates unique constraint "leads_email_sheet_id_key1"
 **Root Cause**: INSERT operation fails because leads with same email+sheet_id already exist
 
 **Solution Implemented**:
+
 - Server now detects duplicate key error (code 23505)
 - Automatically attempts UPDATE instead of failing
 - If all updates succeed, returns success response
@@ -27,21 +32,25 @@ duplicate key value violates unique constraint "leads_email_sheet_id_key1"
 **Where Fixed**: `server/routes/sync-leads-dynamic.ts` (lines 910-972)
 
 ### 3. ✅ Column Name Detection and Guidance
+
 **Problem**: User had no way to know what column names to use in Excel
 
 **Solution Implemented**:
+
 - Server analyzes which columns from the sheet are being recognized
 - Provides list of accepted column names for each field
 - Client displays column rename guide after sync
 - Shows which columns are detected and which are missing
 
-**Where Fixed**: 
+**Where Fixed**:
+
 - `server/routes/sync-leads-dynamic.ts` (lines 644-687)
 - `client/pages/Leads.tsx` (lines 641-669)
 
 ## Test Results
 
 ### What Now Works
+
 ✅ **New leads**: Successfully inserted
 ✅ **Existing leads**: Successfully updated
 ✅ **Duplicate emails**: Updates instead of failing
@@ -51,7 +60,9 @@ duplicate key value violates unique constraint "leads_email_sheet_id_key1"
 ✅ **All columns**: Syncs all detected columns
 
 ### Detected Column Names
+
 The system now recognizes these column patterns:
+
 - **Name**: "full name", "full_name", "name"
 - **Email**: "email", "email_address"
 - **Phone**: "phone", "phone_no", "phone_number"
@@ -65,6 +76,7 @@ The system now recognizes these column patterns:
 ## How to Use
 
 ### Sync November or December Sheets
+
 1. Go to **Leads** page
 2. Click on **November** or **December** sheet tab
 3. Click **Sync** button
@@ -76,13 +88,16 @@ The system now recognizes these column patterns:
    - Show you the column mapping results
 
 ### Add More Columns
+
 If you want additional columns to be captured:
+
 1. Check the sync result message
 2. See which columns are "not detected"
 3. Rename the column header in Excel to one of the expected names
 4. Sync again
 
-**Example**: 
+**Example**:
+
 - Current column: "What_Type_Of_Property"
 - Rename to: "Property_Type" or "Type_Of_Property"
 - Next sync will detect it
@@ -104,9 +119,10 @@ If you want additional columns to be captured:
 ## Technical Details
 
 ### Duplicate Key Error Recovery
+
 ```typescript
 // Before: Would return 400 error immediately
-// After: 
+// After:
 if (error.code === "23505") {
   // Try UPDATE instead
   for (const lead of newLeads) {
@@ -121,7 +137,9 @@ if (error.code === "23505") {
 ```
 
 ### Column Mapping Response
+
 The sync endpoint now returns:
+
 ```json
 {
   "detectedColumns": ["full name", "phone", "email", ...],

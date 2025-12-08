@@ -642,45 +642,74 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     }
 
     // Analyze detected columns for user feedback
-    const detectedColumns = validLeadsForSync.length > 0
-      ? Object.keys(validLeadsForSync[0])
-      : [];
+    const detectedColumns =
+      validLeadsForSync.length > 0 ? Object.keys(validLeadsForSync[0]) : [];
     const columnMapping = {
       name: {
-        detected: detectedColumns.some(c => c.toLowerCase().includes("name")),
+        detected: detectedColumns.some((c) => c.toLowerCase().includes("name")),
         expected: ["full name", "full_name", "name"],
       },
       email: {
-        detected: detectedColumns.some(c => c.toLowerCase().includes("email")),
+        detected: detectedColumns.some((c) =>
+          c.toLowerCase().includes("email"),
+        ),
         expected: ["email", "email_address", "email address"],
       },
       phone: {
-        detected: detectedColumns.some(c => c.toLowerCase().includes("phone")),
+        detected: detectedColumns.some((c) =>
+          c.toLowerCase().includes("phone"),
+        ),
         expected: ["phone", "phone_no", "phone_number"],
       },
       company: {
-        detected: detectedColumns.some(c => c.toLowerCase().includes("company")),
+        detected: detectedColumns.some((c) =>
+          c.toLowerCase().includes("company"),
+        ),
         expected: ["company", "organization", "business"],
       },
       address: {
-        detected: detectedColumns.some(c => c.toLowerCase().includes("address")),
+        detected: detectedColumns.some((c) =>
+          c.toLowerCase().includes("address"),
+        ),
         expected: ["street address", "street_address", "address"],
       },
       postcode: {
-        detected: detectedColumns.some(c => c.toLowerCase().includes("post") || c.toLowerCase().includes("code")),
+        detected: detectedColumns.some(
+          (c) =>
+            c.toLowerCase().includes("post") ||
+            c.toLowerCase().includes("code"),
+        ),
         expected: ["post_code", "postal_code", "postcode", "zip_code"],
       },
       status: {
-        detected: detectedColumns.some(c => c.toLowerCase().includes("status")),
+        detected: detectedColumns.some((c) =>
+          c.toLowerCase().includes("status"),
+        ),
         expected: ["lead_status", "status"],
       },
       electricity_bill: {
-        detected: detectedColumns.some(c => c.toLowerCase().includes("bill") || c.toLowerCase().includes("electricity")),
-        expected: ["what_is_your_average_monthly_electricity_bill", "electricity_bill", "average_monthly_electricity_bill"],
+        detected: detectedColumns.some(
+          (c) =>
+            c.toLowerCase().includes("bill") ||
+            c.toLowerCase().includes("electricity"),
+        ),
+        expected: [
+          "what_is_your_average_monthly_electricity_bill",
+          "electricity_bill",
+          "average_monthly_electricity_bill",
+        ],
       },
       property_type: {
-        detected: detectedColumns.some(c => c.toLowerCase().includes("property") || c.toLowerCase().includes("solar")),
-        expected: ["what_type_of_property_do_you_want_to_install_solar_on", "type_of_property", "property_type"],
+        detected: detectedColumns.some(
+          (c) =>
+            c.toLowerCase().includes("property") ||
+            c.toLowerCase().includes("solar"),
+        ),
+        expected: [
+          "what_type_of_property_do_you_want_to_install_solar_on",
+          "type_of_property",
+          "property_type",
+        ],
       },
     };
 
@@ -907,10 +936,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           const errorMessage = (error as any).message || String(error);
 
           // If it's a duplicate key error, try updating instead
-          if (
-            errorMessage?.includes("duplicate") ||
-            errorCode === "23505"
-          ) {
+          if (errorMessage?.includes("duplicate") || errorCode === "23505") {
             console.log(
               "Duplicate key detected during insert, attempting to update these leads instead...",
             );
@@ -1135,14 +1161,16 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       const emptyRowsRemoved = validLeads.length - leadsToSync.length;
 
       // Build column mapping info for user feedback
-      const columnMappingInfo = Object.entries(columnMapping).map(([fieldName, info]) => ({
-        field: fieldName,
-        detected: info.detected,
-        acceptedNames: info.expected,
-        message: info.detected
-          ? `✓ ${fieldName} column detected`
-          : `⚠ ${fieldName} not detected. Expected column names: ${info.expected.join(", ")}`,
-      }));
+      const columnMappingInfo = Object.entries(columnMapping).map(
+        ([fieldName, info]) => ({
+          field: fieldName,
+          detected: info.detected,
+          acceptedNames: info.expected,
+          message: info.detected
+            ? `✓ ${fieldName} column detected`
+            : `⚠ ${fieldName} not detected. Expected column names: ${info.expected.join(", ")}`,
+        }),
+      );
 
       res.json({
         success: true,
@@ -1165,8 +1193,9 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         detectedColumns,
         columnMapping: columnMappingInfo,
         columnRenameGuide: {
-          instruction: "If you want to detect additional columns, rename them to one of the accepted names below:",
-          fields: columnMappingInfo.filter(c => !c.detected),
+          instruction:
+            "If you want to detect additional columns, rename them to one of the accepted names below:",
+          fields: columnMappingInfo.filter((c) => !c.detected),
         },
       });
     } catch (err) {

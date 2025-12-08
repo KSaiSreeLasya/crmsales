@@ -14,26 +14,28 @@ Your sync was failing with two types of errors:
 ## How Column Name Detection Works
 
 The system now shows you:
+
 - **✓ Detected columns** - Column headers that were recognized (like "name", "email", "phone")
 - **⚠ Undetected columns** - Column headers that should be renamed to be recognized
 
 ### Accepted Column Names for Each Field
 
-| Field | Accepted Column Names in Excel |
-|-------|--------------------------------|
-| **Name** | "Full Name", "Full_Name", "Name" |
-| **Email** | "Email", "Email_Address", "Email Address" |
-| **Phone** | "Phone", "Phone_No", "Phone_Number" |
-| **Company** | "Company", "Organization", "Business" |
-| **Address** | "Street Address", "Street_Address", "Address" |
-| **Post Code** | "Post_Code", "Postal_Code", "Postcode", "Zip_Code" |
-| **Status** | "Lead_Status", "Status" |
+| Field                | Accepted Column Names in Excel                                                                          |
+| -------------------- | ------------------------------------------------------------------------------------------------------- |
+| **Name**             | "Full Name", "Full_Name", "Name"                                                                        |
+| **Email**            | "Email", "Email_Address", "Email Address"                                                               |
+| **Phone**            | "Phone", "Phone_No", "Phone_Number"                                                                     |
+| **Company**          | "Company", "Organization", "Business"                                                                   |
+| **Address**          | "Street Address", "Street_Address", "Address"                                                           |
+| **Post Code**        | "Post_Code", "Postal_Code", "Postcode", "Zip_Code"                                                      |
+| **Status**           | "Lead_Status", "Status"                                                                                 |
 | **Electricity Bill** | "What_Is_Your_Average_Monthly_Electricity_Bill", "Electricity_Bill", "Average_Monthly_Electricity_Bill" |
-| **Property Type** | "What_Type_Of_Property_Do_You_Want_To_Install_Solar_On", "Type_Of_Property", "Property_Type" |
+| **Property Type**    | "What_Type_Of_Property_Do_You_Want_To_Install_Solar_On", "Type_Of_Property", "Property_Type"            |
 
 ## Current Column Headers in Your Sheets
 
 ### November Sheet Headers
+
 ```
 what_type__of_property__do_you_want__to_install_solar_on?
 what_is_your_average_monthly_electricity_bill?
@@ -46,6 +48,7 @@ lead_status
 ```
 
 ### December Sheet Headers
+
 ```
 what_type_of_property_do_you_want_to_install_solar_on?
 what_is_your_average_monthly_electricity_bill?
@@ -62,10 +65,12 @@ lead_status
 The system currently recognizes: `name`, `email`, `phone`, `street_address`, `post_code`, `lead_status`
 
 If you want the following columns to be captured, rename them in your Excel sheet:
+
 - **electricity_bill** - Rename to: "Average_Monthly_Electricity_Bill" or "Electricity_Bill"
 - **property_type** - Rename to: "Property_Type" or "Type_Of_Property"
 
 > **Note**: The exact column name doesn't matter as long as it contains the key words. For example:
+>
 > - ✓ "What Type of Property" works (contains "type" and "property")
 > - ✓ "Property Type" works
 > - ✗ "Solar Installation Type" might not work (missing "property")
@@ -81,6 +86,7 @@ If you want the following columns to be captured, rename them in your Excel shee
 ## What Happens After Sync
 
 After syncing, you'll see:
+
 1. Number of leads synced
 2. Number of new leads added
 3. Number of existing leads updated

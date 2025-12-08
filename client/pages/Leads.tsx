@@ -656,7 +656,10 @@ export default function Leads() {
               .map((f: any) => f.field)
               .join(", ");
             successMsg += `\n\nℹ To capture more data, rename these columns in your Excel sheet: ${undetectedFields}`;
-            console.log("[SYNC] Column mapping guide:", syncData.columnRenameGuide);
+            console.log(
+              "[SYNC] Column mapping guide:",
+              syncData.columnRenameGuide,
+            );
           }
 
           toast.success(successMsg);
@@ -684,13 +687,19 @@ export default function Leads() {
             "Sync timed out after 5 minutes. Very large sheets may need multiple sync attempts.",
           );
         } else {
-          const errorMsg = error instanceof Error ? error.message : "Failed to sync from sheet";
+          const errorMsg =
+            error instanceof Error
+              ? error.message
+              : "Failed to sync from sheet";
 
           // Check if this is a column alignment issue error
-          if (errorMsg.includes("No valid leads found") || errorMsg.includes("column alignment")) {
+          if (
+            errorMsg.includes("No valid leads found") ||
+            errorMsg.includes("column alignment")
+          ) {
             toast.error(
               `Column Alignment Issue: ${errorMsg}\n\nTip: Check that your sheet has columns named 'Name', 'Email', and 'Phone'`,
-              { duration: 10000 }
+              { duration: 10000 },
             );
           } else {
             toast.error(errorMsg);
