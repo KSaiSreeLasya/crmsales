@@ -138,7 +138,13 @@ export function parseLeadRow(row: GoogleSheetRow) {
     "phone_number",
   ]);
 
-  const email = findColumnValue(["email", "email_address"]);
+  const email = findColumnValue([
+    "email",
+    "email_address",
+    "email_id",
+    "mail",
+    "e-mail",
+  ]);
 
   const street_address = findColumnValue([
     "street_address",
