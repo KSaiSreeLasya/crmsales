@@ -737,42 +737,87 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
               "[SYNC] First lead being inserted:",
               JSON.stringify(newLeads[0]),
             );
+            console.error(
+              "[SYNC] Lead keys:",
+              Object.keys(newLeads[0]).join(", "),
+            );
+            console.error(
+              "[SYNC] Lead email value:",
+              newLeads[0].email,
+              `(length: ${String(newLeads[0].email).length})`,
+            );
+            console.error(
+              "[SYNC] Lead name value:",
+              newLeads[0].name,
+              `(length: ${String(newLeads[0].name).length})`,
+            );
+            console.error(
+              "[SYNC] Lead phone value:",
+              newLeads[0].phone,
+              `(length: ${String(newLeads[0].phone).length})`,
+            );
           }
 
           // Return detailed error response
           const errorCode = (error as any).code;
+          const errorMessage = (error as any).message || String(error);
           let troubleshootingMsg = "";
+          let specificAdvice = "";
 
           if (errorCode === "42703") {
             troubleshootingMsg =
               "Column does not exist in the database. Run the migration SQL from SUPABASE_MIGRATION_ADD_COLUMNS.sql to add missing columns.";
+            const missingColumn = errorMessage.match(
+              /column "([^"]+)" does not exist/i,
+            );
+            if (missingColumn) {
+              specificAdvice = `Missing column: "${missingColumn[1]}". Add this column to your Supabase leads table.`;
+            }
           } else if (errorCode === "42P01") {
             troubleshootingMsg =
               "Table 'leads' does not exist. Run SUPABASE_TABLES.sql to create the table.";
           } else if (errorCode === "23505") {
             troubleshootingMsg =
-              "Duplicate entry found. Some leads may already exist in the database.";
-          } else if (error.message?.includes("RLS")) {
+              "Duplicate entry found. Some leads may already exist in the database. This is normal on subsequent syncs.";
+            specificAdvice =
+              "The sync endpoint should handle updates automatically. Check console logs for details.";
+          } else if (errorCode === "23502") {
+            troubleshootingMsg =
+              "NOT NULL constraint violation. A required field is missing or empty.";
+            const missingField = errorMessage.match(
+              /violates not-null constraint on column "([^"]+)"/i,
+            );
+            if (missingField) {
+              specificAdvice = `The "${missingField[1]}" field is required but missing or empty in the data.`;
+            }
+          } else if (errorMessage?.includes("RLS")) {
             troubleshootingMsg =
               "RLS policy is blocking INSERT. Ensure RLS is disabled or policies are configured correctly.";
+            specificAdvice =
+              "Go to Supabase > Authentication > Policies and disable RLS for the leads table temporarily.";
           } else {
             troubleshootingMsg =
               "Ensure Supabase credentials are configured and the table schema is correct.";
+            specificAdvice =
+              "Run the diagnostic endpoint: POST /api/diagnose-sync-issue to identify the exact issue.";
           }
 
           res.status(400).json({
             error: "Failed to insert leads",
-            message: error.message,
+            message: errorMessage,
             details: (error as any).details,
-            code: (error as any).code,
+            code: errorCode,
             hint: (error as any).hint,
             troubleshooting: troubleshootingMsg,
+            specificAdvice,
             fullError: {
-              message: error.message,
-              code: (error as any).code,
+              message: errorMessage,
+              code: errorCode,
               details: (error as any).details,
               status: (error as any).status,
             },
+            diagnosticEndpoint:
+              "POST /api/diagnose-sync-issue with {spreadsheetId, sheetId} to get detailed diagnostics",
           });
           return;
         }
