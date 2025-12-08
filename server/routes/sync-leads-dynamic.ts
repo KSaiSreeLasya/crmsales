@@ -37,13 +37,30 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       return;
     }
 
+    // Filter out date-only rows (rows that only have _isDateRow marker)
+    const nonDateRows = leads.filter((lead) => {
+      // Skip if this is marked as a date row
+      if (lead._isDateRow === "true" || lead._isDateRow === true) {
+        return false;
+      }
+
+      // Skip if row only has the date row marker and nothing else
+      const dataKeys = Object.keys(lead).filter(
+        (k) => !k.startsWith("_"),
+      );
+      return dataKeys.length > 0;
+    });
+
     // For dynamic sync, validate that rows have meaningful data and required fields
-    const validLeads = leads.filter((lead) => {
+    const validLeads = nonDateRows.filter((lead) => {
       let nameValue = "";
       let phoneValue = "";
       let emailValue = "";
 
       for (const [key, value] of Object.entries(lead)) {
+        // Skip internal markers
+        if (key.startsWith("_")) continue;
+
         const normalizedKey = key.toLowerCase().trim().replace(/\s+/g, "_");
         const strValue = String(value || "").trim();
 
