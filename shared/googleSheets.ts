@@ -129,7 +129,15 @@ export function parseLeadRow(row: GoogleSheetRow) {
     "current_bill",
   ]);
 
-  const name = findColumnValue(["full_name", "full name", "name"]);
+  const name = findColumnValue([
+    "full_name",
+    "full name",
+    "fullname",
+    "name",
+    "person_name",
+    "contact_name",
+    "customer_name",
+  ]);
 
   const phone = findColumnValue([
     "phone",
