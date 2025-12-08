@@ -357,9 +357,9 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
       (val) => val && String(val).trim() !== "",
     ).length;
 
-    // Only add row if it has at least one non-empty cell AND at least 2 fields populated
-    // This filters out completely empty rows and sparse rows
-    if (nonEmptyCount >= 2) {
+    // Only add row if it has at least one non-empty cell
+    // This filters out completely empty rows but preserves rows with sparse data
+    if (nonEmptyCount >= 1) {
       rows.push(row);
     }
   }
