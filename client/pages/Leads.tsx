@@ -179,17 +179,18 @@ export default function Leads() {
     setDisplayRows(leads);
   }, [leads]);
 
-  const loadLeads = async () => {
+  const loadLeads = async (sheetIdOverride?: string) => {
     setIsLoading(true);
+    const sheetIdToUse = sheetIdOverride || selectedSheetId;
     try {
       console.log(
-        `Loading leads for sheet_id: "${selectedSheetId}" (type: ${typeof selectedSheetId})`,
+        `Loading leads for sheet_id: "${sheetIdToUse}" (type: ${typeof sheetIdToUse})`,
       );
 
       const { data, error } = await supabase
         .from("leads")
         .select("*")
-        .eq("sheet_id", selectedSheetId)
+        .eq("sheet_id", sheetIdToUse)
         .order("created_at", { ascending: false })
         .order("id", { ascending: false });
 
@@ -240,8 +241,22 @@ export default function Leads() {
         }
       } else {
         console.log(
-          `✓ Successfully loaded ${data?.length || 0} leads for sheet ${selectedSheetId}`,
+          `✓ Successfully loaded ${data?.length || 0} leads for sheet ${sheetIdToUse}`,
         );
+
+        // Log leads with missing data for debugging
+        if (data && data.length > 0) {
+          const leadsWithMissingData = data.filter(
+            (lead) => !lead.name || !lead.email || !lead.phone || !lead.company,
+          );
+          if (leadsWithMissingData.length > 0) {
+            console.warn(
+              `⚠️ ${leadsWithMissingData.length} lead(s) have missing fields:`,
+              leadsWithMissingData,
+            );
+          }
+        }
+
         setLeads(data || []);
       }
     } catch (error) {
@@ -540,14 +555,20 @@ export default function Leads() {
       const syncTimeoutId = setTimeout(() => syncController.abort(), 300000);
 
       try {
+        const syncPayload = {
+          leads: dataRows,
+          source: "google_sheet",
+          sheetId: sheetId,
+        };
+        console.log("[SYNC-DYN] Sending to /api/sync-leads-dynamic");
+        console.log("[SYNC-DYN] sheetId value:", sheetId);
+        console.log("[SYNC-DYN] sheetId type:", typeof sheetId);
+        console.log("[SYNC-DYN] dataRows count:", dataRows.length);
+
         const syncResponse = await fetch("/api/sync-leads-dynamic", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            leads: dataRows,
-            source: "google_sheet",
-            sheetId: sheetId,
-          }),
+          body: JSON.stringify(syncPayload),
           signal: syncController.signal,
         });
         clearTimeout(syncTimeoutId);
@@ -614,7 +635,7 @@ export default function Leads() {
         setDateRows(extractedDateRows);
 
         console.log(`About to reload leads for sheet_id: ${sheetId}`);
-        await loadLeads();
+        await loadLeads(sheetId);
         console.log("Leads reloaded after sync");
 
         if (showNotification) {
@@ -632,7 +653,7 @@ export default function Leads() {
         }
 
         // Reload leads to display synced data
-        await loadLeads();
+        await loadLeads(sheetId);
       } catch (fetchError) {
         clearTimeout(syncTimeoutId);
         throw fetchError;
@@ -743,6 +764,15 @@ export default function Leads() {
           `✓ Fetched ${rows.length} rows from sheet ${sheetName} via CSV export (fallback from API)`,
         );
 
+        // Log sample data to understand structure
+        if (rows.length > 0) {
+          console.log(
+            "[SYNC] Sample row from CSV:",
+            JSON.stringify(rows[0]).substring(0, 200),
+          );
+          console.log("[SYNC] Column names:", Object.keys(rows[0]));
+        }
+
         // Continue with the CSV data (same processing as API data)
         if (rows.length === 0) {
           if (showNotification) {
@@ -780,40 +810,84 @@ export default function Leads() {
           `Extracted ${extractedDateRows.length} date rows, applied to ${dataRows.length} leads`,
         );
 
+        if (dataRows.length > 0) {
+          console.log(
+            "[SYNC] First data row after processing:",
+            JSON.stringify(dataRows[0]).substring(0, 200),
+          );
+        }
+
         // Sync to Supabase
+        const fallbackSyncPayload = {
+          leads: dataRows,
+          source: "google_sheet",
+          sheetId: sheetId,
+          dateRows: extractedDateRows,
+        };
+        console.log(
+          "[SYNC-CSV-FALLBACK] Sending CSV fallback to /api/sync-leads-dynamic",
+        );
+        console.log("[SYNC-CSV-FALLBACK] sheetId value:", sheetId);
+        console.log("[SYNC-CSV-FALLBACK] sheetId type:", typeof sheetId);
+        console.log("[SYNC-CSV-FALLBACK] dataRows count:", dataRows.length);
+
         const syncResponse = await fetch("/api/sync-leads-dynamic", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            leads: dataRows,
-            source: "google_sheet",
-            sheetId: sheetId,
-            dateRows: extractedDateRows,
-          }),
+          body: JSON.stringify(fallbackSyncPayload),
         });
 
         const syncResult = await syncResponse.json();
 
+        console.log("[SYNC-CSV-FALLBACK] Sync response:", syncResult);
+        console.log(
+          "[SYNC-CSV-FALLBACK] Response status:",
+          syncResponse.status,
+        );
+        console.log("[SYNC-CSV-FALLBACK] Response OK:", syncResponse.ok);
+        console.log(
+          "[SYNC-CSV-FALLBACK] Synced leads count:",
+          syncResult.synced,
+        );
+        console.log(
+          "[SYNC-CSV-FALLBACK] About to call loadLeads(sheetId) with sheetId:",
+          sheetId,
+        );
+
         if (!syncResponse.ok || !syncResult.success) {
-          throw new Error(
-            syncResult.error ||
-              "Failed to sync leads - check console for details",
-          );
+          // Build detailed error message
+          let errorMsg = syncResult.error || "Failed to sync leads";
+          if (syncResult.hint) {
+            errorMsg += `\n\n${syncResult.hint}`;
+          }
+          if (syncResult.skippedMissingFields) {
+            errorMsg += `\n\nNote: ${syncResult.skippedMissingFields} rows were skipped due to missing required fields (name, email, phone, company)`;
+          }
+          throw new Error(errorMsg);
         }
 
         // Success - reload the leads from Supabase
+        console.log("[SYNC-CSV-FALLBACK] Sync successful, reloading leads...");
         await new Promise((resolve) => {
           setTimeout(() => {
-            loadLeads();
+            loadLeads(sheetId);
             resolve(null);
           }, 500);
         });
 
         if (showNotification) {
           if (loadingToastId !== undefined) toast.dismiss(loadingToastId);
-          toast.success(
-            `✓ Synced ${syncResult.synced} leads from ${sheetName}`,
-          );
+
+          // Show detailed success message if there were skipped rows
+          let successMsg = `✓ Synced ${syncResult.synced} leads from ${sheetName}`;
+          if (
+            syncResult.skippedMissingFields &&
+            syncResult.skippedMissingFields > 0
+          ) {
+            successMsg += ` (${syncResult.skippedMissingFields} rows skipped - missing required fields)`;
+          }
+
+          toast.success(successMsg);
         }
 
         return;
@@ -869,14 +943,20 @@ export default function Leads() {
       const syncTimeoutId = setTimeout(() => syncController.abort(), 300000);
 
       try {
+        const syncPayload = {
+          leads: dataRows,
+          source: "api",
+          sheetId: sheetId,
+        };
+        console.log("[SYNC-API-V4] Sending to /api/sync-leads-dynamic");
+        console.log("[SYNC-API-V4] sheetId value:", sheetId);
+        console.log("[SYNC-API-V4] sheetId type:", typeof sheetId);
+        console.log("[SYNC-API-V4] dataRows count:", dataRows.length);
+
         const syncResponse = await fetch("/api/sync-leads-dynamic", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            leads: dataRows,
-            source: "api",
-            sheetId: sheetId,
-          }),
+          body: JSON.stringify(syncPayload),
           signal: syncController.signal,
         });
         clearTimeout(syncTimeoutId);
@@ -943,7 +1023,7 @@ export default function Leads() {
         setDateRows(extractedDateRows);
 
         console.log(`About to reload leads for sheet_id: ${sheetId}`);
-        await loadLeads();
+        await loadLeads(sheetId);
         console.log("Leads reloaded after sync");
 
         if (showNotification) {
@@ -1261,11 +1341,20 @@ export default function Leads() {
   };
 
   const filteredLeads = displayRows.filter((lead) => {
+    // Filter out date rows (which have _isDateRow property)
+    if (isDateRow(lead)) {
+      return false;
+    }
+
     const matchesSearch =
-      lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.phone.includes(searchTerm) ||
-      lead.company.toLowerCase().includes(searchTerm.toLowerCase());
+      !searchTerm ||
+      (lead.name &&
+        lead.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (lead.email &&
+        lead.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (lead.phone && lead.phone.includes(searchTerm)) ||
+      (lead.company &&
+        lead.company.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const matchesStatus =
       filterStatus === "all" || lead.status === filterStatus;

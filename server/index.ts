@@ -30,6 +30,7 @@ import { handleDiagnoseSheetColumns } from "./routes/diagnose-sheet-columns";
 import { handleSplitSheet } from "./routes/split-sheet";
 import { handleVerifySheets } from "./routes/verify-sheets";
 import { handleTestSyncAllSheets } from "./routes/test-sync-all-sheets";
+import { handleDiagnoseSyncIssue } from "./routes/diagnose-sync-issue";
 
 export function createServer() {
   const app = express();
@@ -67,6 +68,7 @@ export function createServer() {
   app.post("/api/split-sheet", handleSplitSheet);
   app.get("/api/verify-sheets", handleVerifySheets);
   app.post("/api/test-sync-all-sheets", handleTestSyncAllSheets);
+  app.post("/api/diagnose-sync-issue", handleDiagnoseSyncIssue);
 
   // CRM API routes
   app.post("/api/sync-leads", handleSyncLeads);
@@ -131,8 +133,29 @@ export function createServer() {
         message: "The requested endpoint does not exist",
       });
     } else {
-      // Don't handle non-API routes - let the frontend handle them
-      res.status(404).send("Not found");
+      // For non-API routes in dev mode, Vite should handle them
+      // Return a simple response that indicates the app is loading
+      // This will be intercepted by Vite's middleware in dev mode
+      if (!fs.existsSync(path.join(__dirname, "../spa"))) {
+        // Dev mode - return the HTML shell, Vite will inject the correct modules
+        res.set("Content-Type", "text/html");
+        res.send(`
+          <!doctype html>
+          <html lang="en">
+            <head>
+              <meta charset="UTF-8" />
+              <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+              <title>Axiso Green Sales CRM</title>
+            </head>
+            <body>
+              <div id="root"></div>
+              <script type="module" src="/client/App.tsx"></script>
+            </body>
+          </html>
+        `);
+      } else {
+        res.status(404).send("Not found");
+      }
     }
   });
 

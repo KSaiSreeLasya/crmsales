@@ -89,113 +89,82 @@ function getColumnValue(
 
 /**
  * Parse Google Sheet lead row into Lead format
- * Expected column order:
- * A: Type of property
- * B: Monthly electricity bill
- * C: Full name
- * D: Phone
- * E: Email
- * F: Street address
- * G: Postal code
- * H: Lead status
+ * Handles multiple column name variations across different sheets
+ * December/November: property question, electricity bill, full name, phone, email, street address, post_code, lead_status
+ * October: electricity_bill?, full name, phone, email, street address, post_code, FEEDBACK -1, FEEDBACK- 2, Whatsapp follow up
  */
 export function parseLeadRow(row: GoogleSheetRow) {
-  // Create a map of normalized keys to values for flexible matching
-  const columnMap: { [normalizedKey: string]: string } = {};
-  const allKeys: string[] = [];
+  // Helper to find column value by flexible name matching
+  const findColumn = (patterns: string[]): string => {
+    for (const [key, value] of Object.entries(row)) {
+      if (!value) continue;
 
-  for (const [key, value] of Object.entries(row)) {
-    allKeys.push(key);
-    const normalizedKey = normalizeKey(key);
-    const sanitized = sanitizeValue(value);
-    columnMap[normalizedKey] = sanitized;
-  }
+      const normalizedKey = normalizeKey(key);
 
-  // Helper function to find a column value by searching for key patterns
-  const findColumnValue = (patterns: string[]): string => {
-    // Try exact normalized matches first
-    for (const pattern of patterns) {
-      const normalizedPattern = normalizeKey(pattern);
-
-      if (columnMap[normalizedPattern]) {
-        return columnMap[normalizedPattern];
-      }
-    }
-
-    // Try fuzzy matching with normalized keys
-    for (const pattern of patterns) {
-      const normalizedPattern = normalizeKey(pattern);
-
-      for (const key in columnMap) {
-        // Check if pattern appears in key or key appears in pattern
+      for (const pattern of patterns) {
+        const normalizedPattern = normalizeKey(pattern);
+        // Exact match after normalization
+        if (normalizedKey === normalizedPattern) {
+          return sanitizeValue(value);
+        }
+        // Partial match - key contains pattern or pattern contains key
         if (
-          key.includes(normalizedPattern) ||
-          normalizedPattern.includes(key)
+          normalizedKey.includes(normalizedPattern) ||
+          normalizedPattern.includes(normalizedKey)
         ) {
-          const value = columnMap[key];
-          if (value) {
-            return value;
-          }
+          return sanitizeValue(value);
         }
       }
     }
-
     return "";
   };
 
-  // Parse columns with flexible matching
-  // Including all variations with spaces, underscores, hyphens, and question marks
-  const type_of_property = findColumnValue([
+  // Parse with flexible name matching for all variations
+  const type_of_property = findColumn([
     "what_type_of_property_do_you_want_to_install_solar_on",
-    "what_type_of_property_do_you_own",
-    "what_type_of_property",
+    "what_type__of_property__do_you_want__to_install_solar_on",
     "type_of_property",
     "property_type",
   ]);
 
-  const avg_monthly_bill = findColumnValue([
+  const avg_monthly_bill = findColumn([
     "what_is_your_average_monthly_electricity_bill",
-    "what_is_your_current_electricity_bill",
     "average_monthly_electricity_bill",
-    "current_electricity_bill",
     "monthly_electricity_bill",
     "electricity_bill",
-    "monthly_bill",
-    "current_bill",
   ]);
 
-  const name = findColumnValue(["full_name", "full_name", "name"]);
+  const name = findColumn(["full name", "full_name", "name"]);
 
-  const phone = findColumnValue(["phone", "phone_no", "phone_number"]);
+  const phone = findColumn(["phone", "phone_no", "phone_number"]);
 
-  const email = findColumnValue(["email", "email_address"]);
+  const email = findColumn(["email", "email_address"]);
 
-  const street_address = findColumnValue([
+  const street_address = findColumn([
+    "street address",
     "street_address",
     "street",
     "address",
   ]);
 
-  const post_code = findColumnValue(["postal_code", "post_code", "postcode"]);
-
-  const lead_status = findColumnValue(["lead_status", "status"]);
-
-  // Handle feedback variations: "FEEDBACK -1", "FEEDBACK- 2", "FEEDBACK_1", "FEEDBACK-1", etc.
-  const note1 = findColumnValue([
-    "feedback_1",
-    "feedback_1",
-    "note_1",
-    "notes_1",
+  const post_code = findColumn([
+    "post_code",
+    "postal_code",
+    "postcode",
+    "zip_code",
   ]);
 
-  const note2 = findColumnValue([
-    "feedback_2",
-    "feedback_2",
-    "note_2",
-    "notes_2",
-  ]);
+  const lead_status = findColumn(["lead_status", "status"]);
 
-  const whatsappFollowUp = findColumnValue(["whatsapp_follow_up", "whatsapp"]);
+  const note1 = findColumn(["feedback_1", "feedback -1", "note_1", "notes_1"]);
+
+  const note2 = findColumn(["feedback_2", "feedback- 2", "note_2", "notes_2"]);
+
+  const whatsappFollowUp = findColumn([
+    "whatsapp_follow_up",
+    "whatsapp follow up",
+    "whatsapp",
+  ]);
 
   const parsed = {
     name,
@@ -317,6 +286,11 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
         headers = possibleHeaders;
         startIndex = i + 1;
         break;
+      } else if (i < 5) {
+        console.log(
+          `  Line ${i} is not header (E:${hasEmailColumn} P:${hasPhoneColumn} N:${hasNameColumn}):`,
+          possibleHeaders.slice(0, 3),
+        );
       }
     }
   }
@@ -377,6 +351,22 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
     console.log("First data row:", rows[0]);
     console.log("First data row keys:", Object.keys(rows[0]));
     console.log("Sample rows:", rows.slice(0, 3));
+
+    // Check which columns have data
+    const firstRow = rows[0];
+    const columnsWithData = Object.entries(firstRow)
+      .filter(([k, v]) => v && String(v).trim())
+      .map(([k, v]) => `${k}: ${String(v).substring(0, 50)}`)
+      .join(" | ");
+    console.log("First row columns with data:", columnsWithData);
+
+    // Check email specifically
+    const emailVal = firstRow.email || firstRow.Email || firstRow.EMAIL || "";
+    console.log(
+      "First row email value:",
+      `"${emailVal}"`,
+      `(length: ${String(emailVal).length})`,
+    );
   }
 
   return rows;

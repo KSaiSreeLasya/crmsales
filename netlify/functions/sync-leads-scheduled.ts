@@ -48,104 +48,112 @@ interface SyncResult {
 }
 
 const validateLead = (lead: any): boolean => {
-  const nameValue = lead.name || lead.Name || lead.full_name || lead.Full_Name;
-  const emailValue =
-    lead.email || lead.Email || lead.email_address || lead.Email_Address;
+  // Use flexible name matching to handle column name variations
+  let nameValue = "";
+  let emailValue = "";
+
+  for (const [key, value] of Object.entries(lead)) {
+    const strValue = String(value || "").trim();
+    if (!strValue) continue;
+
+    const normalizedKey = key
+      .toLowerCase()
+      .trim()
+      .replace(/[\s_]+/g, "_")
+      .replace(/[-–!?]/g, "");
+
+    // Match name column
+    if (
+      !nameValue &&
+      ((normalizedKey.includes("full") && normalizedKey.includes("name")) ||
+        normalizedKey === "name")
+    ) {
+      nameValue = strValue;
+    }
+
+    // Match email column
+    if (
+      !emailValue &&
+      (normalizedKey.includes("email") || normalizedKey.includes("mail"))
+    ) {
+      emailValue = strValue;
+    }
+  }
 
   // Email is required for upsert (unique constraint)
   // Name is required for meaningful records
   // Phone is optional (sync-leads-dynamic.ts also makes it optional for consistency)
   return (
-    nameValue &&
-    String(nameValue).trim().length > 0 &&
-    emailValue &&
-    String(emailValue).trim().length > 0
+    nameValue && nameValue.length > 0 && emailValue && emailValue.length > 0
   );
 };
 
 const normalizeLeadData = (lead: any, sheetId: string): any => {
-  // Create normalized keys mapping
+  // Use flexible name matching to map all column variations to Supabase schema
   const normalized: any = {
     source: "google_sheet",
     sheet_id: sheetId,
   };
 
-  // Normalize column names to match Supabase schema
-  for (const [key, value] of Object.entries(lead)) {
-    if (!value) continue;
+  // Helper to find and map columns
+  const mapColumn = (patterns: string[]): string => {
+    for (const [key, value] of Object.entries(lead)) {
+      if (!value) continue;
 
-    const normalizedKey = String(key)
-      .toLowerCase()
-      .trim()
-      .replace(/[\s_]+/g, "_") // Replace all spaces and underscores with single underscore
-      .replace(/[-–!?]/g, ""); // Remove special characters
-    const strValue = String(value).trim();
+      const normalizedKey = key
+        .toLowerCase()
+        .trim()
+        .replace(/[\s_]+/g, "_")
+        .replace(/[-–!?]/g, "");
 
-    // Map common variations
-    if (normalizedKey.includes("full") && normalizedKey.includes("name")) {
-      normalized.name = strValue;
-    } else if (normalizedKey.includes("email")) {
-      normalized.email = strValue;
-    } else if (normalizedKey.includes("phone")) {
-      normalized.phone = strValue;
-    } else if (normalizedKey.includes("company")) {
-      normalized.company = strValue;
-    } else if (
-      normalizedKey.includes("street") ||
-      normalizedKey.includes("address")
-    ) {
-      normalized.street_address = strValue;
-    } else if (
-      normalizedKey.includes("post") ||
-      normalizedKey.includes("postal") ||
-      normalizedKey.includes("zip")
-    ) {
-      normalized.post_code = strValue;
-    } else if (
-      normalizedKey.includes("lead") &&
-      normalizedKey.includes("status")
-    ) {
-      normalized.lead_status = strValue;
-    } else if (
-      normalizedKey.includes("type") &&
-      normalizedKey.includes("property")
-    ) {
-      normalized.type_of_property = strValue;
-    } else if (
-      (normalizedKey.includes("avg") ||
-        normalizedKey.includes("current") ||
-        normalizedKey.includes("your")) &&
-      (normalizedKey.includes("monthly") ||
-        normalizedKey.includes("electricity") ||
-        normalizedKey.includes("bill"))
-    ) {
-      normalized.avg_monthly_bill = strValue;
-    } else if (
-      normalizedKey.includes("electricity") ||
-      (normalizedKey.includes("bill") && !normalizedKey.includes("monthly"))
-    ) {
-      normalized.electricity_bill = strValue;
-    } else if (
-      normalizedKey.includes("feedback") ||
-      normalizedKey.includes("note")
-    ) {
-      if (normalizedKey.includes("1")) {
-        normalized.note1 = strValue;
-      } else if (normalizedKey.includes("2")) {
-        normalized.note2 = strValue;
-      } else {
-        normalized.note1 = strValue;
+      for (const pattern of patterns) {
+        const normalizedPattern = pattern
+          .toLowerCase()
+          .trim()
+          .replace(/[\s_]+/g, "_")
+          .replace(/[-–!?]/g, "");
+
+        if (
+          normalizedKey === normalizedPattern ||
+          normalizedKey.includes(normalizedPattern) ||
+          normalizedPattern.includes(normalizedKey)
+        ) {
+          return String(value).trim();
+        }
       }
-    } else if (normalizedKey.includes("whatsapp")) {
-      normalized.whatsapp_follow_up = strValue;
     }
-  }
+    return "";
+  };
 
-  // Ensure required fields
-  normalized.name = normalized.name || "";
-  normalized.email = normalized.email || "";
-  normalized.phone = normalized.phone || "";
-  normalized.company = normalized.company || "";
+  // Map all columns with flexible name matching
+  normalized.name = mapColumn(["full name", "full_name", "name"]) || "";
+  normalized.email = mapColumn(["email", "email_address"]) || "";
+  normalized.phone = mapColumn(["phone", "phone_no", "phone_number"]) || "";
+  normalized.company = mapColumn(["company"]) || "";
+  normalized.street_address =
+    mapColumn(["street address", "street_address", "street", "address"]) || "";
+  normalized.post_code =
+    mapColumn(["post_code", "postal_code", "postcode", "zip_code"]) || "";
+  normalized.lead_status = mapColumn(["lead_status", "status"]) || "";
+  normalized.type_of_property =
+    mapColumn([
+      "what_type_of_property_do_you_want_to_install_solar_on",
+      "type_of_property",
+      "property_type",
+    ]) || "";
+
+  const avgBill =
+    mapColumn([
+      "electricity_bill",
+      "what_is_your_average_monthly_electricity_bill",
+      "average_monthly_electricity_bill",
+      "monthly_electricity_bill",
+    ]) || "";
+
+  normalized.avg_monthly_bill = avgBill;
+  normalized.electricity_bill = avgBill;
+
+  // Set defaults for fields not in sheet
   normalized.status = "Not lifted";
   normalized.assigned_to = "Unassigned";
 
