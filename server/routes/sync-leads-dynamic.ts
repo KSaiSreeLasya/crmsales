@@ -382,14 +382,16 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         return;
       }
 
-      console.log("Successfully inserted", data?.length, "leads");
+      console.log("Successfully inserted", data?.length, "new leads");
       const totalSkipped = leads.length - leadsToSync.length;
       console.log(`Synced ${leadsToSync.length} leads, skipped ${dateRowsFiltered} date rows and ${invalidLeads} invalid rows`);
 
       res.json({
         success: true,
-        message: `${leadsToSync.length} leads synced successfully (including duplicate leads with same person on different dates)`,
+        message: `${leadsToSync.length} new leads synced successfully`,
         synced: leadsToSync.length,
+        inserted: leadsToSync.length,
+        updated: 0,
         totalFetched: leads.length,
         dateRowsSkipped: dateRowsFiltered,
         invalidRowsSkipped: invalidLeads,
