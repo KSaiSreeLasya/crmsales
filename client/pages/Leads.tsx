@@ -579,6 +579,8 @@ export default function Leads() {
             syncData?.message || syncData?.error || "Failed to sync leads";
           const fullError = [
             errorMessage,
+            syncData?.details && `Details: ${syncData.details}`,
+            syncData?.code && `Error Code: ${syncData.code}`,
             syncData?.hint && `Hint: ${syncData.hint}`,
             syncData?.troubleshooting &&
               `Troubleshooting: Check /api/test-supabase`,
@@ -906,6 +908,8 @@ export default function Leads() {
             syncData?.message || syncData?.error || "Failed to sync leads";
           const fullError = [
             errorMessage,
+            syncData?.details && `Details: ${syncData.details}`,
+            syncData?.code && `Error Code: ${syncData.code}`,
             syncData?.hint && `Hint: ${syncData.hint}`,
             syncData?.troubleshooting &&
               `Troubleshooting: Check /api/test-supabase`,
