@@ -647,9 +647,30 @@ export default function Leads() {
             extractedDateRows.length > 0
               ? ` (${extractedDateRows.length} date separators)`
               : "";
-          toast.success(
-            `Synced ${syncData.synced} leads${emptyRowsMsg}${dateRowsMsg} with all columns`,
-          );
+
+          let successMsg = `✓ Synced ${syncData.synced} leads${emptyRowsMsg}${dateRowsMsg}`;
+
+          // Show column mapping info if there are undetected columns
+          if (syncData.columnRenameGuide?.fields?.length > 0) {
+            const undetectedFields = syncData.columnRenameGuide.fields
+              .map((f: any) => f.field)
+              .join(", ");
+            successMsg += `\n\nℹ To capture more data, rename these columns in your Excel sheet: ${undetectedFields}`;
+            console.log(
+              "[SYNC] Column mapping guide:",
+              syncData.columnRenameGuide,
+            );
+          }
+
+          toast.success(successMsg);
+        }
+
+        // Log detected columns for debugging
+        if (syncData.columnMapping) {
+          console.log("[SYNC] Column detection summary:");
+          syncData.columnMapping.forEach((col: any) => {
+            console.log(`  ${col.message}`);
+          });
         }
 
         // Reload leads to display synced data
@@ -666,11 +687,23 @@ export default function Leads() {
             "Sync timed out after 5 minutes. Very large sheets may need multiple sync attempts.",
           );
         } else {
-          toast.error(
+          const errorMsg =
             error instanceof Error
               ? error.message
-              : "Failed to sync from sheet",
-          );
+              : "Failed to sync from sheet";
+
+          // Check if this is a column alignment issue error
+          if (
+            errorMsg.includes("No valid leads found") ||
+            errorMsg.includes("column alignment")
+          ) {
+            toast.error(
+              `Column Alignment Issue: ${errorMsg}\n\nTip: Check that your sheet has columns named 'Name', 'Email', and 'Phone'`,
+              { duration: 10000 },
+            );
+          } else {
+            toast.error(errorMsg);
+          }
         }
       }
     } finally {

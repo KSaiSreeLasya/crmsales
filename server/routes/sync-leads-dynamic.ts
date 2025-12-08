@@ -641,6 +641,80 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       console.log("[SYNC DEBUG] Leads by sheet_id:", sheetIdCounts);
     }
 
+    // Analyze detected columns for user feedback
+    const detectedColumns =
+      validLeadsForSync.length > 0 ? Object.keys(validLeadsForSync[0]) : [];
+    const columnMapping = {
+      name: {
+        detected: detectedColumns.some((c) => c.toLowerCase().includes("name")),
+        expected: ["full name", "full_name", "name"],
+      },
+      email: {
+        detected: detectedColumns.some((c) =>
+          c.toLowerCase().includes("email"),
+        ),
+        expected: ["email", "email_address", "email address"],
+      },
+      phone: {
+        detected: detectedColumns.some((c) =>
+          c.toLowerCase().includes("phone"),
+        ),
+        expected: ["phone", "phone_no", "phone_number"],
+      },
+      company: {
+        detected: detectedColumns.some((c) =>
+          c.toLowerCase().includes("company"),
+        ),
+        expected: ["company", "organization", "business"],
+      },
+      address: {
+        detected: detectedColumns.some((c) =>
+          c.toLowerCase().includes("address"),
+        ),
+        expected: ["street address", "street_address", "address"],
+      },
+      postcode: {
+        detected: detectedColumns.some(
+          (c) =>
+            c.toLowerCase().includes("post") ||
+            c.toLowerCase().includes("code"),
+        ),
+        expected: ["post_code", "postal_code", "postcode", "zip_code"],
+      },
+      status: {
+        detected: detectedColumns.some((c) =>
+          c.toLowerCase().includes("status"),
+        ),
+        expected: ["lead_status", "status"],
+      },
+      electricity_bill: {
+        detected: detectedColumns.some(
+          (c) =>
+            c.toLowerCase().includes("bill") ||
+            c.toLowerCase().includes("electricity"),
+        ),
+        expected: [
+          "what_is_your_average_monthly_electricity_bill",
+          "electricity_bill",
+          "average_monthly_electricity_bill",
+        ],
+      },
+      property_type: {
+        detected: detectedColumns.some(
+          (c) =>
+            c.toLowerCase().includes("property") ||
+            c.toLowerCase().includes("solar"),
+        ),
+        expected: [
+          "what_type_of_property_do_you_want_to_install_solar_on",
+          "type_of_property",
+          "property_type",
+        ],
+      },
+    };
+
+    console.log("[SYNC] Column mapping analysis:", columnMapping);
+
     try {
       console.log(
         "[SYNC] Starting validation on",
@@ -858,11 +932,11 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
             details: (error as any).details,
           });
 
+          const errorCode = (error as any).code;
+          const errorMessage = (error as any).message || String(error);
+
           // If it's a duplicate key error, try updating instead
-          if (
-            error.message?.includes("duplicate") ||
-            (error as any).code === "23505"
-          ) {
+          if (errorMessage?.includes("duplicate") || errorCode === "23505") {
             console.log(
               "Duplicate key detected during insert, attempting to update these leads instead...",
             );
@@ -885,6 +959,9 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
               if (!updateError) {
                 updateCount++;
+                console.log(
+                  `✓ Updated lead with email ${normalizedEmail} in sheet ${sheetId}`,
+                );
               } else {
                 failureCount++;
                 console.warn(
@@ -893,103 +970,137 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
                 );
               }
             }
+
+            // If we successfully updated all duplicate leads, continue to normal flow
+            if (updateCount === newLeads.length) {
+              console.log(
+                `✓ Successfully recovered from duplicate key error by updating all ${updateCount} leads`,
+              );
+            } else if (updateCount > 0) {
+              console.warn(
+                `Partial recovery: updated ${updateCount}/${newLeads.length} leads, ${failureCount} failed`,
+              );
+            } else {
+              console.error(
+                `Failed to recover from duplicate key error - no leads were updated`,
+              );
+              let troubleshootingMsg = "";
+              let specificAdvice = "";
+
+              troubleshootingMsg =
+                "Duplicate key error. Leads with these emails already exist in this sheet. The system attempted to update them but failed.";
+              specificAdvice =
+                "Ensure the sheet ID is correct and that the leads are not being protected by RLS policies.";
+
+              res.status(400).json({
+                error: "Failed to sync leads - duplicate key error",
+                message: errorMessage,
+                details: (error as any).details,
+                code: errorCode,
+                hint: (error as any).hint,
+                troubleshooting: troubleshootingMsg,
+                specificAdvice,
+                fullError: {
+                  message: errorMessage,
+                  code: errorCode,
+                  details: (error as any).details,
+                  status: (error as any).status,
+                },
+                diagnosticEndpoint:
+                  "POST /api/diagnose-sync-issue with {spreadsheetId, sheetId} to get detailed diagnostics",
+              });
+              return;
+            }
           } else {
             failureCount += newLeads.length;
-          }
-          console.error(
-            `[SYNC] CRITICAL: Failed to insert ${newLeads.length} new leads:`,
-            error,
-          );
-          console.error("[SYNC] Error code:", error?.code);
-          console.error("[SYNC] Error message:", error?.message);
-          console.error("[SYNC] Error details:", JSON.stringify(error));
-          if (newLeads.length > 0) {
             console.error(
-              "[SYNC] First lead being inserted:",
-              JSON.stringify(newLeads[0]),
+              `[SYNC] CRITICAL: Failed to insert ${newLeads.length} new leads:`,
+              error,
             );
-            console.error(
-              "[SYNC] Lead keys:",
-              Object.keys(newLeads[0]).join(", "),
-            );
-            console.error(
-              "[SYNC] Lead email value:",
-              newLeads[0].email,
-              `(length: ${String(newLeads[0].email).length})`,
-            );
-            console.error(
-              "[SYNC] Lead name value:",
-              newLeads[0].name,
-              `(length: ${String(newLeads[0].name).length})`,
-            );
-            console.error(
-              "[SYNC] Lead phone value:",
-              newLeads[0].phone,
-              `(length: ${String(newLeads[0].phone).length})`,
-            );
-          }
-
-          const errorCode = (error as any).code;
-          const errorMessage = (error as any).message || String(error);
-          let troubleshootingMsg = "";
-          let specificAdvice = "";
-
-          if (errorCode === "42703") {
-            troubleshootingMsg =
-              "Column does not exist in the database. Run the migration SQL from SUPABASE_MIGRATION_ADD_COLUMNS.sql to add missing columns.";
-            const missingColumn = errorMessage.match(
-              /column "([^"]+)" does not exist/i,
-            );
-            if (missingColumn) {
-              specificAdvice = `Missing column: "${missingColumn[1]}". Add this column to your Supabase leads table.`;
+            console.error("[SYNC] Error code:", errorCode);
+            console.error("[SYNC] Error message:", errorMessage);
+            console.error("[SYNC] Error details:", JSON.stringify(error));
+            if (newLeads.length > 0) {
+              console.error(
+                "[SYNC] First lead being inserted:",
+                JSON.stringify(newLeads[0]),
+              );
+              console.error(
+                "[SYNC] Lead keys:",
+                Object.keys(newLeads[0]).join(", "),
+              );
+              console.error(
+                "[SYNC] Lead email value:",
+                newLeads[0].email,
+                `(length: ${String(newLeads[0].email).length})`,
+              );
+              console.error(
+                "[SYNC] Lead name value:",
+                newLeads[0].name,
+                `(length: ${String(newLeads[0].name).length})`,
+              );
+              console.error(
+                "[SYNC] Lead phone value:",
+                newLeads[0].phone,
+                `(length: ${String(newLeads[0].phone).length})`,
+              );
             }
-          } else if (errorCode === "42P01") {
-            troubleshootingMsg =
-              "Table 'leads' does not exist. Run SUPABASE_TABLES.sql to create the table.";
-          } else if (errorCode === "23505") {
-            troubleshootingMsg =
-              "Duplicate key error. This happens when you sync leads that already exist. Use PUT method or enable upsert mode.";
-            specificAdvice =
-              "Try syncing again - the system will detect duplicates and update them instead of inserting.";
-          } else if (errorCode === "23502") {
-            troubleshootingMsg =
-              "NOT NULL constraint violation. A required field is missing or empty.";
-            const missingField = errorMessage.match(
-              /violates not-null constraint on column "([^"]+)"/i,
-            );
-            if (missingField) {
-              specificAdvice = `The "${missingField[1]}" field is required but missing or empty in the data.`;
-            }
-          } else if (errorMessage?.includes("RLS")) {
-            troubleshootingMsg =
-              "RLS policy is blocking INSERT. Ensure RLS is disabled or policies are configured correctly.";
-            specificAdvice =
-              "Go to Supabase > Authentication > Policies and disable RLS for the leads table temporarily.";
-          } else {
-            troubleshootingMsg =
-              "Ensure Supabase credentials are configured and the table schema is correct.";
-            specificAdvice =
-              "Run the diagnostic endpoint: POST /api/diagnose-sync-issue to identify the exact issue.";
-          }
 
-          res.status(400).json({
-            error: "Failed to insert leads",
-            message: errorMessage,
-            details: (error as any).details,
-            code: errorCode,
-            hint: (error as any).hint,
-            troubleshooting: troubleshootingMsg,
-            specificAdvice,
-            fullError: {
+            let troubleshootingMsg = "";
+            let specificAdvice = "";
+
+            if (errorCode === "42703") {
+              troubleshootingMsg =
+                "Column does not exist in the database. Run the migration SQL from SUPABASE_MIGRATION_ADD_COLUMNS.sql to add missing columns.";
+              const missingColumn = errorMessage.match(
+                /column "([^"]+)" does not exist/i,
+              );
+              if (missingColumn) {
+                specificAdvice = `Missing column: "${missingColumn[1]}". Add this column to your Supabase leads table.`;
+              }
+            } else if (errorCode === "42P01") {
+              troubleshootingMsg =
+                "Table 'leads' does not exist. Run SUPABASE_TABLES.sql to create the table.";
+            } else if (errorCode === "23502") {
+              troubleshootingMsg =
+                "NOT NULL constraint violation. A required field is missing or empty.";
+              const missingField = errorMessage.match(
+                /violates not-null constraint on column "([^"]+)"/i,
+              );
+              if (missingField) {
+                specificAdvice = `The "${missingField[1]}" field is required but missing or empty in the data.`;
+              }
+            } else if (errorMessage?.includes("RLS")) {
+              troubleshootingMsg =
+                "RLS policy is blocking INSERT. Ensure RLS is disabled or policies are configured correctly.";
+              specificAdvice =
+                "Go to Supabase > Authentication > Policies and disable RLS for the leads table temporarily.";
+            } else {
+              troubleshootingMsg =
+                "Ensure Supabase credentials are configured and the table schema is correct.";
+              specificAdvice =
+                "Run the diagnostic endpoint: POST /api/diagnose-sync-issue to identify the exact issue.";
+            }
+
+            res.status(400).json({
+              error: "Failed to insert leads",
               message: errorMessage,
-              code: errorCode,
               details: (error as any).details,
-              status: (error as any).status,
-            },
-            diagnosticEndpoint:
-              "POST /api/diagnose-sync-issue with {spreadsheetId, sheetId} to get detailed diagnostics",
-          });
-          return;
+              code: errorCode,
+              hint: (error as any).hint,
+              troubleshooting: troubleshootingMsg,
+              specificAdvice,
+              fullError: {
+                message: errorMessage,
+                code: errorCode,
+                details: (error as any).details,
+                status: (error as any).status,
+              },
+              diagnosticEndpoint:
+                "POST /api/diagnose-sync-issue with {spreadsheetId, sheetId} to get detailed diagnostics",
+            });
+            return;
+          }
         }
       } else {
         console.log(
@@ -1049,6 +1160,18 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       const rowsSkipped = leads.length - validLeads.length;
       const emptyRowsRemoved = validLeads.length - leadsToSync.length;
 
+      // Build column mapping info for user feedback
+      const columnMappingInfo = Object.entries(columnMapping).map(
+        ([fieldName, info]) => ({
+          field: fieldName,
+          detected: info.detected,
+          acceptedNames: info.expected,
+          message: info.detected
+            ? `✓ ${fieldName} column detected`
+            : `⚠ ${fieldName} not detected. Expected column names: ${info.expected.join(", ")}`,
+        }),
+      );
+
       res.json({
         success: true,
         message: `Successfully synced ${updateCount + insertCount} leads${failureCount > 0 ? ` (${failureCount} failed)` : ""}`,
@@ -1067,6 +1190,13 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         sheetId: sheetId,
         columnsIncluded:
           validatedLeads.length > 0 ? Object.keys(validatedLeads[0]) : [],
+        detectedColumns,
+        columnMapping: columnMappingInfo,
+        columnRenameGuide: {
+          instruction:
+            "If you want to detect additional columns, rename them to one of the accepted names below:",
+          fields: columnMappingInfo.filter((c) => !c.detected),
+        },
       });
     } catch (err) {
       console.error("Error during sync operation:", err);
