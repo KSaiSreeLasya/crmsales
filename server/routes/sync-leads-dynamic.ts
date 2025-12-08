@@ -205,7 +205,9 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     // Log validation issues for debugging
     const invalidLeads = validationResults.filter((item) => !item.isValid);
     if (invalidLeads.length > 0) {
-      console.warn(`[SYNC] ${invalidLeads.length} rows failed strict validation:`);
+      console.warn(
+        `[SYNC] ${invalidLeads.length} rows failed strict validation:`,
+      );
       invalidLeads.slice(0, 5).forEach((invalid) => {
         console.warn(
           `[SYNC] Row ${invalid.rowIndex}: name="${invalid.nameValue}" email="${invalid.emailValue}" errors=[${invalid.validationErrors.join(", ")}]`,
