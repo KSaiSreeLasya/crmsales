@@ -280,7 +280,98 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         console.error("Supabase insert error:", error);
         console.error("Full error object:", JSON.stringify(error, null, 2));
 
-        // For all errors, return details to help debug
+        // Check if this is a duplicate key constraint error
+        if (
+          error.message?.includes("duplicate") ||
+          error.message?.includes("leads_email_sheet_id") ||
+          (error as any).code === "23505"
+        ) {
+          console.log(
+            "Duplicate key constraint detected - attempting to update existing records...",
+          );
+
+          try {
+            let insertedCount = 0;
+            let updatedCount = 0;
+
+            for (const lead of leadsToSync) {
+              const email = lead.email;
+              const name = lead.name;
+
+              if (!email) {
+                // No email, try insert as new record
+                const { error: insertError } = await supabase
+                  .from("leads")
+                  .insert([lead])
+                  .select();
+
+                if (!insertError) {
+                  insertedCount++;
+                } else {
+                  console.warn(`Failed to insert lead without email:`, insertError);
+                }
+                continue;
+              }
+
+              // Try to update existing record by email and sheet_id
+              const { error: updateError } = await supabase
+                .from("leads")
+                .update(lead)
+                .eq("email", email)
+                .eq("sheet_id", sheetId || "0");
+
+              if (!updateError) {
+                updatedCount++;
+              } else {
+                // If update failed, try to insert as new
+                console.log(`Update failed for ${email}, attempting insert...`);
+                const { error: insertError } = await supabase
+                  .from("leads")
+                  .insert([lead])
+                  .select();
+
+                if (!insertError) {
+                  insertedCount++;
+                } else {
+                  console.warn(
+                    `Failed to both update and insert lead ${email}:`,
+                    insertError,
+                  );
+                }
+              }
+            }
+
+            console.log(
+              `Sync completed: ${insertedCount} new leads inserted, ${updatedCount} existing leads updated`,
+            );
+
+            res.json({
+              success: true,
+              message: `${insertedCount + updatedCount} leads synced (${insertedCount} new, ${updatedCount} updated)`,
+              synced: insertedCount + updatedCount,
+              inserted: insertedCount,
+              updated: updatedCount,
+              totalFetched: leads.length,
+              dateRowsSkipped: dateRowsFiltered,
+              invalidRowsSkipped: invalidLeads,
+              source: source,
+              columnsIncluded: Object.keys(leadsToSync[0]),
+            });
+            return;
+          } catch (updateErr) {
+            console.error("Error during update operation:", updateErr);
+            res.status(500).json({
+              error: "Failed to sync duplicate leads",
+              message:
+                updateErr instanceof Error
+                  ? updateErr.message
+                  : String(updateErr),
+            });
+            return;
+          }
+        }
+
+        // For other errors, return details to help debug
         res.status(400).json({
           error: "Failed to insert leads",
           message: error.message,
