@@ -684,11 +684,17 @@ export default function Leads() {
             "Sync timed out after 5 minutes. Very large sheets may need multiple sync attempts.",
           );
         } else {
-          toast.error(
-            error instanceof Error
-              ? error.message
-              : "Failed to sync from sheet",
-          );
+          const errorMsg = error instanceof Error ? error.message : "Failed to sync from sheet";
+
+          // Check if this is a column alignment issue error
+          if (errorMsg.includes("No valid leads found") || errorMsg.includes("column alignment")) {
+            toast.error(
+              `Column Alignment Issue: ${errorMsg}\n\nTip: Check that your sheet has columns named 'Name', 'Email', and 'Phone'`,
+              { duration: 10000 }
+            );
+          } else {
+            toast.error(errorMsg);
+          }
         }
       }
     } finally {
