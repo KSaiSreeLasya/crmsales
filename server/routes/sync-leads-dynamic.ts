@@ -482,7 +482,9 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       // Create a map with normalized emails (lowercase, trimmed) for accurate matching
       const existingEmailMap = new Map<string, any>();
       (existingLeads || []).forEach((lead: any) => {
-        const normalizedEmail = String(lead.email || "").toLowerCase().trim();
+        const normalizedEmail = String(lead.email || "")
+          .toLowerCase()
+          .trim();
         if (normalizedEmail) {
           existingEmailMap.set(normalizedEmail, lead);
         }
@@ -495,19 +497,25 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       // Separate leads into new and existing (for this sheet only)
       // Use normalized email comparison
       const newLeads = leadsToSync.filter((lead) => {
-        const normalizedEmail = String(lead.email || "").toLowerCase().trim();
+        const normalizedEmail = String(lead.email || "")
+          .toLowerCase()
+          .trim();
         return !existingEmailMap.has(normalizedEmail);
       });
 
       const existingLeadsToUpdate = leadsToSync.filter((lead) => {
-        const normalizedEmail = String(lead.email || "").toLowerCase().trim();
+        const normalizedEmail = String(lead.email || "")
+          .toLowerCase()
+          .trim();
         return existingEmailMap.has(normalizedEmail);
       });
 
       // Create assignment map using normalized emails
       const existingAssignments = new Map<string, string>();
       existingEmailMap.forEach((lead) => {
-        const normalizedEmail = String(lead.email || "").toLowerCase().trim();
+        const normalizedEmail = String(lead.email || "")
+          .toLowerCase()
+          .trim();
         if (normalizedEmail && lead.assigned_to) {
           existingAssignments.set(normalizedEmail, lead.assigned_to);
         }
@@ -522,10 +530,13 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       const leadsToUpdateWithPreservedAssignments = existingLeadsToUpdate.map(
         (lead) => {
           const { sheet_id, ...leadWithoutSheetId } = lead;
-          const normalizedEmail = String(lead.email || "").toLowerCase().trim();
+          const normalizedEmail = String(lead.email || "")
+            .toLowerCase()
+            .trim();
           return {
             ...leadWithoutSheetId,
-            assigned_to: existingAssignments.get(normalizedEmail) || "Unassigned",
+            assigned_to:
+              existingAssignments.get(normalizedEmail) || "Unassigned",
           };
         },
       );
@@ -562,9 +573,9 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
               "Duplicate key detected during insert, attempting to update these leads instead...",
             );
             for (const lead of newLeads) {
-              const normalizedEmail = String(
-                lead.email || "",
-              ).toLowerCase().trim();
+              const normalizedEmail = String(lead.email || "")
+                .toLowerCase()
+                .trim();
               const updateData = {
                 ...lead,
                 updated_at: new Date().toISOString(),
@@ -597,14 +608,13 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
       // Update each existing lead (preserving assignments)
       if (existingLeadsToUpdate.length > 0) {
-        console.log(
-          "Updating existing leads...",
-          existingLeadsToUpdate.length,
-        );
+        console.log("Updating existing leads...", existingLeadsToUpdate.length);
       }
       for (const lead of leadsToUpdateWithPreservedAssignments) {
         const email = lead.email;
-        const normalizedEmail = String(email || "").toLowerCase().trim();
+        const normalizedEmail = String(email || "")
+          .toLowerCase()
+          .trim();
 
         if (normalizedEmail) {
           const updateData = {
