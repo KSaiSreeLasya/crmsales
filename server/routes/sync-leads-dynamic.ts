@@ -115,6 +115,120 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       return;
     }
 
+    // Validate email format
+    const isValidEmail = (email: string): boolean => {
+      if (!email || typeof email !== "string") return false;
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return emailRegex.test(email.trim());
+    };
+
+    // For dynamic sync, validate that rows have meaningful data
+    // Use smart validation: strict first, then fallback to lenient
+    const validationResults = leads.map((lead, index) => {
+      let nameValue = "";
+      let emailValue = "";
+      let phoneValue = "";
+      let validationErrors: string[] = [];
+
+      // Find name, email, phone across all columns with flexible matching
+      for (const [key, value] of Object.entries(lead)) {
+        const normalizedKey = key
+          .toLowerCase()
+          .trim()
+          .replace(/[\s_]+/g, "_") // Replace all spaces and underscores with single underscore
+          .replace(/[-–!?]/g, ""); // Remove special characters
+        const strValue = String(value || "").trim();
+
+        if (!strValue) continue; // Skip empty values
+
+        // Look for name column - be very flexible with matching
+        if (
+          !nameValue &&
+          !normalizedKey.includes("email") &&
+          !normalizedKey.includes("phone") &&
+          !normalizedKey.includes("bill") &&
+          !normalizedKey.includes("address") &&
+          !normalizedKey.includes("code") &&
+          !normalizedKey.includes("status") &&
+          !normalizedKey.includes("note")
+        ) {
+          // If key contains "name" or "full" or is just a generic first column, treat as name
+          if (
+            normalizedKey.includes("name") ||
+            normalizedKey.includes("full") ||
+            normalizedKey === "c" ||
+            normalizedKey === "c:" ||
+            key.trim().match(/^[A-Z]$/) // Single letter column
+          ) {
+            nameValue = strValue;
+          }
+        }
+
+        // Look for email - prioritize columns with "email"
+        if (
+          !emailValue &&
+          (normalizedKey.includes("email") || normalizedKey.includes("mail")) &&
+          strValue
+        ) {
+          emailValue = strValue;
+        }
+
+        // Look for phone
+        if (
+          !phoneValue &&
+          (normalizedKey.includes("phone") ||
+            normalizedKey.includes("contact") ||
+            normalizedKey.includes("phone_no") ||
+            normalizedKey.includes("mobile") ||
+            normalizedKey.includes("telephone")) &&
+          strValue
+        ) {
+          phoneValue = strValue;
+        }
+      }
+
+      // Validation: require name and email (email required for upsert constraint, phone is optional)
+      const hasName = nameValue && nameValue.length > 0;
+      const hasEmail = emailValue && emailValue.length > 0;
+      const hasValidEmail = emailValue && isValidEmail(emailValue);
+
+      if (!hasName) {
+        validationErrors.push(
+          `Missing name (checked columns with "name" or "full" keywords)`,
+        );
+      }
+      if (!hasEmail) {
+        validationErrors.push(`Missing email (checked columns with "email")`);
+      }
+      if (hasEmail && !hasValidEmail) {
+        validationErrors.push(
+          `Invalid email format: "${emailValue}" (must contain @ and domain)`,
+        );
+      }
+
+      // Check if row has any data at all (for fallback validation)
+      const hasAnyData = Object.values(lead).some((value) => {
+        const strValue = String(value || "").trim();
+        return strValue.length > 0;
+      });
+
+      const isValid = hasName && hasValidEmail;
+
+      return {
+        lead,
+        isValid,
+        nameValue,
+        emailValue,
+        phoneValue,
+        validationErrors,
+        rowIndex: index,
+        hasAnyData,
+      };
+    });
+
+    let validLeads = validationResults
+      .filter((item) => item.isValid)
+      .map((item) => item.lead);
     // For dynamic sync, accept rows with any meaningful data
     // Flexible validation: allow November sheet and others with non-standard columns
     const validLeads = leads.filter((lead) => {
@@ -126,7 +240,33 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       return hasData;
     });
 
-    console.log("Valid leads after filtering:", validLeads.length);
+    // Log validation issues for debugging
+    const invalidLeads = validationResults.filter((item) => !item.isValid);
+    if (invalidLeads.length > 0) {
+      console.warn(
+        `[SYNC] ${invalidLeads.length} rows failed strict validation:`,
+      );
+      invalidLeads.slice(0, 5).forEach((invalid) => {
+        console.warn(
+          `[SYNC] Row ${invalid.rowIndex}: name="${invalid.nameValue}" email="${invalid.emailValue}" errors=[${invalid.validationErrors.join(", ")}]`,
+        );
+      });
+    }
+
+    console.log("Valid leads after strict filtering:", validLeads.length);
+
+    // Fallback: if strict validation rejected all rows but they have data, use lenient validation
+    if (validLeads.length === 0 && leads.length > 0) {
+      const rowsWithData = validationResults.filter((item) => item.hasAnyData);
+
+      if (rowsWithData.length > 0) {
+        console.warn(
+          `[SYNC] Strict validation rejected all rows. Switching to lenient validation for ${rowsWithData.length} rows with data...`,
+        );
+        validLeads = rowsWithData.map((item) => item.lead);
+      }
+    }
+
     console.log(
       "Filtered out empty/sparse rows:",
       leads.length - validLeads.length,
@@ -159,8 +299,38 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         return cleaned;
       });
 
+      // Analyze why validation failed
+      const failureReasons = new Map<string, number>();
+      invalidLeads.forEach((invalid) => {
+        invalid.validationErrors.forEach((error) => {
+          failureReasons.set(error, (failureReasons.get(error) || 0) + 1);
+        });
+      });
+
       console.error("No valid leads after filtering:", {
         totalRows: leads.length,
+        validRows: validLeads.length,
+        invalidRows: invalidLeads.length,
+        failureReasons: Object.fromEntries(failureReasons),
+        sampleInvalidRows: invalidLeads.slice(0, 3),
+        requiredFields: "name and email (phone is optional)",
+      });
+
+      const failureDetails = Array.from(failureReasons.entries())
+        .map(([reason, count]) => `${reason} (${count} rows)`)
+        .join("; ");
+
+      res.status(400).json({
+        error: "No valid leads found - column alignment issue detected",
+        totalRowsFetched: leads.length,
+        validRows: validLeads.length,
+        invalidRows: invalidLeads.length,
+        failureReasons: Object.fromEntries(failureReasons),
+        sampleFailedRow: invalidLeads.length > 0 ? invalidLeads[0] : null,
+        sampleData: sampleRows.length > 0 ? sampleRows[0] : null,
+        columns: Object.keys(leads[0] || {}),
+        hint: `${failureDetails}. The sheet columns may be misaligned. Use /api/diagnose-sheet-columns?spreadsheetId=...&sheetId=... to diagnose the issue.`,
+        troubleshooting: `Expected columns: "Name" (or "Full Name"), "Email", "Phone" (optional). Ensure your Google Sheet has these exact column headers.`,
         sampleRows,
         firstRowKeys: leads.length > 0 ? Object.keys(leads[0]) : [],
         note: "No rows with data found - all rows appear to be empty",
@@ -629,11 +799,25 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
       // Pre-check: Fetch existing leads for this sheet to preserve assignments
       console.log("Checking for existing leads to preserve assignments...");
-      const { data: existingLeads } = await supabase
+      const { data: existingLeads, error: existingError } = await supabase
         .from("leads")
         .select("email, assigned_to, id, sheet_id")
-        .eq("sheet_id", sheetId);
+        .eq("sheet_id", String(sheetId));
 
+      if (existingError) {
+        console.warn("Error fetching existing leads:", existingError);
+      }
+
+      // Create a map with normalized emails (lowercase, trimmed) for accurate matching
+      const existingEmailMap = new Map<string, any>();
+      (existingLeads || []).forEach((lead: any) => {
+        const normalizedEmail = String(lead.email || "")
+          .toLowerCase()
+          .trim();
+        if (normalizedEmail) {
+          existingEmailMap.set(normalizedEmail, lead);
+        }
+      });
       const existingEmails = new Set(
         (existingLeads || [])
           .map((lead: any) => lead.email)
@@ -646,7 +830,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       );
 
       console.log(
-        `Found ${existingEmails.size} existing leads for sheet ${sheetId}`,
+        `Found ${existingEmailMap.size} existing leads for sheet ${sheetId}`,
       );
 
       // Log sample of leads being synced with their emails
@@ -660,6 +844,50 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       );
 
       // Separate leads into new and existing (for this sheet only)
+      // Use normalized email comparison
+      const newLeads = leadsToSync.filter((lead) => {
+        const normalizedEmail = String(lead.email || "")
+          .toLowerCase()
+          .trim();
+        return !existingEmailMap.has(normalizedEmail);
+      });
+
+      const existingLeadsToUpdate = leadsToSync.filter((lead) => {
+        const normalizedEmail = String(lead.email || "")
+          .toLowerCase()
+          .trim();
+        return existingEmailMap.has(normalizedEmail);
+      });
+
+      // Create assignment map using normalized emails
+      const existingAssignments = new Map<string, string>();
+      existingEmailMap.forEach((lead) => {
+        const normalizedEmail = String(lead.email || "")
+          .toLowerCase()
+          .trim();
+        if (normalizedEmail && lead.assigned_to) {
+          existingAssignments.set(normalizedEmail, lead.assigned_to);
+        }
+      });
+
+      console.log(
+        `${newLeads.length} new leads, ${existingLeadsToUpdate.length} leads to update`,
+      );
+
+      // Preserve existing assignments for leads that are being updated
+      // Remove sheet_id from update data since it's immutable
+      const leadsToUpdateWithPreservedAssignments = existingLeadsToUpdate.map(
+        (lead) => {
+          const { sheet_id, ...leadWithoutSheetId } = lead;
+          const normalizedEmail = String(lead.email || "")
+            .toLowerCase()
+            .trim();
+          return {
+            ...leadWithoutSheetId,
+            assigned_to:
+              existingAssignments.get(normalizedEmail) || "Unassigned",
+          };
+        },
       // For leads without email, treat them as new
       const newLeads = validatedLeads.filter(
         (lead) => !lead.email || !existingEmails.has(lead.email),
@@ -725,6 +953,52 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
             );
           }
         } else {
+          console.warn(`Failed to insert ${newLeads.length} new leads:`, error);
+          console.error("Insert error details:", {
+            message: error.message,
+            code: (error as any).code,
+            details: (error as any).details,
+          });
+
+          // If it's a duplicate key error, try updating instead
+          if (
+            error.message?.includes("duplicate") ||
+            (error as any).code === "23505"
+          ) {
+            console.log(
+              "Duplicate key detected during insert, attempting to update these leads instead...",
+            );
+            for (const lead of newLeads) {
+              const normalizedEmail = String(lead.email || "")
+                .toLowerCase()
+                .trim();
+              const updateData = {
+                ...lead,
+                updated_at: new Date().toISOString(),
+                assigned_to:
+                  existingAssignments.get(normalizedEmail) || "Unassigned",
+              };
+
+              const { error: updateError } = await supabase
+                .from("leads")
+                .update(updateData)
+                .eq("email", normalizedEmail)
+                .eq("sheet_id", String(sheetId));
+
+              if (!updateError) {
+                updateCount++;
+              } else {
+                failureCount++;
+                console.warn(
+                  `Failed to update lead with email ${lead.email} in sheet ${sheetId}:`,
+                  updateError,
+                );
+              }
+            }
+          } else {
+            // For non-duplicate errors, count as failures
+            failureCount += newLeads.length;
+          }
           console.error(
             `[SYNC] CRITICAL: Failed to insert ${newLeads.length} new leads:`,
             error,
@@ -827,6 +1101,20 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         );
       }
 
+      // Update each existing lead (preserving assignments)
+      if (existingLeadsToUpdate.length > 0) {
+        console.log("Updating existing leads...", existingLeadsToUpdate.length);
+      }
+      for (const lead of leadsToUpdateWithPreservedAssignments) {
+        const email = lead.email;
+        const normalizedEmail = String(email || "")
+          .toLowerCase()
+          .trim();
+
+        if (normalizedEmail) {
+          const updateData = {
+            ...lead,
+            updated_at: new Date().toISOString(),
       // Preserve existing assignments for leads that are being updated
       // Remove sheet_id from update data since it's immutable
       const leadsToUpdateWithPreservedAssignments = existingLeadsToUpdate.map(
@@ -843,6 +1131,20 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         },
       );
 
+          const { error: updateError } = await supabase
+            .from("leads")
+            .update(updateData)
+            .eq("email", normalizedEmail)
+            .eq("sheet_id", String(sheetId));
+
+          if (!updateError) {
+            updateCount++;
+          } else {
+            failureCount++;
+            console.warn(
+              `Failed to update lead with email ${email} in sheet ${sheetId}:`,
+              updateError,
+            );
       // Update each existing lead (preserving assignments)
       if (existingLeadsToUpdate.length > 0) {
         console.log("Updating existing leads...");
@@ -894,8 +1196,12 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         finalVerifyError ? `(Error: ${finalVerifyError.message})` : "",
       );
 
+      const rowsSkipped = leads.length - validLeads.length;
+      const emptyRowsRemoved = validLeads.length - leadsToSync.length;
+
       res.json({
         success: true,
+        message: `Successfully synced ${updateCount + insertCount} leads${failureCount > 0 ? ` (${failureCount} failed)` : ""} (${rowsSkipped} rows skipped due to validation, ${emptyRowsRemoved} empty rows removed)`,
         message: `Successfully synced ${updateCount + insertCount} leads${failureCount > 0 ? ` (${failureCount} failed)` : ""} (${leads.length - validLeadsForSync.length} empty rows, ${rejectedCount} rejected for missing fields)`,
         synced: updateCount + insertCount,
         newLeads: insertCount,
@@ -904,6 +1210,8 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         rejected: rejectedCount,
         skippedMissingFields: leadsToSync.length - validLeadsForSync.length,
         totalFetched: leads.length,
+        rowsSkipped: rowsSkipped,
+        emptyRowsRemoved: emptyRowsRemoved,
         emptyRowsRemoved: leads.length - leadsToSync.length,
         validRowsProcessed: validLeadsForSync.length,
         validatedRowsAfterFiltering: validatedLeads.length,
@@ -914,9 +1222,19 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       });
     } catch (err) {
       console.error("Error during sync operation:", err);
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      console.error("Full error details:", {
+        message: errorMessage,
+        code: (err as any)?.code,
+        details: (err as any)?.details,
+        error: err,
+      });
+
       res.status(500).json({
         error: "Failed to sync leads",
-        message: err instanceof Error ? err.message : String(err),
+        message: errorMessage,
+        code: (err as any)?.code,
+        details: (err as any)?.details,
       });
     }
   } catch (error) {
