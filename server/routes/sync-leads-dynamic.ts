@@ -116,7 +116,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     }
 
     // Validate email format
-    const isValidEmail = (email: string): boolean => {
+    const validateEmail = (email: string): boolean => {
       if (!email || typeof email !== "string") return false;
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       return emailRegex.test(email.trim());
@@ -190,7 +190,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       // Validation: require name and email (email required for upsert constraint, phone is optional)
       const hasName = nameValue && nameValue.length > 0;
       const hasEmail = emailValue && emailValue.length > 0;
-      const hasValidEmail = emailValue && isValidEmail(emailValue);
+      const hasValidEmail = emailValue && validateEmail(emailValue);
 
       if (!hasName) {
         validationErrors.push(
@@ -229,16 +229,6 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     let validLeads = validationResults
       .filter((item) => item.isValid)
       .map((item) => item.lead);
-    // For dynamic sync, accept rows with any meaningful data
-    // Flexible validation: allow November sheet and others with non-standard columns
-    const validLeads = leads.filter((lead) => {
-      // Accept any row that has at least one non-empty column value
-      const hasData = Object.values(lead).some((value) => {
-        const strValue = String(value || "").trim();
-        return strValue.length > 0;
-      });
-      return hasData;
-    });
 
     // Log validation issues for debugging
     const invalidLeads = validationResults.filter((item) => !item.isValid);
@@ -377,29 +367,6 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Define allowed columns in Supabase schema
-    const allowedColumns = new Set([
-      "id",
-      "name",
-      "email",
-      "phone",
-      "company",
-      "status",
-      "assigned_to",
-      "note1",
-      "note2",
-      "street_address",
-      "post_code",
-      "lead_status",
-      "electricity_bill",
-      "type_of_property",
-      "avg_monthly_bill",
-      "sheet_id",
-      "source",
-      "created_at",
-      "updated_at",
-    ]);
-
     // Prepare leads data - normalize column names to match Supabase schema
     console.log(`[SYNC] Starting to map ${validLeads.length} leads...`);
     const leadsToSync = validLeads.map((lead, rowIndex) => {
@@ -415,10 +382,9 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       };
 
       // Helper function to find and map column values
-      // This function searches through the lead object for values that match the given patterns
       const mapColumn = (patterns: string[]): string => {
         for (const [key, value] of Object.entries(lead)) {
-          // Skip null/undefined values, but NOT empty strings (they might be valid columns)
+          // Skip null/undefined values, but NOT empty strings
           if (value === null || value === undefined) continue;
 
           const normalizedKey = key
@@ -439,8 +405,6 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
               normalizedKey.includes(normalizedPattern) ||
               normalizedPattern.includes(normalizedKey)
             ) {
-              // Return sanitized value, even if it's an empty string
-              // Empty values will be caught by the caller's validation logic
               const sanitized = sanitizeValue(value);
               return sanitized;
             }
@@ -454,7 +418,6 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         mapColumn(["full name", "full_name", "name"]) || "Unknown";
 
       // Email is REQUIRED in database (NOT NULL UNIQUE)
-      // Try multiple patterns to find email column with extended matching
       let emailValue = mapColumn([
         "email",
         "email_address",
@@ -479,13 +442,6 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         });
       }
 
-      // If email is not found or is empty/whitespace-only, generate synthetic email to ensure uniqueness
-      if (rowIndex < 3) {
-        console.log(
-          `[SYNC] Row ${rowIndex}: emailTrimmed="${emailTrimmed}", hasValidEmail=${hasValidEmail}, willGenerate=${!hasValidEmail}`,
-        );
-      }
-
       let finalEmail = "";
 
       if (!hasValidEmail) {
@@ -499,10 +455,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
             "contact phone",
           ]) || "";
 
-        // Sanitize the phone value
         const phone = String(phoneRaw).trim();
-
-        // Generate unique synthetic email
         const sanitizedName = String(name)
           .toLowerCase()
           .trim()
@@ -510,12 +463,9 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           .replace(/[^a-z0-9.]/g, "");
 
         const sanitizedPhone = String(phone).replace(/\D/g, "").slice(-4);
-
-        // Create a more unique suffix using timestamp and row index
-        const timestamp = Date.now().toString().slice(-6); // Last 6 digits of timestamp for variation
+        const timestamp = Date.now().toString().slice(-6);
         const uniqueSuffix = `${timestamp}${rowIndex.toString().padStart(4, "0")}`;
 
-        // Build the synthetic email with better uniqueness
         const baseEmail = (sanitizedName || "unknown").substring(0, 40);
         const emailDomain = `${baseEmail}${sanitizedPhone ? "." + sanitizedPhone : ""}`;
 
@@ -533,10 +483,8 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         );
       }
 
-      // Ensure email is ALWAYS set and non-empty
       syncData.email = finalEmail;
 
-      // Explicit logging for every row to track what email is being assigned
       if (rowIndex < 5) {
         console.log(`[SYNC] Row ${rowIndex} final email assignment:`, {
           originalCSVEmail: lead.email,
@@ -554,14 +502,10 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         "contact phone",
       ]);
 
-      // Phone is required - if missing, set to N/A (will be caught in validation)
       syncData.phone = (phoneValue && String(phoneValue).trim()) || "";
-
-      // Company - optional, show N/A if missing
       syncData.company =
         mapColumn(["company", "organization", "business", "company name"]) ||
         "N/A";
-
       syncData.street_address =
         mapColumn(["street address", "street_address", "street", "address"]) ||
         "N/A";
@@ -588,10 +532,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       syncData.avg_monthly_bill = syncData.electricity_bill;
       syncData.status = "Not lifted";
 
-      // Set timestamps to ensure they're properly recorded
       const now = new Date().toISOString();
-
-      // If created_at was provided (e.g., from date row), preserve it
       if (!syncData.created_at) {
         syncData.created_at = now;
       } else {
@@ -603,8 +544,6 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
       syncData.updated_at = syncData.updated_at || now;
 
-      // Set sheet_id so leads are associated with correct sheet
-      // Ensure we use the actual sheetId, not default to "0"
       if (!sheetId || sheetId === "undefined") {
         console.warn("[SYNC DEBUG] WARNING: sheetId is missing or undefined!");
       }
@@ -613,18 +552,10 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       return syncData;
     });
 
-    // Validate and prepare leads for sync
-    // POLICY: Only name and phone are required. All other fields optional.
-    // - Name: Required, must not be empty
-    // - Phone: Required, must not be empty
-    // - Email: Optional, if missing use generated synthetic email
-    // - All other fields: Optional, show "N/A" if missing
     console.log(`[SYNC] Processing ${leadsToSync.length} leads for sync...`);
     const validLeadsForSync = leadsToSync.map((lead, idx) => {
-      // Ensure required fields have values
       const processedLead = { ...lead };
 
-      // Name: Required field
       let name = String(processedLead.name || "").trim();
       if (!name) {
         console.warn(`[SYNC] Row ${idx}: No name found - WILL BE REJECTED`);
@@ -632,10 +563,8 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         processedLead.name = name;
       }
 
-      // Email: Generate synthetic email if missing (for database uniqueness)
       let email = String(processedLead.email || "").trim();
       if (!email) {
-        // Generate synthetic email for uniqueness
         const timestamp = Date.now().toString().slice(-6);
         const fallbackEmail = `synced.lead.${timestamp}.${idx}@synced-lead.local`;
         email = fallbackEmail;
@@ -649,7 +578,6 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         processedLead.email = email;
       }
 
-      // Phone: Required field
       let phone = String(processedLead.phone || "").trim();
       if (!phone) {
         console.warn(`[SYNC] Row ${idx}: No phone - WILL BE REJECTED`);
@@ -657,7 +585,6 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         processedLead.phone = phone;
       }
 
-      // Company: Optional, show N/A if missing
       let company = String(processedLead.company || "").trim();
       if (!company) {
         company = "N/A";
@@ -682,12 +609,10 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       `[SYNC] All ${validLeadsForSync.length} leads processed with defaults applied`,
     );
 
-    // All leads should be processed with defaults, but log if something unexpected happens
     if (validLeadsForSync.length === 0) {
       console.warn(
         `[SYNC] WARNING: 0 leads after processing defaults. This is unexpected.`,
       );
-      // Don't reject - return success with 0 synced (edge case)
     }
 
     console.log("Attempting to sync leads to Supabase...");
@@ -700,7 +625,6 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       console.log("Sample lead email:", validLeadsForSync[0].email);
       console.log("Columns in first lead:", Object.keys(validLeadsForSync[0]));
 
-      // Verify all leads have the correct sheet_id
       const allHaveCorrectSheetId = validLeadsForSync.every(
         (lead) => lead.sheet_id === String(sheetId || "0"),
       );
@@ -709,7 +633,6 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         allHaveCorrectSheetId,
       );
 
-      // Count leads by sheet_id
       const sheetIdCounts: { [key: string]: number } = {};
       validLeadsForSync.forEach((lead) => {
         const sid = lead.sheet_id || "unknown";
@@ -719,7 +642,6 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     }
 
     try {
-      // Strict validation: Only name and phone are required
       console.log(
         "[SYNC] Starting validation on",
         validLeadsForSync.length,
@@ -739,7 +661,6 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         const name = String(lead.name || "").trim();
         const phone = String(lead.phone || "").trim();
 
-        // Only name and phone are required
         const isValid = name.length > 0 && phone.length > 0;
 
         if (!isValid && idx < 3) {
@@ -766,7 +687,6 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         );
       }
 
-      // Validation has already been done with strict filtering above
       console.log(
         `[SYNC] Proceeding with ${validatedLeads.length} validated leads (rejected ${rejectedCount})`,
       );
@@ -818,16 +738,6 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
           existingEmailMap.set(normalizedEmail, lead);
         }
       });
-      const existingEmails = new Set(
-        (existingLeads || [])
-          .map((lead: any) => lead.email)
-          .filter((email) => email), // Filter out null/empty emails
-      );
-      const existingAssignments = new Map(
-        (existingLeads || [])
-          .filter((lead: any) => lead.email) // Only map leads with emails
-          .map((lead: any) => [lead.email, lead.assigned_to]),
-      );
 
       console.log(
         `Found ${existingEmailMap.size} existing leads for sheet ${sheetId}`,
@@ -845,14 +755,14 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
       // Separate leads into new and existing (for this sheet only)
       // Use normalized email comparison
-      const newLeads = leadsToSync.filter((lead) => {
+      const newLeads = validatedLeads.filter((lead) => {
         const normalizedEmail = String(lead.email || "")
           .toLowerCase()
           .trim();
         return !existingEmailMap.has(normalizedEmail);
       });
 
-      const existingLeadsToUpdate = leadsToSync.filter((lead) => {
+      const existingLeadsToUpdate = validatedLeads.filter((lead) => {
         const normalizedEmail = String(lead.email || "")
           .toLowerCase()
           .trim();
@@ -875,7 +785,6 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       );
 
       // Preserve existing assignments for leads that are being updated
-      // Remove sheet_id from update data since it's immutable
       const leadsToUpdateWithPreservedAssignments = existingLeadsToUpdate.map(
         (lead) => {
           const { sheet_id, ...leadWithoutSheetId } = lead;
@@ -888,16 +797,6 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
               existingAssignments.get(normalizedEmail) || "Unassigned",
           };
         },
-      // For leads without email, treat them as new
-      const newLeads = validatedLeads.filter(
-        (lead) => !lead.email || !existingEmails.has(lead.email),
-      );
-      const existingLeadsToUpdate = validatedLeads.filter(
-        (lead) => lead.email && existingEmails.has(lead.email),
-      );
-
-      console.log(
-        `[SYNC] Categorized leads: ${newLeads.length} new, ${existingLeadsToUpdate.length} to update`,
       );
 
       // Initialize counters
@@ -933,7 +832,6 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
             );
           }
 
-          // Verify the data was actually saved
           const { data: verifyData, error: verifyError } = await supabase
             .from("leads")
             .select("id, name, email, sheet_id")
@@ -996,7 +894,6 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
               }
             }
           } else {
-            // For non-duplicate errors, count as failures
             failureCount += newLeads.length;
           }
           console.error(
@@ -1032,7 +929,6 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
             );
           }
 
-          // Return detailed error response
           const errorCode = (error as any).code;
           const errorMessage = (error as any).message || String(error);
           let troubleshootingMsg = "";
@@ -1052,9 +948,9 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
               "Table 'leads' does not exist. Run SUPABASE_TABLES.sql to create the table.";
           } else if (errorCode === "23505") {
             troubleshootingMsg =
-              "Duplicate entry found. Some leads may already exist in the database. This is normal on subsequent syncs.";
+              "Duplicate key error. This happens when you sync leads that already exist. Use PUT method or enable upsert mode.";
             specificAdvice =
-              "The sync endpoint should handle updates automatically. Check console logs for details.";
+              "Try syncing again - the system will detect duplicates and update them instead of inserting.";
           } else if (errorCode === "23502") {
             troubleshootingMsg =
               "NOT NULL constraint violation. A required field is missing or empty.";
@@ -1103,50 +999,6 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
       // Update each existing lead (preserving assignments)
       if (existingLeadsToUpdate.length > 0) {
-        console.log("Updating existing leads...", existingLeadsToUpdate.length);
-      }
-      for (const lead of leadsToUpdateWithPreservedAssignments) {
-        const email = lead.email;
-        const normalizedEmail = String(email || "")
-          .toLowerCase()
-          .trim();
-
-        if (normalizedEmail) {
-          const updateData = {
-            ...lead,
-            updated_at: new Date().toISOString(),
-      // Preserve existing assignments for leads that are being updated
-      // Remove sheet_id from update data since it's immutable
-      const leadsToUpdateWithPreservedAssignments = existingLeadsToUpdate.map(
-        (lead) => {
-          const { sheet_id, ...leadWithoutSheetId } = lead;
-          const preservedAssignment = lead.email
-            ? existingAssignments.get(lead.email)
-            : undefined;
-          return {
-            ...leadWithoutSheetId,
-            assigned_to:
-              preservedAssignment || lead.assigned_to || "Unassigned",
-          };
-        },
-      );
-
-          const { error: updateError } = await supabase
-            .from("leads")
-            .update(updateData)
-            .eq("email", normalizedEmail)
-            .eq("sheet_id", String(sheetId));
-
-          if (!updateError) {
-            updateCount++;
-          } else {
-            failureCount++;
-            console.warn(
-              `Failed to update lead with email ${email} in sheet ${sheetId}:`,
-              updateError,
-            );
-      // Update each existing lead (preserving assignments)
-      if (existingLeadsToUpdate.length > 0) {
         console.log("Updating existing leads...");
         for (const lead of leadsToUpdateWithPreservedAssignments) {
           const email = lead.email;
@@ -1177,15 +1029,14 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       }
 
       console.log(
-        `Sync complete: ${insertCount} new, ${updateCount} updated, ${failureCount} failed (${leadsToSync.length - validLeadsForSync.length} leads skipped due to missing required fields)`,
+        `Sync complete: ${insertCount} new, ${updateCount} updated, ${failureCount} failed`,
       );
       console.log(`[SYNC DEBUG] Final sheet_id being synced: ${sheetId}`);
       console.log(
         `[SYNC DEBUG] Total synced to sheet: ${updateCount + insertCount}`,
       );
 
-      // Do a final verification query to confirm data was saved
-      const { data: finalVerify, error: finalVerifyError } = await supabase
+      const { data: finalVerify } = await supabase
         .from("leads")
         .select("count")
         .eq("sheet_id", sheetId);
@@ -1193,7 +1044,6 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       console.log(
         `[SYNC DEBUG] Final verification - leads in sheet ${sheetId}:`,
         finalVerify?.[0]?.count || "unknown",
-        finalVerifyError ? `(Error: ${finalVerifyError.message})` : "",
       );
 
       const rowsSkipped = leads.length - validLeads.length;
@@ -1201,8 +1051,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
 
       res.json({
         success: true,
-        message: `Successfully synced ${updateCount + insertCount} leads${failureCount > 0 ? ` (${failureCount} failed)` : ""} (${rowsSkipped} rows skipped due to validation, ${emptyRowsRemoved} empty rows removed)`,
-        message: `Successfully synced ${updateCount + insertCount} leads${failureCount > 0 ? ` (${failureCount} failed)` : ""} (${leads.length - validLeadsForSync.length} empty rows, ${rejectedCount} rejected for missing fields)`,
+        message: `Successfully synced ${updateCount + insertCount} leads${failureCount > 0 ? ` (${failureCount} failed)` : ""}`,
         synced: updateCount + insertCount,
         newLeads: insertCount,
         updatedLeads: updateCount,
@@ -1212,7 +1061,6 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         totalFetched: leads.length,
         rowsSkipped: rowsSkipped,
         emptyRowsRemoved: emptyRowsRemoved,
-        emptyRowsRemoved: leads.length - leadsToSync.length,
         validRowsProcessed: validLeadsForSync.length,
         validatedRowsAfterFiltering: validatedLeads.length,
         source: source,
