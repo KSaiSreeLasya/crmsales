@@ -41,6 +41,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
     const validLeads = leads.filter((lead) => {
       let nameValue = "";
       let phoneValue = "";
+      let emailValue = "";
 
       for (const [key, value] of Object.entries(lead)) {
         const normalizedKey = key.toLowerCase().trim().replace(/\s+/g, "_");
@@ -61,18 +62,21 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         ) {
           phoneValue = strValue;
         }
+        if (normalizedKey.includes("email") && strValue) {
+          emailValue = strValue;
+        }
       }
 
-      // Must have both name and phone to be valid
+      // Must have at least name and either phone or email
       const hasName = nameValue.length > 0;
-      const hasPhone = phoneValue.length > 0;
+      const hasPhoneOrEmail = phoneValue.length > 0 || emailValue.length > 0;
 
       const nonEmptyFields = Object.values(lead).filter(
         (v) => v !== undefined && v !== null && String(v).trim() !== "",
       ).length;
 
-      // Must have at least 2 non-empty fields AND valid name and phone
-      return hasName && hasPhone && nonEmptyFields >= 2;
+      // Must have name and (phone OR email) - require at least 1 non-empty field
+      return hasName && hasPhoneOrEmail && nonEmptyFields >= 1;
     });
 
     console.log("Valid leads after filtering:", validLeads.length);
