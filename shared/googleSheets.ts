@@ -292,20 +292,32 @@ export function parseCsv(csv: string): GoogleSheetRow[] {
   if (headerLooksLikeData) {
     console.log("First row appears to be data, searching for header row...");
 
-    // Find a row that contains email, phone, AND name - these must all be present
+    // Find a row that contains at least name and (phone OR email)
     for (let i = 0; i < Math.min(50, lines.length); i++) {
       const possibleHeaders = parseCSVLine(lines[i]);
       const headerTextLower = possibleHeaders
         .map((h) => h.toLowerCase())
         .join("|");
 
-      // Check for the essential columns together
-      const hasEmailColumn = headerTextLower.includes("email");
-      const hasPhoneColumn = headerTextLower.includes("phone");
+      // Check for essential columns - need name and at least phone or email
+      const hasEmailColumn =
+        headerTextLower.includes("email") ||
+        headerTextLower.includes("email_address") ||
+        headerTextLower.includes("mail");
+      const hasPhoneColumn =
+        headerTextLower.includes("phone") ||
+        headerTextLower.includes("phone_no") ||
+        headerTextLower.includes("phone_number") ||
+        headerTextLower.includes("contact") ||
+        headerTextLower.includes("mobile");
       const hasNameColumn =
-        headerTextLower.includes("name") || headerTextLower.includes("full");
+        headerTextLower.includes("name") ||
+        headerTextLower.includes("full") ||
+        headerTextLower.includes("fullname") ||
+        headerTextLower.includes("person");
 
-      if (hasEmailColumn && hasPhoneColumn && hasNameColumn) {
+      // Accept row if it has name and (phone OR email)
+      if (hasNameColumn && (hasPhoneColumn || hasEmailColumn)) {
         console.log(`✓ Found valid header row at line ${i}:`, possibleHeaders);
         headers = possibleHeaders;
         startIndex = i + 1;
