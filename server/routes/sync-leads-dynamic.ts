@@ -225,18 +225,38 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         return cleaned;
       });
 
+      // Analyze why validation failed
+      const failureReasons = new Map<string, number>();
+      invalidLeads.forEach((invalid) => {
+        invalid.validationErrors.forEach((error) => {
+          failureReasons.set(error, (failureReasons.get(error) || 0) + 1);
+        });
+      });
+
       console.error("No valid leads after filtering:", {
         totalRows: leads.length,
-        sampleRows,
+        validRows: validLeads.length,
+        invalidRows: invalidLeads.length,
+        failureReasons: Object.fromEntries(failureReasons),
+        sampleInvalidRows: invalidLeads.slice(0, 3),
         requiredFields: "name and email (phone is optional)",
       });
 
+      const failureDetails = Array.from(failureReasons.entries())
+        .map(([reason, count]) => `${reason} (${count} rows)`)
+        .join("; ");
+
       res.status(400).json({
-        error:
-          "No valid leads found - ensure rows have Name and Email columns. Phone is optional.",
+        error: "No valid leads found - column alignment issue detected",
         totalRowsFetched: leads.length,
-        sampleDebug: sampleRows.length > 0 ? sampleRows[0] : null,
-        hint: "Each row must have a Name (or Full Name) and Email address. Check your Google Sheet structure.",
+        validRows: validLeads.length,
+        invalidRows: invalidLeads.length,
+        failureReasons: Object.fromEntries(failureReasons),
+        sampleFailedRow: invalidLeads.length > 0 ? invalidLeads[0] : null,
+        sampleData: sampleRows.length > 0 ? sampleRows[0] : null,
+        columns: Object.keys(leads[0] || {}),
+        hint: `${failureDetails}. The sheet columns may be misaligned. Use /api/diagnose-sheet-columns?spreadsheetId=...&sheetId=... to diagnose the issue.`,
+        troubleshooting: `Expected columns: "Name" (or "Full Name"), "Email", "Phone" (optional). Ensure your Google Sheet has these exact column headers.`,
       });
       return;
     }
