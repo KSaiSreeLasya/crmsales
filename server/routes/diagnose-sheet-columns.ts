@@ -127,9 +127,8 @@ export const handleDiagnoseSheetColumns: RequestHandler = async (req, res) => {
         .map((r) => r[emailCol])
         .filter((v) => v);
 
-      const validEmails = emailValues.filter(
-        (v) =>
-          /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v).trim()),
+      const validEmails = emailValues.filter((v) =>
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v).trim()),
       ).length;
 
       if (validEmails === 0 && emailValues.length > 0) {

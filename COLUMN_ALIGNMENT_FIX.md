@@ -11,6 +11,7 @@ Your Google Sheets synchronization is failing due to **column alignment issues**
 ### Error Symptoms
 
 If you see errors like:
+
 - `"No valid leads found - column alignment issue detected"`
 - CSV sample showing: `"full name": "3000"` (number instead of name)
 - `"email": "917799886836"` (phone number instead of email)
@@ -20,6 +21,7 @@ This indicates **data is shifted one or more columns** from the headers.
 ## Example of Misaligned Data
 
 **WRONG (Your Current Sheet):**
+
 ```
 Column Headers:     | electricity_bill? | full name  | phone        | email              | street address | post_code
 Your Data:          | individual_house  | 3000       | Shiva kumar  | 917799886836      | shivakumarnani007@gmail.com | patancheru
@@ -29,6 +31,7 @@ Result: Column mismatch! Data doesn't align with headers.
 ```
 
 **CORRECT (What It Should Be):**
+
 ```
 Column Headers:     | TYPE OF PROPERTY | MONTHLY BILL | FULL NAME    | PHONE        | EMAIL                       | STREET ADDRESS | POSTAL CODE
 Your Data:          | individual_house | 3000         | Shiva Kumar  | 917799886836 | shivakumarnani007@gmail.com | patancheru     | 502327
@@ -56,11 +59,13 @@ Before syncing, use the new diagnostic endpoint to identify column issues:
 **Action:** Ensure your Google Sheet headers match exactly (case-insensitive):
 
 ✅ **Required Column Names (use ONE of each):**
+
 - Name Column: `Full Name`, `Name`, `full_name`, `fullname`
 - Email Column: `Email`, `email_address`, `Email Address`
 - Phone Column: `Phone`, `Phone Number`, `phone_no`, `Mobile`
 
 ✅ **Recommended Column Names (for full functionality):**
+
 - `Type of Property` - Solar installation property type (residential, commercial, etc.)
 - `Monthly Electricity Bill` - or `Average Monthly Bill`, `Current Bill`
 - `Street Address` - or `Address`, `Street`
@@ -83,19 +88,22 @@ Before syncing, use the new diagnostic endpoint to identify column issues:
 **Issue: Data starting in wrong row**
 
 If your data doesn't start immediately after headers:
+
 - Delete any blank rows between headers and data
 - Ensure no formatting rows are in the header row
 - Verify the first data row comes directly after the header row
 
 **Example of Bad Structure:**
+
 ```
 Row 1: [Header] Full Name | Email | Phone
-Row 2: [Empty]  
+Row 2: [Empty]
 Row 3: [Data]   John      | john@email.com | 9876543210
        ❌ Gap between header and data!
 ```
 
 **Example of Good Structure:**
+
 ```
 Row 1: [Header] Full Name | Email | Phone
 Row 2: [Data]   John      | john@email.com | 9876543210
@@ -125,6 +133,7 @@ Row 2: [Data]   John      | john@email.com | 9876543210
 ## Using the Diagnostic Tool
 
 ### API Endpoint (Advanced)
+
 ```bash
 GET /api/diagnose-sheet-columns?spreadsheetId=YOUR_SHEET_ID&sheetId=SHEET_ID
 
@@ -133,6 +142,7 @@ GET /api/diagnose-sheet-columns?spreadsheetId=1QY8_Q8-ybLKNVs4hynPZslZDwUfC-PIJr
 ```
 
 ### Response Example
+
 ```json
 {
   "status": "ok",
@@ -175,11 +185,13 @@ GET /api/diagnose-sheet-columns?spreadsheetId=1QY8_Q8-ybLKNVs4hynPZslZDwUfC-PIJr
 ### Interpreting Diagnostic Results
 
 **If you see:**
+
 - `"type": "number"` in the name column → Name column contains numbers (WRONG!)
 - `"type": "phone"` in the email column → Email column contains phone numbers (WRONG!)
 - `"type": "address"` in the email column → Email column contains addresses (WRONG!)
 
 **Action Required:**
+
 - Check if your columns are in the wrong order
 - Check if the header row is correct
 - Consider reorganizing your sheet
@@ -188,20 +200,21 @@ GET /api/diagnose-sheet-columns?spreadsheetId=1QY8_Q8-ybLKNVs4hynPZslZDwUfC-PIJr
 
 ### Fix 1: Rename Columns to Match Expected Names
 
-| Current Header | Change To |
-|---|---|
+| Current Header      | Change To          |
+| ------------------- | ------------------ |
 | `electricity_bill?` | `Type of Property` |
-| `full name` | `Full Name` |
-| `phone` | `Phone` |
-| `email` | `Email` |
-| `street address` | `Street Address` |
-| `post_code` | `Postal Code` |
-| `FEEDBACK -1` | `Feedback 1` |
-| `FEEDBACK -2` | `Feedback 2` |
+| `full name`         | `Full Name`        |
+| `phone`             | `Phone`            |
+| `email`             | `Email`            |
+| `street address`    | `Street Address`   |
+| `post_code`         | `Postal Code`      |
+| `FEEDBACK -1`       | `Feedback 1`       |
+| `FEEDBACK -2`       | `Feedback 2`       |
 
 ### Fix 2: Rearrange Columns (if needed)
 
 Recommended column order (left to right):
+
 1. Type of Property
 2. Monthly Electricity Bill
 3. Full Name ← **CRITICAL**
@@ -245,6 +258,7 @@ Before syncing, verify:
 ### Issue: Diagnostic shows correct structure but sync still fails
 
 **Try:**
+
 1. Download the sheet as CSV to inspect manually
 2. Check for special characters or encoding issues
 3. Verify email addresses don't have typos (missing @)
@@ -253,6 +267,7 @@ Before syncing, verify:
 ### Issue: Can't find the diagnostic button
 
 **Try:**
+
 1. Refresh your browser (Ctrl+R or Cmd+R)
 2. Clear browser cache
 3. Try a different browser
@@ -260,6 +275,7 @@ Before syncing, verify:
 ### Issue: Diagnostic API returns 500 error
 
 **Check:**
+
 1. Is the spreadsheet ID correct?
 2. Is the sheet ID correct?
 3. Can you access the sheet manually in Google Sheets?
@@ -282,6 +298,7 @@ To prevent this issue in the future:
 ## Contact Support
 
 If you've followed all steps and still have issues:
+
 1. Run the diagnostic and save the output
 2. Note which sheets (October, November, December) are affected
 3. Note any error messages from the sync attempt

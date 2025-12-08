@@ -139,8 +139,7 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         // Look for email - prioritize columns with "email"
         if (
           !emailValue &&
-          (normalizedKey.includes("email") ||
-            normalizedKey.includes("mail")) &&
+          (normalizedKey.includes("email") || normalizedKey.includes("mail")) &&
           strValue
         ) {
           emailValue = strValue;
@@ -192,7 +191,9 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       };
     });
 
-    const validLeads = validationResults.filter((item) => item.isValid).map((item) => item.lead);
+    const validLeads = validationResults
+      .filter((item) => item.isValid)
+      .map((item) => item.lead);
 
     // Log validation issues for debugging
     const invalidLeads = validationResults.filter((item) => !item.isValid);

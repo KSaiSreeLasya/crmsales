@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, CheckCircle2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
@@ -12,7 +18,9 @@ interface DiagnosticResult {
   columnNames: string[];
   sampleRows: Array<{
     rowNum: number;
-    columns: { [key: string]: { value: string; type: string; fullLength: number } };
+    columns: {
+      [key: string]: { value: string; type: string; fullLength: number };
+    };
   }>;
   issues: string[];
   recommendation: string;
@@ -24,7 +32,11 @@ interface Props {
   sheetName: string;
 }
 
-export function SheetDiagnosticPanel({ spreadsheetId, sheetId, sheetName }: Props) {
+export function SheetDiagnosticPanel({
+  spreadsheetId,
+  sheetId,
+  sheetName,
+}: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<DiagnosticResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -138,17 +150,24 @@ export function SheetDiagnosticPanel({ spreadsheetId, sheetId, sheetName }: Prop
               <p className="text-sm font-semibold">Sample Data (First Row):</p>
               <div className="text-sm text-slate-600 space-y-2 max-h-[300px] overflow-y-auto">
                 {result.sampleRows[0] ? (
-                  Object.entries(result.sampleRows[0].columns).map(([colName, colData]: [string, any]) => (
-                    <div key={colName} className="border-l-2 border-slate-300 pl-2">
-                      <div className="font-mono text-xs font-semibold">{colName}</div>
-                      <div className="text-xs">
-                        Value: {colData.value || "(empty)"}
+                  Object.entries(result.sampleRows[0].columns).map(
+                    ([colName, colData]: [string, any]) => (
+                      <div
+                        key={colName}
+                        className="border-l-2 border-slate-300 pl-2"
+                      >
+                        <div className="font-mono text-xs font-semibold">
+                          {colName}
+                        </div>
+                        <div className="text-xs">
+                          Value: {colData.value || "(empty)"}
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          Type: {colData.type} | Length: {colData.fullLength}
+                        </div>
                       </div>
-                      <div className="text-xs text-slate-500">
-                        Type: {colData.type} | Length: {colData.fullLength}
-                      </div>
-                    </div>
-                  ))
+                    ),
+                  )
                 ) : (
                   <p className="text-slate-500">No data available</p>
                 )}
@@ -156,7 +175,9 @@ export function SheetDiagnosticPanel({ spreadsheetId, sheetId, sheetName }: Prop
             </div>
 
             <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-              <p className="text-sm font-semibold text-blue-900 mb-2">Recommendation:</p>
+              <p className="text-sm font-semibold text-blue-900 mb-2">
+                Recommendation:
+              </p>
               <p className="text-sm text-blue-800">{result.recommendation}</p>
             </div>
           </div>
