@@ -1134,6 +1134,16 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
       const rowsSkipped = leads.length - validLeads.length;
       const emptyRowsRemoved = validLeads.length - leadsToSync.length;
 
+      // Build column mapping info for user feedback
+      const columnMappingInfo = Object.entries(columnMapping).map(([fieldName, info]) => ({
+        field: fieldName,
+        detected: info.detected,
+        acceptedNames: info.expected,
+        message: info.detected
+          ? `✓ ${fieldName} column detected`
+          : `⚠ ${fieldName} not detected. Expected column names: ${info.expected.join(", ")}`,
+      }));
+
       res.json({
         success: true,
         message: `Successfully synced ${updateCount + insertCount} leads${failureCount > 0 ? ` (${failureCount} failed)` : ""}`,
@@ -1152,6 +1162,12 @@ export const handleSyncLeadsDynamic: RequestHandler = async (req, res) => {
         sheetId: sheetId,
         columnsIncluded:
           validatedLeads.length > 0 ? Object.keys(validatedLeads[0]) : [],
+        detectedColumns,
+        columnMapping: columnMappingInfo,
+        columnRenameGuide: {
+          instruction: "If you want to detect additional columns, rename them to one of the accepted names below:",
+          fields: columnMappingInfo.filter(c => !c.detected),
+        },
       });
     } catch (err) {
       console.error("Error during sync operation:", err);
